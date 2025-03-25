@@ -70,6 +70,10 @@ export type UseMcpResult = {
    * @returns Auth URL that can be used to manually open a new window
    */
   authenticate: () => Promise<string | undefined>
+  /**
+   * Clear all localStorage items for this server
+   */
+  clearStorage: () => void
 }
 
 type StoredState = {
@@ -118,6 +122,44 @@ class BrowserOAuthClientProvider {
       client_name: this.clientName,
       client_uri: this.clientUri,
     }
+  }
+
+  /**
+   * Clears all storage items related to this server
+   * @returns The number of items cleared
+   */
+  clearStorage(): number {
+    const prefix = `${this.storageKeyPrefix}_${this.serverUrlHash}`;
+    const keysToRemove = [];
+    
+    // Find all keys that match the prefix
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    
+    // Also check for any state keys
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(`${this.storageKeyPrefix}:state_`)) {
+        // Load state to check if it's for this server
+        try {
+          const state = JSON.parse(localStorage.getItem(key) || '{}');
+          if (state.serverUrlHash === this.serverUrlHash) {
+            keysToRemove.push(key);
+          }
+        } catch (e) {
+          // Ignore JSON parse errors
+        }
+      }
+    }
+    
+    // Remove all matching keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    return keysToRemove.length;
   }
 
   private hashString(str: string): string {
@@ -722,6 +764,25 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     }
   }, [disconnect])
 
+  // Clear all localStorage items for this server
+  const clearStorage = useCallback(() => {
+    if (!authProviderRef.current) {
+      addLog('warn', 'Cannot clear storage: auth provider not initialized');
+      return;
+    }
+    
+    // Use the provider's method to clear storage
+    const clearedCount = authProviderRef.current.clearStorage();
+    
+    // Clear auth-related state in the hook
+    authUrlRef.current = undefined;
+    setAuthUrl(undefined);
+    metadataRef.current = undefined;
+    codeVerifierRef.current = undefined;
+    
+    addLog('info', `Cleared ${clearedCount} storage items for server`);
+  }, [addLog]);
+
   return {
     state,
     tools,
@@ -732,6 +793,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     retry,
     disconnect,
     authenticate,
+    clearStorage,
   }
 }
 
