@@ -20,13 +20,9 @@
     "check": "prettier --check . && tsc"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.7.0",
-    "express": "^4.21.2",
-    "open": "^10.1.0"
+    "@modelcontextprotocol/sdk": "^1.7.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^22.13.10",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
