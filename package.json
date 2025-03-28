@@ -2,9 +2,6 @@
   "name": "use-mcp",
   "version": "0.0.4",
   "type": "module",
-  "bin": {
-    "mcp-remote": "dist/cli/proxy.js"
-  },
   "files": [
     "dist",
     "README.md",
