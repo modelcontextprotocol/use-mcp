@@ -16,25 +16,23 @@ This library is designed to be used alongside the Vercel AI SDK (`ai`) or simila
 
 ## Installation
 
-You need to install this library and the official MCP SDK:
-
 ```bash
-npm install use-mcp @modelcontextprotocol/sdk
+npm install use-mcp
 # or
-yarn add use-mcp @modelcontextprotocol/sdk
+yarn add use-mcp
 # or
-pnpm add use-mcp @modelcontextprotocol/sdk
+pnpm add use-mcp
 ```
 
-## Core Exports
+## Util Exports
 
 This main package (use-mcp) exports utilities primarily for handling OAuth in the browser:
 
-* BrowserOAuthClientProvider: An implementation of the OAuthClientProvider interface from @modelcontextprotocol/sdk. It uses localStorage to store client information and tokens and handles the popup-based authorization flow. It's used internally by the useMcp hook but can be used independently if needed.
+* `BrowserOAuthClientProvider`: An implementation of the OAuthClientProvider interface from @modelcontextprotocol/sdk. It uses localStorage to store client information and tokens and handles the popup-based authorization flow. It's used internally by the useMcp hook but can be used independently if needed.
 
-* onMcpAuthorization: A function designed to be called on your OAuth callback page (e.g., /oauth/callback). It handles exchanging the authorization code (received from the auth server) for tokens, validating the state parameter, storing tokens using localStorage, and communicating success or failure back to the original application window that initiated the auth flow.
+* `onMcpAuthorization`: A function designed to be called on your OAuth callback page (e.g., /oauth/callback). It handles exchanging the authorization code (received from the auth server) for tokens, validating the state parameter, storing tokens using localStorage, and communicating success or failure back to the original application window that initiated the auth flow.
 
-React Integration (use-mcp/react)
+## React Integration (use-mcp/react)
 
 For React applications, the easiest way to use this library is via the useMcp hook.
 
@@ -43,7 +41,7 @@ Basic OAuth Callback Setup
 
 You need an endpoint in your application (e.g., /oauth/callback) that the OAuth server redirects the user back to after they approve the authorization request. This endpoint should call onMcpAuthorization.
 
-Example (Conceptual - using a simple script in HTML or a framework handler):
+### Example (Conceptual - using a simple script in HTML or a framework handler):
 
 ```tsx
 // pages/oauth/callback.js (or similar route file)
