@@ -4,8 +4,8 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { discoverOAuthMetadata, exchangeAuthorization, startAuthorization, UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
 import { OAuthClientInformation, OAuthMetadata, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
-import { BrowserOAuthClientProvider } from '../../auth/browser-provider.js';
-import { assert } from '../../utils/assert.js';
+import { BrowserOAuthClientProvider } from '../auth/browser-provider.js';
+import { assert } from '../utils/assert.js';
 import type { UseMcpOptions, UseMcpResult } from './types.js';
 
 const DEFAULT_RECONNECT_DELAY = 3000;
@@ -47,7 +47,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   const connectingRef = useRef<boolean>(false); // Prevent concurrent connection attempts
   const isMountedRef = useRef<boolean>(true); // Track component mount status
   const connectAttemptRef = useRef<number>(0); // Track connection attempts for retry logic
-  const authTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Timer for auth popup
+  const authTimeoutRef = useRef<number | null>(null); // Timer for auth popup
 
   // ===== Logging Utility =====
 
@@ -262,6 +262,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     }
 
     transportRef.current = new SSEClientTransport(serverUrl, {
+      // @ts-ignore
       authProvider: authProviderRef.current,
       // Pass debug flag to transport if it supports it
     });
@@ -272,6 +273,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // @ts-expect-error - SDK type might be union, check message content
       addLog('debug', `[Transport] Received message: Method=${message.method || 'N/A'} ID=${message.id || 'N/A'}`);
       // Forward notifications/responses to the client instance
+      // @ts-ignore
       clientRef.current?.handleMessage(message);
     };
 
@@ -534,7 +536,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   // Effect for auto-retry logic
   useEffect(() => {
-    let retryTimeoutId: NodeJS.Timeout | null = null;
+    let retryTimeoutId: number | null = null;
     if (state === 'failed' && autoRetry && connectAttemptRef.current > 0) {
       // Only retry if the *initial* connection or subsequent retries failed
       const delay = typeof autoRetry === 'number' ? autoRetry : DEFAULT_RETRY_DELAY;

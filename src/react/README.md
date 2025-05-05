@@ -21,12 +21,12 @@ The useMcp hook manages the connection to an MCP server, handles authentication 
 ## Importing
 
 ```tsx
-import { useMcp } from 'use-mcp/react';
+import { useMcp } from 'use-mcp';
 // Optional: Import types if needed
-import type { UseMcpOptions, UseMcpResult, Tool } from 'use-mcp/react';
+import type { UseMcpOptions, UseMcpResult, Tool } from 'use-mcp';
 ```
 
-## Basic Usage
+## Usage
 
 ```tsx
 import React from 'react';
@@ -142,7 +142,7 @@ function MyChatComponent() {
 export default MyChatComponent;
 ```
 
-Hook Options (UseMcpOptions)
+### Hook Options (UseMcpOptions)
 
 * url (required): The /sse URL of your MCP server.
 * clientName: Name used for OAuth dynamic client registration (if applicable). Defaults to "MCP React Client".
@@ -155,7 +155,7 @@ Hook Options (UseMcpOptions)
 * autoReconnect: If true or a number (milliseconds), automatically tries to reconnect if an established connection is lost. Defaults to 3000 (3 seconds). Set to false to disable.
 * popupFeatures: The features string passed to window.open for the OAuth popup. Defaults to "width=600,height=700,resizable=yes,scrollbars=yes,status=yes".
 
-Hook Return Value (UseMcpResult)
+### Hook Return Value (UseMcpResult)
 
 * tools: An array of Tool objects provided by the server. Empty until state is 'ready'.
 * state: The current connection state ('discovering', 'authenticating', 'connecting', 'loading', 'ready', 'failed'). Use this to conditionally render UI or enable/disable features.
@@ -168,6 +168,6 @@ Hook Return Value (UseMcpResult)
 * authenticate(): Manually attempts to start the authentication flow. Useful for triggering the popup via a user click if it was initially blocked.
 * clearStorage(): Removes all authentication-related data (tokens, client info, code verifier, state) for the configured server URL from localStorage. Useful for development or allowing users to "log out". Automatically disconnects the client.
 
-Setting up the OAuth Callback Route
+### Setting up the OAuth Callback Route
 
 Remember to create the callback route (e.g., /oauth/callback) specified in callbackUrl and have it execute the onMcpAuthorization function exported from the main use-mcp package. See the root README for an example.

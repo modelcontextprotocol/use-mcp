@@ -36,8 +36,9 @@ This main package (use-mcp) exports utilities primarily for handling OAuth in th
 
 For React applications, the easiest way to use this library is via the useMcp hook.
 
-See the React README for detailed usage instructions and examples.
-Basic OAuth Callback Setup
+See the [src/react/README.md](src/react/README.md) for detailed usage instructions and examples.
+
+## Basic OAuth Callback Setup
 
 You need an endpoint in your application (e.g., /oauth/callback) that the OAuth server redirects the user back to after they approve the authorization request. This endpoint should call onMcpAuthorization.
 
