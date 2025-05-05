@@ -8,6 +8,11 @@
     "LICENSE"
   ],
   "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
+    },
     "./react": {
       "types": "./dist/react/index.d.ts",
       "require": "./dist/react/index.js",
@@ -20,7 +25,7 @@
     "check": "prettier --check . && tsc"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.7.0"
+    "@modelcontextprotocol/sdk": "^1.11.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.12",
@@ -32,8 +37,7 @@
   },
   "tsup": {
     "entry": [
-      "src/cli/client.ts",
-      "src/cli/proxy.ts",
+      "src/index.ts",
       "src/react/index.ts"
     ],
     "format": [

@@ -103,6 +103,7 @@ export async function onMcpAuthorization(
       authorizationCode: code,
       codeVerifier,
       // redirectUrl is typically required by the token endpoint for verification
+      // @ts-ignore
       redirectUrl: new URL('/oauth/callback', window.location.origin).toString(), // TODO: Make this configurable or get from provider instance?
     });
 

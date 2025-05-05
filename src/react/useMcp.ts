@@ -53,7 +53,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   const addLog = useCallback(
     (level: UseMcpResult['log'][0]['level'], message: string, ...args: unknown[]) => {
-      if (level === 'debug' && !debug) return;
+      // if (level === 'debug' && !debug) return;
 
       const fullMessage = args.length > 0 ? `${message} ${args.map(arg => JSON.stringify(arg)).join(' ')}` : message;
       console[level](`[useMcp] ${fullMessage}`);
@@ -507,7 +507,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       addLog('debug', 'Auth callback message listener removed.');
       clearTimeout(authTimeoutRef.current!);
     };
-  }, [addLog, failConnection, disconnect, connect]); // Dependencies: functions that handle success/failure
+  }, [addLog, failConnection, disconnect, connect, authTimeoutRef, isMountedRef]); // Dependencies: functions that handle success/failure
 
   // Effect for initial connection and auto-retry
   useEffect(() => {

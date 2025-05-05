@@ -186,6 +186,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
    * @param options Configuration for the popup window.
    * @returns An object indicating success, whether the popup was potentially blocked, and the URL used.
    */
+  // @ts-ignore
   async redirectToAuthorization(
     authorizationUrl: URL,
     metadata: OAuthMetadata,
