@@ -19,19 +19,7 @@ const AUTH_TIMEOUT = 5 * 60 * 1000; // 5 minutes for user to complete auth in po
  * @param options Configuration options for connecting to the MCP server.
  * @returns State and functions for interacting with the MCP connection.
  */
-// Counter to track number of renders (for debugging infinite loops)
-let renderCount = 0;
-const MAX_RENDERS = 10;
-
 export function useMcp(options: UseMcpOptions): UseMcpResult {
-  renderCount++;
-  console.log(`[useMcp] Hook rendered #${renderCount}`, Date.now());
-  
-  // Stop infinite renders for debugging
-  if (renderCount > MAX_RENDERS) {
-    console.error('TOO MANY RENDERS DETECTED - STOPPING INFINITE LOOP');
-    throw new Error('Infinite render loop detected in useMcp hook');
-  }
   const {
     url,
     clientName, // Passed to BrowserOAuthClientProvider
@@ -73,7 +61,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         setLog((prevLog) => [...prevLog, { level, message: fullMessage, timestamp: Date.now() }]);
       }
     },
-    [debug, isMountedRef],
+    [debug], // Remove isMountedRef as it's a ref and shouldn't be a dependency
   );
 
   // ===== Core Actions =====
@@ -226,14 +214,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   // ===== Connection Logic =====
 
   const connect = useCallback(async () => {
-    console.log(`[useMcp] connect callback executed #${renderCount}`, Date.now());
-    console.log('  → connect deps state:', { 
-      url,
-      addLog: !!addLog,
-      failConnection: !!failConnection,
-      disconnect: !!disconnect, 
-      state
-    });
     if (connectingRef.current) {
       addLog('debug', 'Connection attempt already in progress, skipping.');
       return;
@@ -313,7 +293,10 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       if (connectingRef.current || !isMountedRef.current) return;
 
       addLog('info', 'Transport connection closed.');
-      if (state === 'ready' && autoReconnect) {
+      // Use the current state directly from the state variable
+      const currentState = state;
+      
+      if (currentState === 'ready' && autoReconnect) {
         const delay = typeof autoReconnect === 'number' ? autoReconnect : DEFAULT_RECONNECT_DELAY;
         addLog('info', `Attempting to reconnect in ${delay}ms...`);
         setTimeout(() => {
@@ -324,7 +307,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         }, delay);
         // Set state to indicate reconnection attempt? Maybe 'connecting'?
         if (isMountedRef.current) setState('connecting');
-      } else if (state !== 'failed') {
+      } else if (currentState !== 'failed') {
         // If not ready or autoReconnect is off, treat unexpected close as failure
         failConnection('Connection closed unexpectedly.');
       }
@@ -396,10 +379,10 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     // Note: connectingRef is set to false within success/failure paths above or in openAuthPopup's failConnection.
 
   }, [
-    url, storageKeyPrefix, clientName, clientUri, callbackUrl, clientConfig,
-    addLog, failConnection, disconnect, state, autoReconnect, openAuthPopup,
-    // Explicitly list dependencies that should trigger re-connect if changed:
-    // url, storageKeyPrefix, callbackUrl, clientConfig.name, clientConfig.version (?),
+    url, storageKeyPrefix, clientName, clientUri, callbackUrl, 
+    addLog, failConnection, disconnect, openAuthPopup,
+    // Note: state and autoReconnect are accessed but shouldn't trigger recreation of connect
+    // as they're only used conditionally inside inner functions
   ]);
 
 
@@ -487,13 +470,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   // Effect for handling auth callback messages from popup
   useEffect(() => {
-    console.log(`[useMcp] Auth callback effect executed #${renderCount}`, Date.now());
-    console.log('  → Auth effect deps:', {
-      addLogChanged: !!addLog, 
-      failConnectionChanged: !!failConnection,
-      disconnectChanged: !!disconnect,
-      connectChanged: !!connect
-    });
     const messageHandler = (event: MessageEvent) => {
       // Security: Check origin
       if (event.origin !== window.location.origin) {
@@ -538,12 +514,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   // Effect for initial connection and auto-retry
   useEffect(() => {
-    console.log(`[useMcp] Initial connection effect executed #${renderCount}`, Date.now());
-    console.log('  → Connect effect deps:', {
-      url, 
-      storageKeyPrefix,
-      callbackUrl
-    });
     // Store mount status
     isMountedRef.current = true;
     addLog('debug', 'Component mounted, initiating connection.');
@@ -569,13 +539,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   // Effect for auto-retry logic
   useEffect(() => {
-    console.log(`[useMcp] Auto-retry effect executed #${renderCount}`, Date.now());
-    console.log('  → Retry effect deps:', {
-      state,
-      autoRetry,
-      retry: !!retry,
-      addLog: !!addLog
-    });
     let retryTimeoutId: number | null = null;
     if (state === 'failed' && autoRetry && connectAttemptRef.current > 0) {
       // Only retry if the *initial* connection or subsequent retries failed
