@@ -61,7 +61,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         setLog((prevLog) => [...prevLog, { level, message: fullMessage, timestamp: Date.now() }]);
       }
     },
-    [debug],
+    [debug, isMountedRef],
   );
 
   // ===== Core Actions =====
@@ -507,7 +507,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       addLog('debug', 'Auth callback message listener removed.');
       clearTimeout(authTimeoutRef.current!);
     };
-  }, [addLog, failConnection, disconnect, connect, authTimeoutRef, isMountedRef]); // Dependencies: functions that handle success/failure
+  }, [addLog, failConnection, disconnect, connect]); // Dependencies: functions that handle success/failure
 
   // Effect for initial connection and auto-retry
   useEffect(() => {
