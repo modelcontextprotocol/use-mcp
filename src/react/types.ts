@@ -66,7 +66,7 @@ export type UseMcpResult = {
    * @returns A promise that resolves with the authorization URL opened (or intended to be opened),
    *          or undefined if auth cannot be started.
    */
-  authenticate: () => Promise<string | undefined>;
+  authenticate: () => void;
   /** Clears all stored authentication data (tokens, client info, etc.) for this server URL from localStorage. */
   clearStorage: () => void;
 };

@@ -1,180 +1,137 @@
-import { exchangeAuthorization } from '@modelcontextprotocol/sdk/client/auth.js';
-import { OAuthClientInformation, OAuthMetadata } from '@modelcontextprotocol/sdk/shared/auth.js';
-import { StoredState } from './types.js';
+// callback.ts
+import { auth } from '@modelcontextprotocol/sdk/client/auth.js'
+import { BrowserOAuthClientProvider } from './browser-provider.js' // Adjust path
+import { StoredState } from './types.js' // Adjust path, ensure definition includes providerOptions
 
 /**
- * Handles the OAuth callback. This function should be invoked on your callback page
- * (e.g., /oauth/callback) with the URL query parameters.
- *
- * It validates the state parameter, retrieves stored context from localStorage,
- * exchanges the authorization code for tokens using the stored code verifier,
- * saves the tokens, and notifies the opener window.
- *
- * @param query The URL query parameters (e.g., from `window.location.search`).
- * @param options Configuration options.
- * @param options.storageKeyPrefix The prefix used for localStorage keys (must match the one used by `BrowserOAuthClientProvider`). Defaults to "mcp:auth".
- * @returns An object indicating success or failure with an error message.
+ * Handles the OAuth callback using the SDK's auth() function.
+ * Assumes it's running on the page specified as the callbackUrl.
  */
-export async function onMcpAuthorization(
-  query: Record<string, string>,
-  {
-    storageKeyPrefix = 'mcp:auth',
-  }: {
-    storageKeyPrefix?: string;
-  } = {},
-): Promise<{ success: boolean; error?: string }> {
-  const logPrefix = `[${storageKeyPrefix}-callback]`;
-  console.log(`${logPrefix} Handling OAuth callback with query:`, query);
+export async function onMcpAuthorization() {
+  const queryParams = new URLSearchParams(window.location.search);
+  const code = queryParams.get('code');
+  const state = queryParams.get('state');
+  const error = queryParams.get('error');
+  const errorDescription = queryParams.get('error_description');
+
+  const logPrefix = '[mcp-callback]'; // Generic prefix, or derive from stored state later
+  console.log(`${logPrefix} Handling callback...`, { code, state, error, errorDescription });
+
+  let provider: BrowserOAuthClientProvider | null = null;
+  let storedStateData: StoredState | null = null;
+  const stateKey = state ? `mcp:auth:state_${state}` : null; // Reconstruct state key prefix assumption
 
   try {
-    const code = query.code;
-    const state = query.state;
-    const error = query.error;
-    const errorDescription = query.error_description;
-
+    // --- Basic Error Handling ---
     if (error) {
       throw new Error(`OAuth error: ${error} - ${errorDescription || 'No description provided.'}`);
     }
-
     if (!code) {
       throw new Error('Authorization code not found in callback query parameters.');
     }
-    if (!state) {
-      throw new Error('State parameter not found in callback query parameters.');
+    if (!state || !stateKey) {
+      throw new Error('State parameter not found or invalid in callback query parameters.');
     }
 
-    // Retrieve the stored state using the state parameter from the query
-    const stateKey = `${storageKeyPrefix}:state_${state}`;
+    // --- Retrieve Stored State & Provider Options ---
     const storedStateJSON = localStorage.getItem(stateKey);
-
     if (!storedStateJSON) {
       throw new Error(`Invalid or expired state parameter "${state}". No matching state found in storage.`);
     }
-
-    let storedState: StoredState;
     try {
-      storedState = JSON.parse(storedStateJSON);
+      storedStateData = JSON.parse(storedStateJSON) as StoredState;
     } catch (e) {
       throw new Error('Failed to parse stored OAuth state.');
     }
 
     // Validate expiry
-    if (storedState.expiry < Date.now()) {
+    if (!storedStateData.expiry || storedStateData.expiry < Date.now()) {
+      localStorage.removeItem(stateKey); // Clean up expired state
       throw new Error('OAuth state has expired. Please try initiating authentication again.');
     }
 
-    const { authorizationUrl, serverUrlHash, metadata } = storedState;
-    console.log(`${logPrefix} Found valid state for server hash: ${serverUrlHash}`);
-
-    // Construct keys to retrieve client info and code verifier for this server instance
-    const clientInfoKey = `${storageKeyPrefix}_${serverUrlHash}_client_info`;
-    const codeVerifierKey = `${storageKeyPrefix}_${serverUrlHash}_code_verifier`;
-    const tokensKey = `${storageKeyPrefix}_${serverUrlHash}_tokens`;
-    const authUrlKey = `${storageKeyPrefix}_${serverUrlHash}_auth_url`; // Key for the potentially stored manual auth URL
-
-    const clientInfoStr = localStorage.getItem(clientInfoKey);
-    const codeVerifier = localStorage.getItem(codeVerifierKey);
-
-    if (!clientInfoStr) {
-      throw new Error(`Client information not found in storage (key: ${clientInfoKey}).`);
+    // Ensure provider options are present
+    if (!storedStateData.providerOptions) {
+      throw new Error('Stored state is missing required provider options.');
     }
-    if (!codeVerifier) {
-      throw new Error(`Code verifier not found in storage (key: ${codeVerifierKey}). Auth flow may be incomplete or timed out.`);
-    }
+    const { serverUrl, ...providerOptions } = storedStateData.providerOptions;
 
-    let clientInfo: OAuthClientInformation;
-    try {
-      clientInfo = JSON.parse(clientInfoStr);
-    } catch (e) {
-      throw new Error('Failed to parse stored client information.');
-    }
 
-    console.log(`${logPrefix} Exchanging authorization code for token...`);
+    // --- Instantiate Provider ---
+    console.log(`${logPrefix} Re-instantiating provider for server: ${serverUrl}`);
+    provider = new BrowserOAuthClientProvider(serverUrl, providerOptions);
 
-    // Exchange the code for tokens
-    const tokens = await exchangeAuthorization(new URL(metadata.token_endpoint), {
-      // Use token_endpoint from metadata
-      metadata,
-      clientInformation: clientInfo,
-      authorizationCode: code,
-      codeVerifier,
-      // redirectUrl is typically required by the token endpoint for verification
-      // @ts-ignore
-      redirectUrl: new URL('/oauth/callback', window.location.origin).toString(), // TODO: Make this configurable or get from provider instance?
-    });
+    // --- Call SDK Auth Function ---
+    console.log(`${logPrefix} Calling SDK auth() to exchange code...`);
+    // The SDK auth() function will internally:
+    // 1. Use provider.clientInformation()
+    // 2. Use provider.codeVerifier()
+    // 3. Call exchangeAuthorization()
+    // 4. Use provider.saveTokens() on success
+    const authResult = await auth(provider, { serverUrl, authorizationCode: code });
 
-    console.log(`${logPrefix} Token exchange successful. Saving tokens...`);
+    if (authResult === 'AUTHORIZED') {
+      console.log(`${logPrefix} Authorization successful via SDK auth(). Notifying opener...`);
+      // --- Notify Opener and Close (Success) ---
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage(
+          { type: 'mcp_auth_callback', success: true },
+          window.location.origin,
+        );
+        window.close();
+      } else {
+        console.warn(`${logPrefix} No opener window detected. Redirecting to root.`);
+        window.location.href = '/'; // Or a configured post-auth destination
+      }
+      // Clean up state ONLY on success and after notifying opener
+      localStorage.removeItem(stateKey);
 
-    // Save the obtained tokens
-    localStorage.setItem(tokensKey, JSON.stringify(tokens));
-
-    // Clean up the persisted manual auth URL if it exists
-    localStorage.removeItem(authUrlKey);
-    // Remove the state key immediately after retrieval (it's single-use)
-    localStorage.removeItem(stateKey);
-    // Remove the code verifier after retrieving it
-    localStorage.removeItem(codeVerifierKey);
-
-    console.log(`${logPrefix} Tokens saved. Notifying opener window.`);
-
-    // Notify the original window (opener) that authentication succeeded
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage(
-        {
-          type: 'mcp_auth_callback',
-          success: true,
-          // Optionally pass serverUrlHash if multiple hooks might be listening
-          serverUrlHash: serverUrlHash,
-        },
-        window.location.origin, // Target origin must match the opener's origin
-      );
-      // Close the popup window
-      window.close();
     } else {
-      // If there's no opener, this might be a full page redirect flow.
-      // Redirect back to the app's main page or a specific post-auth page.
-      console.warn(`${logPrefix} No opener window detected. Assuming redirect flow. Redirecting to root.`);
-      window.location.href = '/'; // Adjust as needed
+      // This case shouldn't happen if `authorizationCode` is provided to `auth()`
+      console.warn(`${logPrefix} SDK auth() returned unexpected status: ${authResult}`);
+      throw new Error(`Unexpected result from authentication library: ${authResult}`);
     }
 
-    return { success: true };
   } catch (err) {
     console.error(`${logPrefix} Error during OAuth callback handling:`, err);
     const errorMessage = err instanceof Error ? err.message : String(err);
 
-    // Attempt to notify the opener window about the failure
+    // --- Notify Opener and Display Error (Failure) ---
     if (window.opener && !window.opener.closed) {
       window.opener.postMessage(
-        {
-          type: 'mcp_auth_callback',
-          success: false,
-          error: errorMessage,
-          // Optionally pass serverUrlHash
-          // serverUrlHash: storedState?.serverUrlHash // Might not be available if state parsing failed
-        },
+        { type: 'mcp_auth_callback', success: false, error: errorMessage },
         window.location.origin,
       );
+      // Optionally close even on error, depending on UX preference
+      // window.close();
     }
 
-    // Display error in the callback window itself for better debugging
+    // Display error in the callback window
     try {
       document.body.innerHTML = `
-        <div style="font-family: sans-serif; padding: 20px;">
-          <h1>Authentication Error</h1>
-          <p style="color: red; background-color: #ffebeb; border: 1px solid red; padding: 10px; border-radius: 4px;">
-            ${errorMessage}
-          </p>
-          <p>You can close this window.</p>
-          <pre style="font-size: 0.8em; color: #555; margin-top: 20px; white-space: pre-wrap;">${
+            <div style="font-family: sans-serif; padding: 20px;">
+            <h1>Authentication Error</h1>
+            <p style="color: red; background-color: #ffebeb; border: 1px solid red; padding: 10px; border-radius: 4px;">
+                ${errorMessage}
+            </p>
+            <p>You can close this window or <a href="#" onclick="window.close(); return false;">click here to close</a>.</p>
+            <pre style="font-size: 0.8em; color: #555; margin-top: 20px; white-space: pre-wrap;">${
         err instanceof Error ? err.stack : ''
       }</pre>
-        </div>
-      `;
+            </div>
+        `;
     } catch (displayError) {
-      // Fallback if document.body is not available or writable
       console.error(`${logPrefix} Could not display error in callback window:`, displayError);
     }
-
-    return { success: false, error: errorMessage };
+    // Clean up potentially invalid state on error
+    if (stateKey) {
+      localStorage.removeItem(stateKey);
+    }
+    // Clean up potentially dangling verifier or last_auth_url if auth failed badly
+    // Note: saveTokens should clean these on success
+    if (provider) {
+      localStorage.removeItem(provider.getKey('code_verifier'));
+      localStorage.removeItem(provider.getKey('last_auth_url'));
+    }
   }
 }

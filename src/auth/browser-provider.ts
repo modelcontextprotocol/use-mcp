@@ -1,25 +1,24 @@
-import { OAuthClientInformation, OAuthMetadata, OAuthTokens } from '@modelcontextprotocol/sdk/shared/auth.js';
+// browser-provider.ts
+import { OAuthClientInformation, OAuthMetadata, OAuthTokens, OAuthClientMetadata } from '@modelcontextprotocol/sdk/shared/auth.js';
 import { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
-import { StoredState } from './types.js';
+// Assuming StoredState is defined in ./types.js and includes fields for provider options
+import { StoredState } from './types.js'; // Adjust path if necessary
+
+
 
 /**
  * Browser-compatible OAuth client provider for MCP using localStorage.
- * Handles storing client information, tokens, and managing the popup/redirect flow.
  */
 export class BrowserOAuthClientProvider implements OAuthClientProvider {
-  private storageKeyPrefix: string;
-  private serverUrlHash: string;
-  private clientName: string;
-  private clientUri: string;
-  private callbackUrl: string;
+  readonly serverUrl: string;
+  readonly storageKeyPrefix: string;
+  readonly serverUrlHash: string;
+  readonly clientName: string;
+  readonly clientUri: string;
+  readonly callbackUrl: string;
 
-  /**
-   * Creates an instance of BrowserOAuthClientProvider.
-   * @param serverUrl The base URL of the MCP server requiring authentication.
-   * @param options Configuration options for the provider.
-   */
   constructor(
-    readonly serverUrl: string,
+    serverUrl: string,
     options: {
       storageKeyPrefix?: string;
       clientName?: string;
@@ -27,26 +26,21 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       callbackUrl?: string;
     } = {},
   ) {
+    this.serverUrl = serverUrl;
     this.storageKeyPrefix = options.storageKeyPrefix || 'mcp:auth';
-    // Hash the server URL to create unique storage keys per server
     this.serverUrlHash = this.hashString(serverUrl);
     this.clientName = options.clientName || 'MCP Browser Client';
-    this.clientUri = options.clientUri || window.location.origin;
-    // Default callback URL is /oauth/callback on the current origin
-    this.callbackUrl = options.callbackUrl || new URL('/oauth/callback', window.location.origin).toString();
+    this.clientUri = options.clientUri || (typeof window !== 'undefined' ? window.location.origin : '');
+    this.callbackUrl = options.callbackUrl || (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback');
   }
 
-  /**
-   * The redirect URL used for the OAuth flow.
-   */
+  // --- SDK Interface Methods ---
+
   get redirectUrl(): string {
     return this.callbackUrl;
   }
 
-  /**
-   * Metadata about this client, sent during dynamic client registration (if supported by the server).
-   */
-  get clientMetadata() {
+  get clientMetadata(): OAuthClientMetadata {
     return {
       redirect_uris: [this.redirectUrl],
       token_endpoint_auth_method: 'none', // Public client
@@ -58,222 +52,180 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     };
   }
 
-  /**
-   * Clears all localStorage items associated with this specific server URL.
-   * @returns The number of items removed from storage.
-   */
-  clearStorage(): number {
-    const prefix = `${this.storageKeyPrefix}_${this.serverUrlHash}`;
-    const keysToRemove: string[] = [];
-
-    // Find keys directly related to this server instance
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(prefix)) {
-        keysToRemove.push(key);
-      }
-    }
-
-    // Also check any persisted OAuth state keys
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(`${this.storageKeyPrefix}:state_`)) {
-        try {
-          const item = localStorage.getItem(key);
-          if (item) {
-            const state = JSON.parse(item) as Partial<StoredState>;
-            // If state belongs to this server, mark for removal
-            if (state.serverUrlHash === this.serverUrlHash) {
-              keysToRemove.push(key);
-            }
-          }
-        } catch (e) {
-          console.warn(`[${this.storageKeyPrefix}] Error parsing state key ${key}:`, e);
-          // Optionally remove malformed keys
-          // keysToRemove.push(key);
-        }
-      }
-    }
-
-    // Remove all identified keys
-    const uniqueKeysToRemove = [...new Set(keysToRemove)]; // Ensure uniqueness
-    uniqueKeysToRemove.forEach(key => localStorage.removeItem(key));
-
-    return uniqueKeysToRemove.length;
-  }
-
-  private hashString(str: string): string {
-    // Simple, non-cryptographic hash function suitable for creating unique keys
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    // Use absolute value and convert to hex for a cleaner key
-    return Math.abs(hash).toString(16);
-  }
-
-  private getKey(key: string): string {
-    return `${this.storageKeyPrefix}_${this.serverUrlHash}_${key}`;
-  }
-
-  /**
-   * Retrieves client information (like client_id) from storage.
-   * @returns The stored client information, or undefined if not found/invalid.
-   */
   async clientInformation(): Promise<OAuthClientInformation | undefined> {
     const key = this.getKey('client_info');
     const data = localStorage.getItem(key);
     if (!data) return undefined;
-
     try {
-      // TODO: Add validation using a schema (e.g., Zod)
+      // TODO: Add validation using a schema
       return JSON.parse(data) as OAuthClientInformation;
     } catch (e) {
-      console.warn(`[${this.storageKeyPrefix}] Failed to parse client information from storage:`, e);
-      localStorage.removeItem(key); // Clean up invalid data
+      console.warn(`[${this.storageKeyPrefix}] Failed to parse client information:`, e);
+      localStorage.removeItem(key);
       return undefined;
     }
   }
 
-  /**
-   * Saves client information to storage.
-   * @param clientInformation The client information to save.
-   */
-  async saveClientInformation(clientInformation: OAuthClientInformation): Promise<void> {
+  // NOTE: The SDK's auth() function uses this if dynamic registration is needed.
+  // Ensure your OAuthClientInformationFull matches the expected structure if DCR is used.
+  async saveClientInformation(clientInformation: OAuthClientInformation /* | OAuthClientInformationFull */): Promise<void> {
     const key = this.getKey('client_info');
+    // Cast needed if handling OAuthClientInformationFull specifically
     localStorage.setItem(key, JSON.stringify(clientInformation));
   }
 
-  /**
-   * Retrieves OAuth tokens (access token, refresh token) from storage.
-   * @returns The stored tokens, or undefined if not found/invalid.
-   */
+
   async tokens(): Promise<OAuthTokens | undefined> {
     const key = this.getKey('tokens');
     const data = localStorage.getItem(key);
     if (!data) return undefined;
-
     try {
-      // TODO: Add validation using a schema (e.g., Zod)
-      const tokens = JSON.parse(data) as OAuthTokens;
-      // Optional: Check token expiry here if 'expires_at' is stored
-      return tokens;
+      // TODO: Add validation
+      return JSON.parse(data) as OAuthTokens;
     } catch (e) {
-      console.warn(`[${this.storageKeyPrefix}] Failed to parse tokens from storage:`, e);
-      localStorage.removeItem(key); // Clean up invalid data
+      console.warn(`[${this.storageKeyPrefix}] Failed to parse tokens:`, e);
+      localStorage.removeItem(key);
       return undefined;
     }
   }
 
-  /**
-   * Saves OAuth tokens to storage.
-   * @param tokens The tokens to save.
-   */
   async saveTokens(tokens: OAuthTokens): Promise<void> {
     const key = this.getKey('tokens');
-    // Optional: Calculate and store expiry timestamp:
-    // const storedTokens = { ...tokens, expires_at: Date.now() + (tokens.expires_in || 0) * 1000 };
     localStorage.setItem(key, JSON.stringify(tokens));
+    // Clean up code verifier and last auth URL after successful token save
+    localStorage.removeItem(this.getKey('code_verifier'));
+    localStorage.removeItem(this.getKey('last_auth_url'));
   }
 
-  /**
-   * Initiates the OAuth authorization flow by opening a popup window.
-   * Stores necessary state in localStorage for the callback handler.
-   * @param authorizationUrl The fully constructed authorization URL (including client_id, redirect_uri, scope, code_challenge, etc.).
-   * @param metadata The discovered OAuth metadata of the server.
-   * @param options Configuration for the popup window.
-   * @returns An object indicating success, whether the popup was potentially blocked, and the URL used.
-   */
-  // @ts-ignore
-  async redirectToAuthorization(
-    authorizationUrl: URL,
-    metadata: OAuthMetadata,
-    options?: {
-      popupFeatures?: string;
-    },
-  ): Promise<{ success: boolean; popupBlocked?: boolean; url: string }> {
-    // Generate a unique state parameter for this authorization request
-    const state = crypto.randomUUID(); // Use crypto.randomUUID for better randomness
-    const stateKey = `${this.storageKeyPrefix}:state_${state}`;
-
-    // Store context needed by the callback handler, associated with the state param
-    localStorage.setItem(
-      stateKey,
-      JSON.stringify({
-        authorizationUrl: authorizationUrl.origin, // Store origin for exchangeAuthorization
-        metadata,
-        serverUrlHash: this.serverUrlHash, // Link state back to this server instance
-        expiry: Date.now() + 1000 * 60 * 10, // State expires in 10 minutes
-      } as StoredState),
-    );
-    authorizationUrl.searchParams.set('state', state);
-
-    const authUrlString = authorizationUrl.toString();
-    const popupFeatures = options?.popupFeatures || 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes';
-
-    // Persist the exact auth URL in case the popup fails and manual navigation is needed
-    localStorage.setItem(this.getKey('auth_url'), authUrlString);
-
-    try {
-      // Attempt to open the authorization URL in a new window
-      const popup = window.open(authUrlString, `mcp_auth_${this.serverUrlHash}`, popupFeatures);
-
-      // Check if the popup window handle was obtained and if it's not immediately closed
-      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-        // This is the most common indicator of a popup blocker
-        console.warn(`[${this.storageKeyPrefix}] Popup likely blocked by browser.`);
-        return { success: false, popupBlocked: true, url: authUrlString };
-      }
-
-      // Additional check: try accessing a property that might throw if blocked cross-origin
-      // Note: This might not always work due to browser security policies evolution
-      try {
-        // Accessing location.href will likely throw a cross-origin error immediately
-        // if the popup is loading the auth server's domain, which is expected.
-        // What we *really* want to detect is if the popup *failed to open at all*.
-        // The initial check (!popup || popup.closed) is usually sufficient.
-        // Focusing the popup can be a sign it opened successfully.
-        popup.focus();
-      } catch (e) {
-        // If accessing the popup threw an error immediately, it might indicate a deeper issue,
-        // but often it's just a standard cross-origin security restriction.
-        // The initial check is more reliable for detecting simple blocking.
-        console.debug(`[${this.storageKeyPrefix}] Accessing popup properties caused potential cross-origin error (normal):`, e);
-      }
-
-      // If we reached here, the popup handle was obtained and wasn't immediately closed.
-      return { success: true, url: authUrlString };
-    } catch (e) {
-      // Catch any unexpected errors during window.open
-      console.error(`[${this.storageKeyPrefix}] Error opening popup window:`, e);
-      return { success: false, popupBlocked: true, url: authUrlString }; // Assume blocked on error
-    }
-  }
-
-  /**
-   * Saves the PKCE code verifier to storage.
-   * @param codeVerifier The code verifier string.
-   */
   async saveCodeVerifier(codeVerifier: string): Promise<void> {
     const key = this.getKey('code_verifier');
     localStorage.setItem(key, codeVerifier);
   }
 
-  /**
-   * Retrieves the PKCE code verifier from storage.
-   * @returns The stored code verifier.
-   * @throws If the code verifier is not found in storage.
-   */
   async codeVerifier(): Promise<string> {
     const key = this.getKey('code_verifier');
     const verifier = localStorage.getItem(key);
     if (!verifier) {
       throw new Error(`[${this.storageKeyPrefix}] Code verifier not found in storage for key ${key}. Auth flow likely corrupted or timed out.`);
     }
-    // Optionally remove the verifier after retrieving it, as it's single-use
-    // localStorage.removeItem(key);
+    // SDK's auth() retrieves this BEFORE exchanging code. Don't remove it here.
+    // It will be removed in saveTokens on success.
     return verifier;
+  }
+
+  /**
+   * Redirects the user agent to the authorization URL, storing necessary state.
+   * This now adheres to the SDK's void return type expectation for the interface.
+   * @param authorizationUrl The fully constructed authorization URL from the SDK.
+   */
+  async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    // Generate a unique state parameter for this authorization request
+    const state = crypto.randomUUID();
+    const stateKey = `${this.storageKeyPrefix}:state_${state}`;
+
+    // Store context needed by the callback handler, associated with the state param
+    const stateData: StoredState = {
+      serverUrlHash: this.serverUrlHash,
+      expiry: Date.now() + 1000 * 60 * 10, // State expires in 10 minutes
+      // Store provider options needed to reconstruct on callback
+      providerOptions: {
+        serverUrl: this.serverUrl,
+        storageKeyPrefix: this.storageKeyPrefix,
+        clientName: this.clientName,
+        clientUri: this.clientUri,
+        callbackUrl: this.callbackUrl,
+      }
+    };
+    localStorage.setItem(stateKey, JSON.stringify(stateData));
+
+    // Add the state parameter to the URL
+    authorizationUrl.searchParams.set('state', state);
+    const authUrlString = authorizationUrl.toString();
+
+    // Persist the exact auth URL in case the popup fails and manual navigation is needed
+    localStorage.setItem(this.getKey('last_auth_url'), authUrlString);
+
+    // Attempt to open the popup
+    const popupFeatures = 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes'; // Make configurable if needed
+    try {
+      const popup = window.open(authUrlString, `mcp_auth_${this.serverUrlHash}`, popupFeatures);
+
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        console.warn(`[${this.storageKeyPrefix}] Popup likely blocked by browser. Manual navigation might be required using the stored URL.`);
+        // Cannot signal failure back via SDK auth() directly.
+        // useMcp will need to rely on timeout or manual trigger if stuck.
+      } else {
+        popup.focus();
+        console.info(`[${this.storageKeyPrefix}] Redirecting to authorization URL in popup.`);
+      }
+    } catch (e) {
+      console.error(`[${this.storageKeyPrefix}] Error opening popup window:`, e);
+      // Cannot signal failure back via SDK auth() directly.
+    }
+    // Regardless of popup success, the interface expects this method to initiate the redirect.
+    // If the popup failed, the user journey stops here until manual action or timeout.
+  }
+
+  // --- Helper Methods ---
+
+  /**
+   * Retrieves the last URL passed to `redirectToAuthorization`. Useful for manual fallback.
+   */
+  getLastAttemptedAuthUrl(): string | null {
+    return localStorage.getItem(this.getKey('last_auth_url'));
+  }
+
+
+  clearStorage(): number {
+    const prefixPattern = `${this.storageKeyPrefix}_${this.serverUrlHash}_`;
+    const statePattern = `${this.storageKeyPrefix}:state_`;
+    const keysToRemove: string[] = [];
+    let count = 0;
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+
+      if (key.startsWith(prefixPattern)) {
+        keysToRemove.push(key);
+      } else if (key.startsWith(statePattern)) {
+        try {
+          const item = localStorage.getItem(key);
+          if (item) {
+            // Check if state belongs to this provider instance based on serverUrlHash
+            // We need to parse cautiously as the structure isn't guaranteed.
+            const state = JSON.parse(item) as Partial<StoredState>;
+            if (state.serverUrlHash === this.serverUrlHash) {
+              keysToRemove.push(key);
+            }
+          }
+        } catch (e) {
+          console.warn(`[${this.storageKeyPrefix}] Error parsing state key ${key} during clearStorage:`, e);
+          // Optionally remove malformed keys
+          // keysToRemove.push(key);
+        }
+      }
+    }
+
+    const uniqueKeysToRemove = [...new Set(keysToRemove)];
+    uniqueKeysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      count++;
+    });
+    return count;
+  }
+
+  private hashString(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash;
+    }
+    return Math.abs(hash).toString(16);
+  }
+
+  getKey(keySuffix: string): string {
+    return `${this.storageKeyPrefix}_${this.serverUrlHash}_${keySuffix}`;
   }
 }
