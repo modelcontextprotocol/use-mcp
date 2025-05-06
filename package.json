@@ -24,10 +24,8 @@
     "build": "tsup",
     "check": "prettier --check . && tsc"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0"
-  },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.11.0",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",

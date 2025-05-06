@@ -7,11 +7,10 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@modelcontextprotocol/sdk':
         specifier: ^1.11.0
         version: 1.11.0
-    devDependencies:
       '@types/react':
         specifier: ^19.0.12
         version: 19.0.12

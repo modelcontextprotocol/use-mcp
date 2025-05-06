@@ -46,8 +46,6 @@ export async function onMcpAuthorization(
     // Retrieve the stored state using the state parameter from the query
     const stateKey = `${storageKeyPrefix}:state_${state}`;
     const storedStateJSON = localStorage.getItem(stateKey);
-    // Remove the state key immediately after retrieval (it's single-use)
-    localStorage.removeItem(stateKey);
 
     if (!storedStateJSON) {
       throw new Error(`Invalid or expired state parameter "${state}". No matching state found in storage.`);
@@ -76,8 +74,6 @@ export async function onMcpAuthorization(
 
     const clientInfoStr = localStorage.getItem(clientInfoKey);
     const codeVerifier = localStorage.getItem(codeVerifierKey);
-    // Remove the code verifier after retrieving it
-    localStorage.removeItem(codeVerifierKey);
 
     if (!clientInfoStr) {
       throw new Error(`Client information not found in storage (key: ${clientInfoKey}).`);
@@ -114,6 +110,10 @@ export async function onMcpAuthorization(
 
     // Clean up the persisted manual auth URL if it exists
     localStorage.removeItem(authUrlKey);
+    // Remove the state key immediately after retrieval (it's single-use)
+    localStorage.removeItem(stateKey);
+    // Remove the code verifier after retrieving it
+    localStorage.removeItem(codeVerifierKey);
 
     console.log(`${logPrefix} Tokens saved. Notifying opener window.`);
 
