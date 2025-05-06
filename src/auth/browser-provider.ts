@@ -4,8 +4,6 @@ import { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js';
 // Assuming StoredState is defined in ./types.js and includes fields for provider options
 import { StoredState } from './types.js'; // Adjust path if necessary
 
-
-
 /**
  * Browser-compatible OAuth client provider for MCP using localStorage.
  */
