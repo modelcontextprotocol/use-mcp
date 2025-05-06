@@ -403,7 +403,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           CallToolResultSchema, // Optional: Validate result against schema
         );
         addLog('info', `Tool "${name}" call successful.`);
-        return result.result; // Assuming CallToolResultSchema has a `result` field
+        return result; // Assuming CallToolResultSchema has a `result` field
       } catch (err) {
         addLog('error', `Error calling tool "${name}": ${err instanceof Error ? err.message : String(err)}`);
         // TODO: Should specific JSON-RPC errors be handled differently?
