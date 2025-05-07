@@ -1,90 +1,145 @@
 # use-mcp
 
-**⚠️ Experimental: This library is new and under active development. Expect breaking changes. Please report all issues to [https://github.com/geelen/use-mcp/issues](https://github.com/geelen/use-mcp/issues).**
-
-`use-mcp` provides browser-based utilities for connecting to servers implementing the [Model Context Protocol (MCP)](https://github.com/modelcontext/protocol). It simplifies handling connections, managing authentication (including OAuth 2.0 Authorization Code Flow with PKCE suitable for public clients like web apps), and accessing resources like Tools provided by the MCP server.
-
-This library is designed to be used alongside the Vercel AI SDK (`ai`) or similar libraries, allowing you to easily integrate MCP tools into your LLM application's frontend.
-
-## Features
-
-*   Connects to MCP servers via Server-Sent Events (SSE).
-*   Handles MCP JSON-RPC messaging.
-*   Implements browser-friendly OAuth 2.0 authentication (Authorization Code with PKCE) using popups and `localStorage`.
-*   Provides framework-agnostic auth utilities.
-*   Includes a React hook (`useMcp`) for easy integration into React applications (via `use-mcp/react`).
+A lightweight React hook for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Simplifies authentication and tool calling for AI systems implementing the MCP standard.
 
 ## Installation
 
 ```bash
 npm install use-mcp
 # or
-yarn add use-mcp
-# or
 pnpm add use-mcp
+# or
+yarn add use-mcp
 ```
 
-## Util Exports
+## Features
 
-This main package (use-mcp) exports utilities primarily for handling OAuth in the browser:
+- 🔄 Automatic connection management with reconnection and retries
+- 🔐 OAuth authentication flow handling with popup and fallback support
+- 📦 Simple React hook interface for MCP integration
+- 🧰 TypeScript types for editor assistance and type checking
+- 📝 Comprehensive logging for debugging
+- 🌐 Works with both HTTP and SSE (Server-Sent Events) transports
 
-* `BrowserOAuthClientProvider`: An implementation of the OAuthClientProvider interface from @modelcontextprotocol/sdk. It uses localStorage to store client information and tokens and handles the popup-based authorization flow. It's used internally by the useMcp hook but can be used independently if needed.
-
-* `onMcpAuthorization`: A function designed to be called on your OAuth callback page (e.g., /oauth/callback). It handles exchanging the authorization code (received from the auth server) for tokens, validating the state parameter, storing tokens using localStorage, and communicating success or failure back to the original application window that initiated the auth flow.
-
-## React Integration (use-mcp/react)
-
-For React applications, the easiest way to use this library is via the useMcp hook.
-
-See the [src/react/README.md](src/react/README.md) for detailed usage instructions and examples.
-
-## Basic OAuth Callback Setup
-
-You need an endpoint in your application (e.g., /oauth/callback) that the OAuth server redirects the user back to after they approve the authorization request. This endpoint should call onMcpAuthorization.
-
-### Example (Conceptual - using a simple script in HTML or a framework handler):
+## Quick Start
 
 ```tsx
-// pages/oauth/callback.js (or similar route file)
-import { useEffect } from 'react'; // Or framework equivalent
-import { onMcpAuthorization } from 'use-mcp';
+import { useMcp } from 'use-mcp/react'
 
-export default function OAuthCallbackPage() {
-  useEffect(() => {
-    // Extract query parameters from window.location.search
-    const queryParams = Object.fromEntries(
-      new URLSearchParams(window.location.search).entries()
-    );
+function MyAIComponent() {
+  const {
+    state,          // Connection state: 'discovering' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
+    tools,          // Available tools from MCP server
+    error,          // Error message if connection failed
+    callTool,       // Function to call tools on the MCP server
+    retry,          // Retry connection manually
+    authenticate,   // Manually trigger authentication
+    clearStorage,   // Clear stored tokens and credentials
+  } = useMcp({
+    url: 'https://your-mcp-server.com',
+    clientName: 'My App',
+    autoReconnect: true,
+  })
 
-    // Call the handler
-    onMcpAuthorization(queryParams, {
-      // Optional: specify storage key prefix if not using default 'mcp:auth'
-      // storageKeyPrefix: 'my_custom_prefix'
-    }).then(result => {
-      if (!result.success) {
-        // Error already logged and displayed by onMcpAuthorization
-        console.error("OAuth callback failed:", result.error);
-        // Optionally show a persistent error message or redirect
-      }
-      // On success, onMcpAuthorization closes the window or redirects
-    }).catch(err => {
-      // Catch unexpected errors during the handler execution itself
-      console.error("Unexpected error in OAuth callback handler:", err);
-      // Display error in the popup/page
-      document.body.innerHTML = `<h1>Error</h1><p>An unexpected error occurred during authentication.</p><pre>${err.message}</pre>`;
-    });
+  // Handle different states
+  if (state === 'failed') {
+    return (
+      <div>
+        <p>Connection failed: {error}</p>
+        <button onClick={retry}>Retry</button>
+        <button onClick={authenticate}>Authenticate Manually</button>
+      </div>
+    )
+  }
 
-  }, []); // Run only once on component mount
+  if (state !== 'ready') {
+    return <div>Connecting to AI service...</div>
+  }
 
-  // Render a loading state while the exchange happens
-  return <div>Processing authentication...</div>;
+  // Use available tools
+  const handleSearch = async () => {
+    try {
+      const result = await callTool('search', { query: 'example search' })
+      console.log('Search results:', result)
+    } catch (err) {
+      console.error('Tool call failed:', err)
+    }
+  }
+
+  return (
+    <div>
+      <h2>Available Tools: {tools.length}</h2>
+      <ul>
+        {tools.map(tool => (
+          <li key={tool.name}>{tool.name}</li>
+        ))}
+      </ul>
+      <button onClick={handleSearch}>Search</button>
+    </div>
+  )
 }
 ```
 
-Future Plans
+## Setting Up OAuth Callback
 
-* Support for other frameworks (Vue, Svelte, etc.).
-* Improved error handling and recovery.
-* Support for different OAuth flows if necessary.
+To handle the OAuth authentication flow, you need to set up a callback endpoint in your app:
 
-Contributions and feedback are welcome!
+```tsx
+// pages/oauth/callback.tsx or equivalent
+import { useEffect } from 'react'
+import { onMcpAuthorization } from 'use-mcp'
+
+export default function OAuthCallbackPage() {
+  useEffect(() => {
+    onMcpAuthorization()
+  }, [])
+
+  return (
+    <div>
+      <h1>Authenticating...</h1>
+      <p>This window should close automatically.</p>
+    </div>
+  )
+}
+```
+
+## API Reference
+
+### `useMcp` Hook
+
+```tsx
+function useMcp(options: UseMcpOptions): UseMcpResult
+```
+
+#### Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `url` | `string` | **Required**. URL of your MCP server |
+| `clientName` | `string` | Name of your client for OAuth registration |
+| `clientUri` | `string` | URI of your client for OAuth registration |
+| `callbackUrl` | `string` | Custom callback URL for OAuth redirect (defaults to `/oauth/callback` on the current origin) |
+| `storageKeyPrefix` | `string` | Storage key prefix for OAuth data in localStorage (defaults to "mcp:auth") |
+| `clientConfig` | `object` | Custom configuration for the MCP client identity |
+| `debug` | `boolean` | Whether to enable verbose debug logging |
+| `autoRetry` | `boolean \| number` | Auto retry connection if initial connection fails, with delay in ms |
+| `autoReconnect` | `boolean \| number` | Auto reconnect if an established connection is lost, with delay in ms (default: 3000) |
+
+#### Return Value
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `state` | `string` | Current connection state: 'discovering', 'authenticating', 'connecting', 'loading', 'ready', 'failed' |
+| `tools` | `Tool[]` | Available tools from the MCP server |
+| `error` | `string \| undefined` | Error message if connection failed |
+| `authUrl` | `string \| undefined` | Manual authentication URL if popup is blocked |
+| `log` | `{ level: 'debug' \| 'info' \| 'warn' \| 'error'; message: string; timestamp: number }[]` | Array of log messages |
+| `callTool` | `(name: string, args?: Record<string, unknown>) => Promise<any>` | Function to call a tool on the MCP server |
+| `retry` | `() => void` | Manually attempt to reconnect |
+| `disconnect` | `() => void` | Disconnect from the MCP server |
+| `authenticate` | `() => void` | Manually trigger authentication |
+| `clearStorage` | `() => void` | Clear all stored authentication data |
+
+## License
+
+MIT
