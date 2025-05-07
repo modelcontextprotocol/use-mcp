@@ -145,11 +145,19 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     addLog('info', `Connecting attempt #${connectAttemptRef.current} to ${url}...`)
 
     // Initialize provider/client if needed (idempotent)
+    // Ensure provider/client are initialized (idempotent check)
     if (!authProviderRef.current) {
-      /* ... init provider ... */
+      authProviderRef.current = new BrowserOAuthClientProvider(url, {
+        storageKeyPrefix, clientName, clientUri, callbackUrl
+      });
+      addLog('debug', 'BrowserOAuthClientProvider initialized in connect.');
     }
     if (!clientRef.current) {
-      /* ... init client ... */
+      clientRef.current = new Client(
+        { name: clientConfig.name || 'use-mcp-react-client', version: clientConfig.version || '0.1.0' },
+        { capabilities: {} },
+      );
+      addLog('debug', 'MCP Client initialized in connect.');
     }
 
     // --- Helper function for a single connection attempt ---
@@ -522,7 +530,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     connectAttemptRef.current = 0
     // Initialize provider here if needed
     if (!authProviderRef.current || authProviderRef.current.serverUrl !== url) {
-      /* ... init provider ... */
+      authProviderRef.current = new BrowserOAuthClientProvider(url, {
+        storageKeyPrefix, clientName, clientUri, callbackUrl
+      });
       addLog('debug', 'BrowserOAuthClientProvider initialized/updated on mount/option change.')
     }
     connect() // Call stable connect
