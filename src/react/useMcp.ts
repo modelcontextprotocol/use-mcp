@@ -2,7 +2,7 @@
 import { CallToolResultSchema, JSONRPCMessage, ListToolsResultSchema, Tool } from '@modelcontextprotocol/sdk/types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Import both transport types
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js'
+import { SSEClientTransport, SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js' // Added
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { auth, UnauthorizedError, OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js'
@@ -181,7 +181,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           transportRef.current = null
         }
 
-        const commonOptions = { authProvider: authProviderRef.current }
+        const commonOptions: SSEClientTransportOptions = { authProvider: authProviderRef.current }
         const targetUrl = new URL(url)
 
         if (transportType === 'http') {
@@ -266,19 +266,21 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         const errorInstance = connectErr instanceof Error ? connectErr : new Error(String(connectErr))
 
         // Check for 404/405 specifically for HTTP transport
-        const is404 = errorInstance.message.includes('404') || errorInstance.message.includes('Not Found')
-        const is405 = errorInstance.message.includes('405') || errorInstance.message.includes('Method Not Allowed')
+        const errorMessage = errorInstance.message
+        const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found')
+        const is405 = errorMessage.includes('405') || errorMessage.includes('Method Not Allowed')
+        const isLikelyCors = errorMessage === 'Failed to fetch' /* Chrome */ || errorMessage === 'NetworkError when attempting to fetch resource.' /* Firefox */ || errorMessage === 'Load failed' /* Safari */
 
-        if (transportType === 'http' && (is404 || is405)) {
-          addLog('warn', `HTTP transport failed (${is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
+        if (transportType === 'http' && (is404 || is405 || isLikelyCors)) {
+          addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
           return 'fallback' // Signal that fallback should be attempted
         }
 
         // Check for Auth error (Simplified - requires more thought for interaction with fallback)
         if (
           errorInstance instanceof UnauthorizedError ||
-          errorInstance.message.includes('Unauthorized') ||
-          errorInstance.message.includes('401')
+          errorMessage.includes('Unauthorized') ||
+          errorMessage.includes('401')
         ) {
           addLog('info', 'Authentication required. Initiating SDK auth flow...')
           // Ensure state is set only once if multiple attempts trigger auth
@@ -324,8 +326,8 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         // Handle other connection errors
         // Use stable failConnection
-        failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorInstance.message}`, errorInstance)
-        return 'failed' // Indicate definitive failure for this transport
+        failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
+        return 'fallback' // If our logic above is wrong, we'd prevent HTTPs servers from ever working. So always fall back as a last resort.
       }
     } // End of tryConnectWithTransport helper
 
