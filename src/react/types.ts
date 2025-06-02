@@ -16,6 +16,8 @@ export type UseMcpOptions = {
     name?: string;
     version?: string;
   };
+  /** Custom headers that can be used to bypass auth */
+  customHeaders?: Record<string, string>;
   /** Whether to enable verbose debug logging to the console and the log state */
   debug?: boolean;
   /** Auto retry connection if initial connection fails, with delay in ms (default: false) */
