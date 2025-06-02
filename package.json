@@ -1,5 +1,6 @@
 {
   "name": "use-mcp",
+  "repository": "https://github.com/geelen/use-mcp",
   "version": "0.0.7",
   "type": "module",
   "files": [
