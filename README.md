@@ -1,3 +1,9 @@
+# WORK IN PROGRESS
+
+**Note:** this is currently powering https://playground.ai.cloudflare.com/ but hasn't yet been properly released as a standalone project. Technically you could use it now, but probably don't, yet. 
+
+---
+
 # use-mcp
 
 A lightweight React hook for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Simplifies authentication and tool calling for AI systems implementing the MCP standard.
