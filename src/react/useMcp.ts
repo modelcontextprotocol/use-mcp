@@ -26,6 +26,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     callbackUrl = typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback',
     storageKeyPrefix = 'mcp:auth',
     clientConfig = {},
+    customHeaders = {},
     debug = false,
     autoRetry = false,
     autoReconnect = DEFAULT_RECONNECT_DELAY,
@@ -148,16 +149,19 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     // Ensure provider/client are initialized (idempotent check)
     if (!authProviderRef.current) {
       authProviderRef.current = new BrowserOAuthClientProvider(url, {
-        storageKeyPrefix, clientName, clientUri, callbackUrl
-      });
-      addLog('debug', 'BrowserOAuthClientProvider initialized in connect.');
+        storageKeyPrefix,
+        clientName,
+        clientUri,
+        callbackUrl,
+      })
+      addLog('debug', 'BrowserOAuthClientProvider initialized in connect.')
     }
     if (!clientRef.current) {
       clientRef.current = new Client(
         { name: clientConfig.name || 'use-mcp-react-client', version: clientConfig.version || '0.1.0' },
         { capabilities: {} },
-      );
-      addLog('debug', 'MCP Client initialized in connect.');
+      )
+      addLog('debug', 'MCP Client initialized in connect.')
     }
 
     // --- Helper function for a single connection attempt ---
@@ -181,7 +185,10 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           transportRef.current = null
         }
 
-        const commonOptions: SSEClientTransportOptions = { authProvider: authProviderRef.current }
+        const commonOptions: SSEClientTransportOptions = {
+          authProvider: authProviderRef.current,
+          requestInit: { headers: customHeaders },
+        }
         const targetUrl = new URL(url)
 
         if (transportType === 'http') {
@@ -269,7 +276,10 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         const errorMessage = errorInstance.message
         const is404 = errorMessage.includes('404') || errorMessage.includes('Not Found')
         const is405 = errorMessage.includes('405') || errorMessage.includes('Method Not Allowed')
-        const isLikelyCors = errorMessage === 'Failed to fetch' /* Chrome */ || errorMessage === 'NetworkError when attempting to fetch resource.' /* Firefox */ || errorMessage === 'Load failed' /* Safari */
+        const isLikelyCors =
+          errorMessage === 'Failed to fetch' /* Chrome */ ||
+          errorMessage === 'NetworkError when attempting to fetch resource.' /* Firefox */ ||
+          errorMessage === 'Load failed' /* Safari */
 
         if (transportType === 'http' && (is404 || is405 || isLikelyCors)) {
           addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
@@ -277,11 +287,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         }
 
         // Check for Auth error (Simplified - requires more thought for interaction with fallback)
-        if (
-          errorInstance instanceof UnauthorizedError ||
-          errorMessage.includes('Unauthorized') ||
-          errorMessage.includes('401')
-        ) {
+        if (errorInstance instanceof UnauthorizedError || errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
           addLog('info', 'Authentication required. Initiating SDK auth flow...')
           // Ensure state is set only once if multiple attempts trigger auth
           if (stateRef.current !== 'authenticating') {
@@ -533,8 +539,11 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     // Initialize provider here if needed
     if (!authProviderRef.current || authProviderRef.current.serverUrl !== url) {
       authProviderRef.current = new BrowserOAuthClientProvider(url, {
-        storageKeyPrefix, clientName, clientUri, callbackUrl
-      });
+        storageKeyPrefix,
+        clientName,
+        clientUri,
+        callbackUrl,
+      })
       addLog('debug', 'BrowserOAuthClientProvider initialized/updated on mount/option change.')
     }
     connect() // Call stable connect
