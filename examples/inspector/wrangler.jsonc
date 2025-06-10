@@ -4,12 +4,13 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ai-chat-template",
-  "main": "api/index.ts",
+  "name": "inspector-use-mcp",
+  "route": "inspector.use-mcp-.dev",
+//  "main": "api/index.ts",
   "compatibility_date": "2025-02-07",
-  "ai": {
-    "binding": "AI"
-  },
+//  "ai": {
+//    "binding": "AI"
+//  },
   "assets": {
     "not_found_handling": "single-page-application",
     "binding": "ASSETS",
