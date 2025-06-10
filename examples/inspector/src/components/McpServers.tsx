@@ -60,7 +60,7 @@ export function McpServers({
   const [toolForms, setToolForms] = useState<Record<string, Record<string, any>>>({})
   const [toolExecutionLogs, setToolExecutionLogs] = useState<Record<string, string>>({})
   const logRef = useRef<HTMLDivElement>(null)
-  const executionLogRef = useRef<HTMLTextAreaElement>(null)
+  const executionLogRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
 
   // Extract connection properties
   const { state, tools, error, log, authUrl, disconnect, authenticate } =
@@ -211,6 +211,23 @@ export function McpServers({
     }))
   }
 
+  // Helper function to clean and update execution log
+  const updateExecutionLog = (toolName: string, newContent: string) => {
+    setToolExecutionLogs(prev => {
+      const currentLog = prev[toolName] || ''
+      const updatedLog = currentLog + newContent
+      // Remove blank lines and rejoin
+      const cleanedLog = updatedLog
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .join('\n')
+      return {
+        ...prev,
+        [toolName]: cleanedLog + '\n'
+      }
+    })
+  }
+
   // Handle tool execution
   const handleRunTool = async (tool: Tool) => {
     const args = toolForms[tool.name] || {}
@@ -218,25 +235,26 @@ export function McpServers({
     
     // Add execution start message
     const startMessage = `Calling ${tool.name}(${argsStr})\n`
-    setToolExecutionLogs(prev => ({
-      ...prev,
-      [tool.name]: (prev[tool.name] || '') + startMessage
-    }))
+    updateExecutionLog(tool.name, startMessage)
     
     try {
       const result = await connectionData.callTool(tool.name, args)
       const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
-      setToolExecutionLogs(prev => ({
-        ...prev,
-        [tool.name]: (prev[tool.name] || '') + `${resultStr}\n\n`
-      }))
+      updateExecutionLog(tool.name, `${resultStr}\n`)
     } catch (error) {
-      setToolExecutionLogs(prev => ({
-        ...prev,
-        [tool.name]: (prev[tool.name] || '') + `Error: ${error}\n\n`
-      }))
+      updateExecutionLog(tool.name, `Error: ${error}\n`)
     }
   }
+
+  // Auto-scroll execution logs to bottom when they change
+  useEffect(() => {
+    Object.keys(toolExecutionLogs).forEach(toolName => {
+      const textarea = executionLogRefs.current[toolName]
+      if (textarea) {
+        textarea.scrollTop = textarea.scrollHeight
+      }
+    })
+  }, [toolExecutionLogs])
 
   // Clear execution log for specific tool
   const clearExecutionLog = (toolName: string) => {
@@ -432,9 +450,10 @@ export function McpServers({
                           </button>
                         </div>
                         <textarea
+                          ref={(el) => { executionLogRefs.current[tool.name] = el }}
                           value={toolExecutionLogs[tool.name]}
                           readOnly
-                          className="w-full h-32 p-2 border border-gray-200 rounded text-xs font-mono bg-gray-50 resize-none placeholder-gray-300"
+                          className="w-full h-32 p-2 border border-gray-200 rounded text-[10px] font-mono bg-gray-50 resize-none placeholder-gray-300"
                           placeholder="Tool execution results will appear here..."
                         />
                       </div>
