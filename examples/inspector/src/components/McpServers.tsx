@@ -187,13 +187,6 @@ export function McpServers({
       </p>
 
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="font-medium text-xs">Status:</label>
-          {getStatusBadge()}
-        </div>
-
-
-
         <div className="flex gap-2">
           <input
             type="text"
