@@ -70,7 +70,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           
           ${
             sidebarVisible
-              ? "w-64 translate-x-0"
+              ? "w-64 lg:w-[32rem] translate-x-0"
               : "w-0 -translate-x-full md:translate-x-0"
           }
         `}

@@ -115,7 +115,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
           onModelChange={handleModelChange}
           apiKeyUpdateTrigger={apiKeyUpdateTrigger}
         />
-        <div className="flex flex-col flex-grow h-full w-[calc(100%-16rem)]">
+        <div className="flex flex-col flex-grow h-full w-[calc(100%-16rem)] lg:w-[calc(100%-32rem)]">
           <ChatNavbar
             sidebarVisible={sidebarVisible}
             setSidebarVisible={setSidebarVisible}
