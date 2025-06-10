@@ -202,7 +202,7 @@ export function McpServers({
           {getStatusBadge()}
         </div>
 
-        {error && (
+        {error && state === 'failed' && (
           <div className="text-xs text-red-600 p-2 bg-red-50 rounded border">
             {error}
           </div>
