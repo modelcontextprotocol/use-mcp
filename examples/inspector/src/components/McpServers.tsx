@@ -262,20 +262,30 @@ export function McpServers({
         {/* Tools display when connected */}
         {state === 'ready' && tools.length > 0 && (
           <div>
-            <h3 className="font-medium text-xs mb-2">
+            <h3 className="font-medium text-sm mb-3">
               Available Tools ({tools.length})
             </h3>
-            <div className="border border-gray-200 rounded p-2 bg-gray-50 max-h-32 overflow-y-auto space-y-2">
+            <div className="border border-gray-200 rounded p-4 bg-gray-50 max-h-96 overflow-y-auto space-y-3">
               {tools.map((tool: Tool, index: number) => (
                 <div
                   key={index}
-                  className="text-xs pb-2 border-b border-gray-100 last:border-b-0"
+                  className="bg-white p-3 rounded border border-gray-100 shadow-sm"
                 >
-                  <span className="font-medium">{tool.name}</span>
+                  <div className="font-mono font-medium text-sm text-blue-700">
+                    {tool.name}
+                  </div>
                   {tool.description && (
-                    <p className="text-gray-500 mt-1 text-xs">
+                    <p className="text-gray-600 mt-2 text-sm leading-relaxed">
                       {tool.description}
                     </p>
+                  )}
+                  {tool.inputSchema && (
+                    <div className="mt-3 pt-2 border-t border-gray-100">
+                      <div className="text-xs font-medium text-gray-700 mb-2">Parameters:</div>
+                      <pre className="text-xs text-gray-600 bg-gray-50 p-2 rounded overflow-x-auto">
+                        {JSON.stringify(tool.inputSchema, null, 2)}
+                      </pre>
+                    </div>
                   )}
                 </div>
               ))}
