@@ -29,7 +29,7 @@
     "rehype-highlight": "^7.0.2",
     "remark-gfm": "^4.0.1",
     "tailwindcss": "^4.0.14",
-    "use-mcp": "link:..",
+    "use-mcp": "link:../..",
     "workers-ai-provider": "^0.1.3"
   },
   "devDependencies": {

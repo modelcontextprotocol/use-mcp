@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMcp, type Tool } from 'use-mcp/react'
-import { Settings, Info } from 'lucide-react'
+
 
 // MCP Connection wrapper that only renders when active
 function McpConnection({
@@ -42,7 +42,7 @@ export function McpServers({
     return sessionStorage.getItem('mcpServerUrl') || ''
   })
   const [isActive, setIsActive] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+
   const [connectionData, setConnectionData] = useState<any>({
     state: 'not-connected',
     tools: [],
@@ -177,18 +177,8 @@ export function McpServers({
   return (
     <section className="rounded-lg bg-white p-4 border border-zinc-200">
       <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <span className="text-sm font-semibold">MCP Servers</span>
-          <div className="ml-2">
-            <Info size={14} className="text-gray-400" />
-          </div>
-        </div>
-        <button
-          className="rounded-md border border-gray-200 p-1 hover:bg-gray-50"
-          onClick={() => setShowSettings(!showSettings)}
-        >
-          <Settings size={16} className="text-gray-500" />
-        </button>
+        <span className="text-sm font-semibold">MCP Servers</span>
+        {getStatusBadge()}
       </div>
 
       <p className="text-gray-500 text-xs mt-1 mb-3">
@@ -202,16 +192,12 @@ export function McpServers({
           {getStatusBadge()}
         </div>
 
-        {error && state === 'failed' && (
-          <div className="text-xs text-red-600 p-2 bg-red-50 rounded border">
-            {error}
-          </div>
-        )}
 
-        <div className="space-y-2">
+
+        <div className="flex gap-2">
           <input
             type="text"
-            className="w-full p-2 border border-gray-200 rounded text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
+            className="flex-1 p-2 border border-gray-200 rounded text-sm placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-300"
             placeholder="Enter MCP server URL"
             value={serverUrl}
             onChange={(e) => {
@@ -225,14 +211,14 @@ export function McpServers({
           {state === 'ready' ||
           (isActive && state !== 'not-connected' && state !== 'failed') ? (
             <button
-              className="w-full px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-900 rounded text-sm font-medium"
+              className="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-900 rounded text-sm font-medium whitespace-nowrap"
               onClick={handleDisconnect}
             >
               Disconnect
             </button>
           ) : (
             <button
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm font-medium disabled:opacity-50"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded py-2 px-4 text-sm font-medium disabled:opacity-50 whitespace-nowrap"
               onClick={handleConnect}
               disabled={isActive || !serverUrl.trim()}
             >
@@ -265,7 +251,7 @@ export function McpServers({
             <h3 className="font-medium text-sm mb-3">
               Available Tools ({tools.length})
             </h3>
-            <div className="border border-gray-200 rounded p-4 bg-gray-50 max-h-96 overflow-y-auto space-y-3">
+            <div className="border border-gray-200 rounded p-4 bg-gray-50 space-y-3">
               {tools.map((tool: Tool, index: number) => (
                 <div
                   key={index}
@@ -294,49 +280,47 @@ export function McpServers({
         )}
 
         {/* Debug Log */}
-        {showSettings && (
-          <div>
-            <label className="font-medium text-xs block mb-2">Debug Log</label>
-            <div
-              ref={logRef}
-              className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs"
-            >
-              {log.length > 0 ? (
-                log.map((entry: any, index: number) => (
-                  <div
-                    key={index}
-                    className={`py-0.5 ${
-                      entry.level === 'debug'
-                        ? 'text-gray-500'
-                        : entry.level === 'info'
-                          ? 'text-blue-600'
-                          : entry.level === 'warn'
-                            ? 'text-orange-600'
-                            : 'text-red-600'
-                    }`}
-                  >
-                    [{entry.level}] {entry.message}
-                  </div>
-                ))
-              ) : (
-                <div className="text-gray-400">No log entries yet</div>
-              )}
-            </div>
-            {connectionData?.state !== 'not-connected' && (
-              <button
-                onClick={() => {
-                  connectionData?.clearStorage()
-                  if (isActive) {
-                    handleDisconnect()
-                  }
-                }}
-                className="text-xs text-orange-600 hover:text-orange-800 hover:underline mt-2"
-              >
-                Clear stored authentication
-              </button>
+        <div>
+          <label className="font-medium text-xs block mb-2">Debug Log</label>
+          <div
+            ref={logRef}
+            className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs"
+          >
+            {log.length > 0 ? (
+              log.map((entry: any, index: number) => (
+                <div
+                  key={index}
+                  className={`py-0.5 ${
+                    entry.level === 'debug'
+                      ? 'text-gray-500'
+                      : entry.level === 'info'
+                        ? 'text-blue-600'
+                        : entry.level === 'warn'
+                          ? 'text-orange-600'
+                          : 'text-red-600'
+                  }`}
+                >
+                  [{entry.level}] {entry.message}
+                </div>
+              ))
+            ) : (
+              <div className="text-gray-400">No log entries yet</div>
             )}
           </div>
-        )}
+          {connectionData?.state !== 'not-connected' && (
+            <button
+              onClick={() => {
+                connectionData?.clearStorage()
+                if (isActive) {
+                  handleDisconnect()
+                }
+              }}
+              className="text-xs text-orange-600 hover:text-orange-800 hover:underline mt-2"
+            >
+              Clear stored authentication
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Only render the actual MCP connection when active */}

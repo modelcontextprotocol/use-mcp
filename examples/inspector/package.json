@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && pnpm run build:only",
+    "build:only": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "deploy": "pnpm run build:only && wrangler deploy"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.14",
@@ -15,10 +17,12 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.14",
-    "use-mcp": "link:.."
+    "use-mcp": "link:../.."
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.5.0",
     "@eslint/js": "^9.21.0",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
@@ -29,7 +33,8 @@
     "prettier": "^3.5.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "wrangler": "^4.19.1"
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
 }

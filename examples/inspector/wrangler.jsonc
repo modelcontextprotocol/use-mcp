@@ -5,7 +5,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "inspector-use-mcp",
-  "route": "inspector.use-mcp-.dev",
+  "route": "inspector.use-mcp.dev",
 //  "main": "api/index.ts",
   "compatibility_date": "2025-02-07",
 //  "ai": {
@@ -13,7 +13,6 @@
 //  },
   "assets": {
     "not_found_handling": "single-page-application",
-    "binding": "ASSETS",
     "directory": "dist/client"
   },
   "observability": {
