@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useMcp, type Tool } from 'use-mcp/react'
+import { Info, X } from 'lucide-react'
 
 
 // MCP Connection wrapper that only renders when active
@@ -56,7 +57,10 @@ export function McpServers({
       Promise.resolve(undefined),
     clearStorage: () => {},
   })
+  const [toolForms, setToolForms] = useState<Record<string, Record<string, any>>>({})
+  const [executionLog, setExecutionLog] = useState<string>('')
   const logRef = useRef<HTMLDivElement>(null)
+  const executionLogRef = useRef<HTMLTextAreaElement>(null)
 
   // Extract connection properties
   const { state, tools, error, log, authUrl, disconnect, authenticate } =
@@ -174,6 +178,110 @@ export function McpServers({
     }
   }, [tools])
 
+  // Initialize form data when tools change
+  useEffect(() => {
+    const newForms: Record<string, Record<string, any>> = {}
+    tools.forEach((tool: Tool) => {
+      if (tool.inputSchema && tool.inputSchema.properties) {
+        const formData: Record<string, any> = {}
+        Object.entries(tool.inputSchema.properties).forEach(([key, schema]: [string, any]) => {
+          // Set default values based on type
+          if (schema.type === 'number' || schema.type === 'integer') {
+            formData[key] = schema.default || 0
+          } else if (schema.type === 'boolean') {
+            formData[key] = schema.default || false
+          } else {
+            formData[key] = schema.default || ''
+          }
+        })
+        newForms[tool.name] = formData
+      }
+    })
+    setToolForms(newForms)
+  }, [tools])
+
+  // Handle form input changes
+  const handleFormChange = (toolName: string, fieldName: string, value: any) => {
+    setToolForms(prev => ({
+      ...prev,
+      [toolName]: {
+        ...prev[toolName],
+        [fieldName]: value
+      }
+    }))
+  }
+
+  // Handle tool execution
+  const handleRunTool = async (tool: Tool) => {
+    const args = toolForms[tool.name] || {}
+    const argsStr = JSON.stringify(args)
+    
+    // Add execution start message
+    const startMessage = `Calling ${tool.name}(${argsStr})\n`
+    setExecutionLog(prev => prev + startMessage)
+    
+    try {
+      const result = await connectionData.callTool(tool.name, args)
+      const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
+      setExecutionLog(prev => prev + `${resultStr}\n\n`)
+    } catch (error) {
+      setExecutionLog(prev => prev + `Error: ${error}\n\n`)
+    }
+    
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      if (executionLogRef.current) {
+        executionLogRef.current.scrollTop = executionLogRef.current.scrollHeight
+      }
+    }, 0)
+  }
+
+  // Clear execution log
+  const clearExecutionLog = () => {
+    setExecutionLog('')
+  }
+
+  // Render form field based on schema
+  const renderFormField = (toolName: string, fieldName: string, schema: any, isRequired: boolean) => {
+    const value = toolForms[toolName]?.[fieldName] || ''
+    
+    if (schema.type === 'number' || schema.type === 'integer') {
+      return (
+        <input
+          type="number"
+          className="w-1/4 p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+          value={value}
+          step={schema.type === 'integer' ? 1 : 'any'}
+          required={isRequired}
+          onChange={(e) => handleFormChange(toolName, fieldName, 
+            schema.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0
+          )}
+        />
+      )
+    } else if (schema.type === 'boolean') {
+      return (
+        <input
+          type="checkbox"
+          className="h-4 w-4 text-blue-600 rounded focus:ring-blue-300"
+          checked={value}
+          onChange={(e) => handleFormChange(toolName, fieldName, e.target.checked)}
+        />
+      )
+    } else {
+      // String or other text input
+      return (
+        <input
+          type="text"
+          className="w-full p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+          value={value}
+          required={isRequired}
+          placeholder={schema.description || ''}
+          onChange={(e) => handleFormChange(toolName, fieldName, e.target.value)}
+        />
+      )
+    }
+  }
+
   return (
     <section className="rounded-lg bg-white p-4 border border-zinc-200">
       <div className="flex items-center justify-between">
@@ -238,39 +346,98 @@ export function McpServers({
           </div>
         )}
 
-        {/* Tools display when connected */}
-        {state === 'ready' && tools.length > 0 && (
-          <div>
-            <h3 className="font-medium text-sm mb-3">
-              Available Tools ({tools.length})
-            </h3>
-            <div className="border border-gray-200 rounded p-4 bg-gray-50 space-y-3">
+        {/* Available Tools section - always present */}
+        <div>
+          <h3 className="font-medium text-sm mb-3">
+            Available Tools ({tools.length})
+          </h3>
+          
+          {tools.length === 0 ? (
+            <div className="border border-gray-200 rounded p-4 bg-gray-50 text-center text-gray-500 text-sm">
+              No tools available. Connect to an MCP server to see available tools.
+            </div>
+          ) : (
+            <div className="border border-gray-200 rounded p-4 bg-gray-50 space-y-6">
               {tools.map((tool: Tool, index: number) => (
                 <div
                   key={index}
-                  className="bg-white p-3 rounded border border-gray-100 shadow-sm"
+                  className="bg-white p-4 rounded border border-gray-100 shadow-sm"
                 >
-                  <div className="font-mono font-medium text-sm text-blue-700">
+                  <div className="font-mono font-medium text-sm text-blue-700 mb-2">
                     {tool.name}
                   </div>
                   {tool.description && (
-                    <p className="text-gray-600 mt-2 text-sm leading-relaxed">
+                    <p className="text-gray-600 mb-4 text-sm leading-relaxed">
                       {tool.description}
                     </p>
                   )}
-                  {tool.inputSchema && (
-                    <div className="mt-3 pt-2 border-t border-gray-100">
-                      <div className="text-xs font-medium text-gray-700 mb-2">Parameters:</div>
-                      <pre className="text-xs text-gray-600 bg-gray-50 p-2 rounded overflow-x-auto">
-                        {JSON.stringify(tool.inputSchema, null, 2)}
-                      </pre>
+                  
+                  {/* Form for tool parameters */}
+                  {tool.inputSchema && tool.inputSchema.properties && (
+                    <div className="space-y-3 mb-4">
+                      {Object.entries(tool.inputSchema.properties).map(([fieldName, schema]: [string, any]) => {
+                        const isRequired = tool.inputSchema.required?.includes(fieldName) || false
+                        return (
+                          <div key={fieldName} className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-medium text-gray-700">
+                                {fieldName}
+                                {isRequired && <span className="text-red-500">*</span>}
+                              </label>
+                              {schema.description && (
+                                <div className="relative group">
+                                  <Info size={12} className="text-gray-400 cursor-help" />
+                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                    {schema.description}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div className={schema.type === 'number' || schema.type === 'integer' ? 'inline-block' : ''}>
+                              {renderFormField(tool.name, fieldName, schema, isRequired)}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
+                  
+                  {/* Run button */}
+                  <button
+                    onClick={() => handleRunTool(tool)}
+                    disabled={state !== 'ready'}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded py-2 px-4 text-sm font-medium"
+                  >
+                    Run
+                  </button>
                 </div>
               ))}
+              
+              {/* Execution log */}
+              {tools.length > 0 && (
+                <div className="bg-white p-4 rounded border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-sm text-gray-700">Execution Log</h4>
+                    <button
+                      onClick={clearExecutionLog}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={12} />
+                      Clear
+                    </button>
+                  </div>
+                  <textarea
+                    ref={executionLogRef}
+                    value={executionLog}
+                    readOnly
+                    className="w-full h-32 p-2 border border-gray-200 rounded text-xs font-mono bg-gray-50 resize-none"
+                    placeholder="Tool execution results will appear here..."
+                  />
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Debug Log */}
         <div>
