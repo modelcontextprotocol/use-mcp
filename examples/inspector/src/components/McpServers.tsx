@@ -254,7 +254,7 @@ export function McpServers({
       return (
         <input
           type="number"
-          className="w-32 p-2 pr-6 mr-3 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 placeholder-gray-300"
+          className="w-32 p-2 pr-6 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 placeholder-gray-300"
           value={value}
           step={schema.type === 'integer' ? 1 : 'any'}
           required={isRequired}
@@ -381,11 +381,12 @@ export function McpServers({
                     
                     {/* Form for tool parameters */}
                     {tool.inputSchema && tool.inputSchema.properties && (
-                      <div className="space-y-3 mb-4">
+                      <div className="flex flex-wrap gap-3 mb-4">
                         {Object.entries(tool.inputSchema.properties).map(([fieldName, schema]: [string, any]) => {
                           const isRequired = tool.inputSchema.required?.includes(fieldName) || false
+                          const isTextInput = schema.type !== 'number' && schema.type !== 'integer' && schema.type !== 'boolean'
                           return (
-                            <div key={fieldName} className="space-y-1">
+                            <div key={fieldName} className={`space-y-1 ${isTextInput ? 'w-full' : ''}`}>
                               <div className="flex items-center gap-2">
                                 <label className="text-xs font-medium text-gray-700">
                                   {fieldName}
@@ -399,7 +400,7 @@ export function McpServers({
                                   </div>
                                 )}
                               </div>
-                              <div className={schema.type === 'number' || schema.type === 'integer' ? 'inline-block' : ''}>
+                              <div>
                                 {renderFormField(tool.name, fieldName, schema, isRequired)}
                               </div>
                             </div>
