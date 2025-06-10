@@ -7,6 +7,7 @@ import {
   SquarePen,
 } from "lucide-react";
 import ModelSelector from "./ModelSelector";
+import { McpServers } from "./McpServers";
 import { type Model } from "../types/models";
 import { type Message } from "../types";
 
@@ -155,13 +156,14 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
             </ul>
           </div>
           
-          {/* Model Selector at bottom */}
-          <div className="p-2 border-t border-zinc-200">
+          {/* Model Selector and MCP Servers at bottom */}
+          <div className="p-2 border-t border-zinc-200 space-y-3">
             <ModelSelector
               selectedModel={selectedModel}
               onModelChange={onModelChange}
               apiKeyUpdateTrigger={apiKeyUpdateTrigger}
             />
+            <McpServers />
           </div>
         </div>
       </div>
