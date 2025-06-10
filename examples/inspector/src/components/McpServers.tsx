@@ -58,7 +58,7 @@ export function McpServers({
     clearStorage: () => {},
   })
   const [toolForms, setToolForms] = useState<Record<string, Record<string, any>>>({})
-  const [executionLog, setExecutionLog] = useState<string>('')
+  const [toolExecutionLogs, setToolExecutionLogs] = useState<Record<string, string>>({})
   const logRef = useRef<HTMLDivElement>(null)
   const executionLogRef = useRef<HTMLTextAreaElement>(null)
 
@@ -218,27 +218,32 @@ export function McpServers({
     
     // Add execution start message
     const startMessage = `Calling ${tool.name}(${argsStr})\n`
-    setExecutionLog(prev => prev + startMessage)
+    setToolExecutionLogs(prev => ({
+      ...prev,
+      [tool.name]: (prev[tool.name] || '') + startMessage
+    }))
     
     try {
       const result = await connectionData.callTool(tool.name, args)
       const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
-      setExecutionLog(prev => prev + `${resultStr}\n\n`)
+      setToolExecutionLogs(prev => ({
+        ...prev,
+        [tool.name]: (prev[tool.name] || '') + `${resultStr}\n\n`
+      }))
     } catch (error) {
-      setExecutionLog(prev => prev + `Error: ${error}\n\n`)
+      setToolExecutionLogs(prev => ({
+        ...prev,
+        [tool.name]: (prev[tool.name] || '') + `Error: ${error}\n\n`
+      }))
     }
-    
-    // Auto-scroll to bottom
-    setTimeout(() => {
-      if (executionLogRef.current) {
-        executionLogRef.current.scrollTop = executionLogRef.current.scrollHeight
-      }
-    }, 0)
   }
 
-  // Clear execution log
-  const clearExecutionLog = () => {
-    setExecutionLog('')
+  // Clear execution log for specific tool
+  const clearExecutionLog = (toolName: string) => {
+    setToolExecutionLogs(prev => ({
+      ...prev,
+      [toolName]: ''
+    }))
   }
 
   // Render form field based on schema
@@ -249,13 +254,15 @@ export function McpServers({
       return (
         <input
           type="number"
-          className="w-1/4 p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+          className="w-1/4 p-2 pr-6 mr-3 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 placeholder-gray-300"
           value={value}
           step={schema.type === 'integer' ? 1 : 'any'}
           required={isRequired}
-          onChange={(e) => handleFormChange(toolName, fieldName, 
-            schema.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0
-          )}
+          onChange={(e) => {
+            const newValue = e.target.value === '' ? '' : 
+              (schema.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)
+            handleFormChange(toolName, fieldName, newValue)
+          }}
         />
       )
     } else if (schema.type === 'boolean') {
@@ -272,7 +279,7 @@ export function McpServers({
       return (
         <input
           type="text"
-          className="w-full p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+          className="w-full p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300 placeholder-gray-300"
           value={value}
           required={isRequired}
           placeholder={schema.description || ''}
@@ -357,84 +364,81 @@ export function McpServers({
               No tools available. Connect to an MCP server to see available tools.
             </div>
           ) : (
-            <div className="border border-gray-200 rounded p-4 bg-gray-50 space-y-6">
+            <div className="space-y-6">
               {tools.map((tool: Tool, index: number) => (
-                <div
-                  key={index}
-                  className="bg-white p-4 rounded border border-gray-100 shadow-sm"
-                >
-                  <div className="font-mono font-medium text-sm text-blue-700 mb-2">
+                <div key={index}>
+                  {/* Tool title outside the card */}
+                  <h4 className="font-bold text-base text-black mb-2">
                     {tool.name}
-                  </div>
-                  {tool.description && (
-                    <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                      {tool.description}
-                    </p>
-                  )}
+                  </h4>
                   
-                  {/* Form for tool parameters */}
-                  {tool.inputSchema && tool.inputSchema.properties && (
-                    <div className="space-y-3 mb-4">
-                      {Object.entries(tool.inputSchema.properties).map(([fieldName, schema]: [string, any]) => {
-                        const isRequired = tool.inputSchema.required?.includes(fieldName) || false
-                        return (
-                          <div key={fieldName} className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <label className="text-xs font-medium text-gray-700">
-                                {fieldName}
-                                {isRequired && <span className="text-red-500">*</span>}
-                              </label>
-                              {schema.description && (
-                                <div className="relative group">
-                                  <Info size={12} className="text-gray-400 cursor-help" />
-                                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                                    {schema.description}
+                  <div className="bg-white p-4 rounded border border-gray-100 shadow-sm">
+                    {tool.description && (
+                      <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                        {tool.description}
+                      </p>
+                    )}
+                    
+                    {/* Form for tool parameters */}
+                    {tool.inputSchema && tool.inputSchema.properties && (
+                      <div className="space-y-3 mb-4">
+                        {Object.entries(tool.inputSchema.properties).map(([fieldName, schema]: [string, any]) => {
+                          const isRequired = tool.inputSchema.required?.includes(fieldName) || false
+                          return (
+                            <div key={fieldName} className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <label className="text-xs font-medium text-gray-700">
+                                  {fieldName}
+                                </label>
+                                {schema.description && (
+                                  <div className="relative group">
+                                    <Info size={12} className="text-gray-400 cursor-help" />
+                                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                                      {schema.description}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
+                              </div>
+                              <div className={schema.type === 'number' || schema.type === 'integer' ? 'flex flex-wrap items-center' : ''}>
+                                {renderFormField(tool.name, fieldName, schema, isRequired)}
+                              </div>
                             </div>
-                            <div className={schema.type === 'number' || schema.type === 'integer' ? 'inline-block' : ''}>
-                              {renderFormField(tool.name, fieldName, schema, isRequired)}
-                            </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
+                    )}
+                    
+                    {/* Run button */}
+                    <button
+                      onClick={() => handleRunTool(tool)}
+                      disabled={state !== 'ready'}
+                      className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded py-2 px-4 text-sm font-medium mb-4"
+                    >
+                      Run
+                    </button>
+                    
+                    {/* Per-tool execution log */}
+                    <div className="border-t border-gray-100 pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="font-medium text-sm text-gray-700">Execution Log</h5>
+                        <button
+                          onClick={() => clearExecutionLog(tool.name)}
+                          className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
+                        >
+                          <X size={12} />
+                          Clear
+                        </button>
+                      </div>
+                      <textarea
+                        value={toolExecutionLogs[tool.name] || ''}
+                        readOnly
+                        className="w-full h-32 p-2 border border-gray-200 rounded text-xs font-mono bg-gray-50 resize-none placeholder-gray-300"
+                        placeholder="Tool execution results will appear here..."
+                      />
                     </div>
-                  )}
-                  
-                  {/* Run button */}
-                  <button
-                    onClick={() => handleRunTool(tool)}
-                    disabled={state !== 'ready'}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded py-2 px-4 text-sm font-medium"
-                  >
-                    Run
-                  </button>
+                  </div>
                 </div>
               ))}
-              
-              {/* Execution log */}
-              {tools.length > 0 && (
-                <div className="bg-white p-4 rounded border border-gray-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-sm text-gray-700">Execution Log</h4>
-                    <button
-                      onClick={clearExecutionLog}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700"
-                    >
-                      <X size={12} />
-                      Clear
-                    </button>
-                  </div>
-                  <textarea
-                    ref={executionLogRef}
-                    value={executionLog}
-                    readOnly
-                    className="w-full h-32 p-2 border border-gray-200 rounded text-xs font-mono bg-gray-50 resize-none"
-                    placeholder="Tool execution results will appear here..."
-                  />
-                </div>
-              )}
             </div>
           )}
         </div>
