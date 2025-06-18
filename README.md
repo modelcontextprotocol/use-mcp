@@ -1,10 +1,8 @@
-# WORK IN PROGRESS
+<div class="oranda-hide">
 
-**Note:** this is currently powering https://playground.ai.cloudflare.com/ but hasn't yet been properly released as a standalone project. Technically you could use it now, but probably don't, yet. 
+# 🦑 use-mcp 🦑
 
----
-
-# use-mcp
+</div>
 
 A lightweight React hook for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Simplifies authentication and tool calling for AI systems implementing the MCP standard.
 
@@ -29,7 +27,7 @@ yarn add use-mcp
 
 ## Quick Start
 
-```tsx
+```ts
 import { useMcp } from 'use-mcp/react'
 
 function MyAIComponent() {
@@ -90,7 +88,7 @@ function MyAIComponent() {
 
 To handle the OAuth authentication flow, you need to set up a callback endpoint in your app:
 
-```tsx
+```ts
 // pages/oauth/callback.tsx or equivalent
 import { useEffect } from 'react'
 import { onMcpAuthorization } from 'use-mcp'
@@ -113,7 +111,7 @@ export default function OAuthCallbackPage() {
 
 ### `useMcp` Hook
 
-```tsx
+```ts
 function useMcp(options: UseMcpOptions): UseMcpResult
 ```
 
