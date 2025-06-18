@@ -27,7 +27,7 @@ yarn add use-mcp
 
 ## Quick Start
 
-```ts
+```tsx
 import { useMcp } from 'use-mcp/react'
 
 function MyAIComponent() {
@@ -88,7 +88,7 @@ function MyAIComponent() {
 
 To handle the OAuth authentication flow, you need to set up a callback endpoint in your app:
 
-```ts
+```tsx
 // pages/oauth/callback.tsx or equivalent
 import { useEffect } from 'react'
 import { onMcpAuthorization } from 'use-mcp'
@@ -111,7 +111,7 @@ export default function OAuthCallbackPage() {
 
 ### `useMcp` Hook
 
-```ts
+```tsx
 function useMcp(options: UseMcpOptions): UseMcpResult
 ```
 
