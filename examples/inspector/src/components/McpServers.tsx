@@ -63,7 +63,7 @@ export function McpServers({
   const executionLogRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
 
   // Extract connection properties
-  const { state, tools, error, log, authUrl, disconnect, authenticate } =
+  const { state, tools, log, authUrl, disconnect, authenticate } =
     connectionData
 
   // Notify parent component when tools change
@@ -401,7 +401,7 @@ export function McpServers({
                     {tool.inputSchema && tool.inputSchema.properties && (
                       <div className="flex flex-wrap gap-3 mb-4">
                         {Object.entries(tool.inputSchema.properties).map(([fieldName, schema]: [string, any]) => {
-                          const isRequired = tool.inputSchema.required?.includes(fieldName) || false
+                          const isRequired = Array.isArray(tool.inputSchema.required) && tool.inputSchema.required.includes(fieldName)
                           const isTextInput = schema.type !== 'number' && schema.type !== 'integer' && schema.type !== 'boolean'
                           return (
                             <div key={fieldName} className={`space-y-1 ${isTextInput ? 'w-full' : ''}`}>
