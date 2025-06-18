@@ -90,10 +90,45 @@ function MyAIComponent() {
 
 ## Setting Up OAuth Callback
 
-To handle the OAuth authentication flow, you need to set up a callback endpoint in your app:
+To handle the OAuth authentication flow, you need to set up a callback endpoint in your app.
+
+### With React Router
 
 ```tsx
-// pages/oauth/callback.tsx or equivalent
+// App.tsx with React Router
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { useEffect } from 'react'
+import { onMcpAuthorization } from 'use-mcp'
+
+function OAuthCallback() {
+  useEffect(() => {
+    onMcpAuthorization()
+  }, [])
+
+  return (
+    <div>
+      <h1>Authenticating...</h1>
+      <p>This window should close automatically.</p>
+    </div>
+  )
+}
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+        <Route path="/" element={<YourMainComponent />} />
+      </Routes>
+    </Router>
+  )
+}
+```
+
+### With Next.js Pages Router
+
+```tsx
+// pages/oauth/callback.tsx
 import { useEffect } from 'react'
 import { onMcpAuthorization } from 'use-mcp'
 

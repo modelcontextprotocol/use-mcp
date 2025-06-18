@@ -362,7 +362,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     } else {
       finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
     }
-    
+
     // If we still have 'fallback' status, convert to 'failed' since no more transports to try
     if (finalStatus === 'fallback') {
       finalStatus = 'failed'
