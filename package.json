@@ -1,6 +1,6 @@
 {
   "name": "use-mcp",
-  "repository": "https://github.com/geelen/use-mcp",
+  "repository": "https://github.com/modelcontextprotocol/use-mcp",
   "version": "0.0.8",
   "type": "module",
   "files": [
@@ -23,7 +23,9 @@
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
-    "check": "prettier --check . && tsc"
+    "check": "prettier --check . && tsc",
+    "build:site": "sed -i 's/```tsx/```ts/g' README.md && npx @axodotdev/oranda build",
+    "deploy:site": "npx wrangler deploy --assets=./public --name use-mcp --compatibility-date 2025-06-18"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0"

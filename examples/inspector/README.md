@@ -12,15 +12,22 @@ A minimal demo showcasing the `use-mcp` React hook for connecting to Model Conte
 
 ## Getting Started
 
+0. Make sure you've built the parent `use-mcp` directory at least once!
+```bash
+cd ../.. && pnpm build && cd -
+```
+
+Alternatively, run `pnpm dev` in the parent directory in a second terminal if you want to iterate on both the library and the example together.
+
 1. Install dependencies:
-   ```bash
-   pnpm install
-   ```
+```bash
+pnpm install
+```
 
 2. Start the development server:
-   ```bash
-   pnpm dev
-   ```
+```bash
+pnpm dev
+```
 
 3. Open your browser and navigate to the displayed local URL
 
