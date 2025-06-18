@@ -1,6 +1,6 @@
 {
   "name": "use-mcp",
-  "repository": "https://github.com/geelen/use-mcp",
+  "repository": "https://github.com/modelcontextprotocol/use-mcp",
   "version": "0.0.8",
   "type": "module",
   "files": [
