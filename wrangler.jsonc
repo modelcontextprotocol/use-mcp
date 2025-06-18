@@ -1,0 +1,23 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "use-mcp",
+  "routes": [
+    {
+      "pattern": "use-mcp.dev",
+      "custom_domain": true
+    }
+  ],
+  "workers_dev": true,
+  "compatibility_date": "2025-02-07",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "directory": "public"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

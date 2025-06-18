@@ -24,19 +24,22 @@
     "dev": "tsup --watch",
     "build": "tsup",
     "check": "prettier --check . && tsc",
-    "build:site": "sed -i 's/```tsx/```ts/g' README.md && npx @axodotdev/oranda build",
-    "deploy:site": "npx wrangler deploy --assets=./public --name use-mcp --compatibility-date 2025-06-18"
+    "fix:oranda": "sed -i 's/```tsx/```ts/g' README.md",
+    "build:site": "npx @axodotdev/oranda build",
+    "deploy:site": "npx wrangler deploy"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0"
   },
   "devDependencies": {
+    "@axodotdev/oranda": "^0.6.5",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "wrangler": "^4.20.2"
   },
   "tsup": {
     "entry": [

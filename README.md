@@ -150,7 +150,7 @@ export default function OAuthCallbackPage() {
 
 ### `useMcp` Hook
 
-```tsx
+```ts
 function useMcp(options: UseMcpOptions): UseMcpResult
 ```
 
