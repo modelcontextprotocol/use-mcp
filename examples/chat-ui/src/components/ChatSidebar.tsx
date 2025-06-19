@@ -10,6 +10,7 @@ import ModelSelector from "./ModelSelector";
 import { McpServers } from "./McpServers";
 import { type Model } from "../types/models";
 import { type Message } from "../types";
+import { type Tool } from "use-mcp/react";
 
 interface Conversation {
   id?: number;
@@ -29,6 +30,7 @@ interface ChatSidebarProps {
   selectedModel: Model;
   onModelChange: (model: Model) => void;
   apiKeyUpdateTrigger: number;
+  onMcpToolsUpdate: (tools: Tool[]) => void;
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -43,6 +45,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   selectedModel,
   onModelChange,
   apiKeyUpdateTrigger,
+  onMcpToolsUpdate,
 }) => {
   const handleConversationClick = (id: number | undefined) => {
     setConversationId(id);
@@ -163,7 +166,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               onModelChange={onModelChange}
               apiKeyUpdateTrigger={apiKeyUpdateTrigger}
             />
-            <McpServers />
+            <McpServers onToolsUpdate={onMcpToolsUpdate} />
           </div>
         </div>
       </div>

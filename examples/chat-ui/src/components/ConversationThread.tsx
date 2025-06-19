@@ -5,6 +5,7 @@ import '../styles/github.css'
 import { type Conversation, type Message } from '../types'
 import { type Model } from '../types/models'
 import { type IDBPDatabase } from 'idb'
+import { type Tool } from 'use-mcp/react'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import { useAutoscroll } from '../hooks/useAutoscroll'
@@ -20,6 +21,7 @@ interface ConversationThreadProps {
   db: IDBPDatabase
   selectedModel: Model
   onApiKeyUpdate: () => void
+  mcpTools: Tool[]
 }
 
 const ConversationThread: React.FC<ConversationThreadProps> = ({
@@ -30,6 +32,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   db,
   selectedModel,
   onApiKeyUpdate,
+  mcpTools,
 }) => {
   const [input, setInput] = useState<string>('')
   const [apiKeyModal, setApiKeyModal] = useState<{ isOpen: boolean; model: Model | null }>({
@@ -80,6 +83,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     scrollToBottom,
     selectedModel,
     onApiKeyRequired: handleApiKeyRequired,
+    mcpTools,
   })
 
   const currentConversation = conversations.find((conv) => conv.id === conversationId) || { messages: [], title: '' }

@@ -8,6 +8,7 @@ import { useIndexedDB } from "../hooks/useIndexedDB";
 import { type Model } from "../types/models";
 import { getSelectedModel, setSelectedModel as saveSelectedModel } from "../utils/modelPreferences";
 import { type IDBPDatabase } from "idb";
+import { type Tool } from "use-mcp/react";
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ChatAppProps {}
@@ -20,6 +21,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   const [sidebarVisible, setSidebarVisible] = useState<boolean>(true);
   const [selectedModel, setSelectedModel] = useState<Model>(getSelectedModel());
   const [apiKeyUpdateTrigger, setApiKeyUpdateTrigger] = useState<number>(0);
+  const [mcpTools, setMcpTools] = useState<Tool[]>([]);
   const db = useIndexedDB();
 
   const handleApiKeyUpdate = () => {
@@ -103,18 +105,19 @@ const ChatApp: React.FC<ChatAppProps> = () => {
     <div className="flex h-dvh w-screen overflow-clip bg-white">
       <div className="flex flex-row flex-grow flex-1 overflow-hidden relative">
         <ChatSidebar
-          sidebarVisible={sidebarVisible}
-          setSidebarVisible={setSidebarVisible}
-          conversations={conversations}
-          conversationId={conversationId}
-          setConversationId={setConversationId}
-          deleteConversation={deleteConversation}
-          editConversationTitle={editConversationTitle}
-          startNewConversation={startNewConversation}
-          selectedModel={selectedModel}
-          onModelChange={handleModelChange}
-          apiKeyUpdateTrigger={apiKeyUpdateTrigger}
-        />
+        sidebarVisible={sidebarVisible}
+        setSidebarVisible={setSidebarVisible}
+        conversations={conversations}
+        conversationId={conversationId}
+        setConversationId={setConversationId}
+        deleteConversation={deleteConversation}
+        editConversationTitle={editConversationTitle}
+        startNewConversation={startNewConversation}
+        selectedModel={selectedModel}
+        onModelChange={handleModelChange}
+        apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+          onMcpToolsUpdate={setMcpTools}
+          />
         <div className="flex flex-col flex-grow h-full w-[calc(100%-16rem)] lg:w-[calc(100%-32rem)]">
           <ChatNavbar
             sidebarVisible={sidebarVisible}
@@ -128,6 +131,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
             db={db as IDBPDatabase}
             selectedModel={selectedModel}
             onApiKeyUpdate={handleApiKeyUpdate}
+            mcpTools={mcpTools}
           />
         </div>
       </div>
