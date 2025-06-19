@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import { type Message } from "../types";
+import ToolCallMessage from "./ToolCallMessage";
+import ToolResultMessage from "./ToolResultMessage";
 
 interface ChatMessageProps {
   message: Message;
@@ -11,6 +13,16 @@ interface ChatMessageProps {
 const ChatMessage: React.FC<ChatMessageProps> = ({
   message,
 }) => {
+  // Handle tool calls and results differently
+  if (message.role === "tool-call") {
+    return <ToolCallMessage message={message} />
+  }
+
+  if (message.role === "tool-result") {
+    return <ToolResultMessage message={message} />
+  }
+
+  // Handle regular messages (user, assistant, system)
   return (
     <div
       className={`flex ${

@@ -1,12 +1,23 @@
-import { useRef, useState } from 'react'
-import { jsonSchema, streamText, tool } from 'ai'
+import { useState, useRef } from 'react'
+import { streamText, tool, jsonSchema } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAnthropic } from '@ai-sdk/anthropic'
-import { type Conversation, type Message } from '../types'
+import { type Message, type Conversation, type UserMessage, type AssistantMessage, type SystemMessage } from '../types'
 import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
 import { type Tool } from 'use-mcp/react'
-import { debugLog } from '../utils/debugLog.ts'
+
+// Debug logging helper
+const debugLog = (...args: any[]) => {
+  if (typeof window !== 'undefined' && localStorage.getItem('USE_MCP_DEBUG') === 'true') {
+    console.log(...args)
+  }
+}
+
+// Type guard for messages with content
+const hasContent = (message: Message): message is UserMessage | AssistantMessage | SystemMessage => {
+  return 'content' in message
+}
 
 interface UseStreamResponseProps {
   conversationId?: number
@@ -132,98 +143,148 @@ export const useStreamResponse = ({
       const aiTools = convertMcpToolsToAiTools(mcpTools)
 
       debugLog(`[useStreamResponse] Starting streamText with ${Object.keys(aiTools).length} tools available`)
-      debugLog(`[useStreamResponse] Messages:`, messages.map(m => ({ role: m.role, content: m.content.substring(0, 100) + '...' })))
+      debugLog(`[useStreamResponse] Messages:`, messages.map(m => ({ 
+        role: m.role, 
+        content: hasContent(m) ? m.content.substring(0, 100) + '...' : 'no content' 
+      })))
 
       const result = await streamText({
         model: modelInstance,
-        messages: messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        messages: messages.filter(msg => 
+          ['user', 'assistant', 'system'].includes(msg.role) && hasContent(msg)
+        ).map((msg) => {
+          const contentMsg = msg as UserMessage | AssistantMessage | SystemMessage
+          return {
+            role: contentMsg.role,
+            content: contentMsg.content,
+          }
+        }),
         tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
         maxSteps: 5, // Allow up to 5 steps for tool calling
-        onStepFinish({ text, toolCalls, toolResults, finishReason, usage }) {
-          debugLog(`[useStreamResponse] Step finished:`, {
-            text: text ? text.substring(0, 100) + '...' : 'no text',
-            toolCallsCount: toolCalls?.length || 0,
-            toolResultsCount: toolResults?.length || 0,
-            finishReason,
-            usage
-          })
-          if (toolCalls && toolCalls.length > 0) {
-            debugLog(`[useStreamResponse] Tool calls in step:`, toolCalls)
-          }
-          if (toolResults && toolResults.length > 0) {
-            debugLog(`[useStreamResponse] Tool results in step:`, toolResults)
-          }
-        },
         abortSignal: controller.signal,
       })
 
-      debugLog(`[useStreamResponse] streamText result obtained, starting to process stream`)
-      debugLog(`[useStreamResponse] Result object:`, { 
-        hasTextStream: !!result.textStream,
-        hasToolCalls: !!result.toolCalls,
-        hasToolResults: !!result.toolResults,
-        hasFullStream: !!result.fullStream
-      })
+      debugLog(`[useStreamResponse] streamText result obtained, starting to process fullStream`)
 
-      // Log tool calls if they exist
-      if (result.toolCalls) {
-        debugLog(`[useStreamResponse] Tool calls detected:`, result.toolCalls)
-      }
-
-      // Log tool results if they exist  
-      if (result.toolResults) {
-        debugLog(`[useStreamResponse] Tool results detected:`, result.toolResults)
-      }
-
-      let chunkCount = 0
-      for await (const chunk of result.textStream) {
+      // Use fullStream to get all events including tool calls, results, and text
+      const processedEvents = new Set<string>() // Track processed events to avoid duplicates
+      
+      for await (const event of result.fullStream) {
         try {
-          chunkCount++
-          debugLog(`[useStreamResponse] Processing chunk ${chunkCount}:`, JSON.stringify(chunk))
+          debugLog(`[useStreamResponse] Full stream event:`, event.type, event)
           
-          aiResponse += chunk
-          aiResponseRef.current = aiResponse
+          if (event.type === 'tool-call') {
+            const eventKey = `tool-call-${event.toolCallId}`
+            if (processedEvents.has(eventKey)) {
+              debugLog(`[useStreamResponse] Skipping duplicate tool call:`, eventKey)
+              continue
+            }
+            processedEvents.add(eventKey)
+            
+            debugLog(`[useStreamResponse] Tool call event:`, event)
+            if (event.toolName) {
+              setConversations((prev) => {
+                const updated = [...prev]
+                const conv = updated.find((c) => c.id === conversationId)
+                if (conv) {
+                  // Check if this tool call already exists
+                  const existingToolCall = conv.messages.find(
+                    (msg) => msg.role === 'tool-call' && 'callId' in msg && msg.callId === event.toolCallId
+                  )
+                  if (!existingToolCall) {
+                    conv.messages.push({
+                      role: 'tool-call',
+                      toolName: event.toolName,
+                      toolArgs: event.args || {},
+                      callId: event.toolCallId || 'unknown',
+                    })
+                  }
+                }
+                return updated
+              })
+              scrollToBottom()
+            } else {
+              console.warn('[useStreamResponse] Tool call event missing toolName:', event)
+            }
+          } else if (event.type === 'tool-result') {
+            const eventKey = `tool-result-${event.toolCallId}`
+            if (processedEvents.has(eventKey)) {
+              debugLog(`[useStreamResponse] Skipping duplicate tool result:`, eventKey)
+              continue
+            }
+            processedEvents.add(eventKey)
+            
+            debugLog(`[useStreamResponse] Tool result event:`, event)
+            if (event.toolName) {
+              setConversations((prev) => {
+                const updated = [...prev]
+                const conv = updated.find((c) => c.id === conversationId)
+                if (conv) {
+                  // Check if this tool result already exists
+                  const existingToolResult = conv.messages.find(
+                    (msg) => msg.role === 'tool-result' && 'callId' in msg && msg.callId === event.toolCallId
+                  )
+                  if (!existingToolResult) {
+                    conv.messages.push({
+                      role: 'tool-result',
+                      toolName: event.toolName,
+                      toolArgs: event.args || {},
+                      toolResult: event.result,
+                      callId: event.toolCallId || 'unknown',
+                    })
+                  }
+                }
+                return updated
+              })
+              scrollToBottom()
+            } else {
+              console.warn('[useStreamResponse] Tool result event missing toolName:', event)
+            }
+          } else if (event.type === 'text-delta') {
+            debugLog(`[useStreamResponse] Text delta:`, event.textDelta)
+            
+            aiResponse += event.textDelta
+            aiResponseRef.current = aiResponse
 
-          debugLog(`[useStreamResponse] Updated aiResponse (length: ${aiResponse.length}):`, aiResponse.substring(0, 200) + '...')
+            //custom extraction of <chat-title> tag
+            const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
+            if (titleMatch) {
+              const title = titleMatch[1].trim()
+              debugLog(`[useStreamResponse] Extracted title: ${title}`)
+              setConversations((prev) => {
+                const updated = [...prev]
+                const conv = updated.find((c) => c.id === conversationId)
+                if (conv) {
+                  conv.title = title
+                }
+                return updated
+              })
+              aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
+            }
 
-          //custom extraction of <chat-title> tag
-          const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
-          if (titleMatch) {
-            const title = titleMatch[1].trim()
-            debugLog(`[useStreamResponse] Extracted title: ${title}`)
             setConversations((prev) => {
               const updated = [...prev]
               const conv = updated.find((c) => c.id === conversationId)
               if (conv) {
-                conv.title = title
+                debugLog(`[useStreamResponse] Updating conversation message content (length: ${aiResponse.length})`)
+                const lastMessage = conv.messages[conv.messages.length - 1]
+                if (hasContent(lastMessage)) {
+                  lastMessage.content = aiResponse
+                }
+              } else {
+                debugLog(`[useStreamResponse] Could not find conversation with id: ${conversationId}`)
               }
               return updated
             })
-            aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
+
+            scrollToBottom()
           }
-
-          setConversations((prev) => {
-            const updated = [...prev]
-            const conv = updated.find((c) => c.id === conversationId)
-            if (conv) {
-              debugLog(`[useStreamResponse] Updating conversation message content (length: ${aiResponse.length})`)
-              conv.messages[conv.messages.length - 1].content = aiResponse
-            } else {
-              debugLog(`[useStreamResponse] Could not find conversation with id: ${conversationId}`)
-            }
-            return updated
-          })
-
-          scrollToBottom()
         } catch (e) {
-          console.error('[useStreamResponse] Error in text chunk processing:', e)
+          console.error('[useStreamResponse] Error in full stream processing:', e)
         }
       }
       
-      debugLog(`[useStreamResponse] Finished processing ${chunkCount} chunks. Final response length: ${aiResponse.length}`)
+      debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
     } catch (error: unknown) {
       if (controller.signal.aborted) {
         debugLog('[useStreamResponse] Stream aborted')
