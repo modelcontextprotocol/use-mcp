@@ -102,6 +102,9 @@ export const useStreamResponse = ({
 
   const streamResponse = async (messages: Message[]) => {
     let aiResponse = ''
+    let assistantMessageIndex = -1 // Track the index of our assistant message
+    let assistantMessageCreated = false // Track if we've created the assistant message yet
+    
     debugLog(`[useStreamResponse] streamResponse called with ${messages.length} messages`)
     debugLog(`[useStreamResponse] Messages:`, messages)
     debugLog(`[useStreamResponse] Current conversationId:`, conversationId)
@@ -123,19 +126,6 @@ export const useStreamResponse = ({
     try {
       const modelInstance = getModelInstance(selectedModel, apiKey)
 
-      debugLog(`[useStreamResponse] Adding empty assistant message to conversation ${conversationId}`)
-      setConversations((prev) => {
-        const updated = [...prev]
-        const conv = updated.find((c) => c.id === conversationId)
-        if (conv) {
-          debugLog(`[useStreamResponse] Found conversation, adding assistant message. Current message count: ${conv.messages.length}`)
-          conv.messages.push({ role: 'assistant', content: '' })
-          debugLog(`[useStreamResponse] After adding assistant message, message count: ${conv.messages.length}`)
-        } else {
-          debugLog(`[useStreamResponse] Could not find conversation with id: ${conversationId}`)
-        }
-        return updated
-      })
       debugLog(`[useStreamResponse] Setting stream started to true`)
       setStreamStarted(true)
 
@@ -243,6 +233,22 @@ export const useStreamResponse = ({
           } else if (event.type === 'text-delta') {
             debugLog(`[useStreamResponse] Text delta:`, event.textDelta)
             
+            // Create assistant message on first text delta (after all tool calls/results)
+            if (!assistantMessageCreated) {
+              debugLog(`[useStreamResponse] Creating assistant message after tool calls/results`)
+              setConversations((prev) => {
+                const updated = [...prev]
+                const conv = updated.find((c) => c.id === conversationId)
+                if (conv) {
+                  conv.messages.push({ role: 'assistant', content: '' })
+                  assistantMessageIndex = conv.messages.length - 1
+                  debugLog(`[useStreamResponse] Created assistant message at index ${assistantMessageIndex}`)
+                }
+                return updated
+              })
+              assistantMessageCreated = true
+            }
+            
             aiResponse += event.textDelta
             aiResponseRef.current = aiResponse
 
@@ -267,9 +273,13 @@ export const useStreamResponse = ({
               const conv = updated.find((c) => c.id === conversationId)
               if (conv) {
                 debugLog(`[useStreamResponse] Updating conversation message content (length: ${aiResponse.length})`)
-                const lastMessage = conv.messages[conv.messages.length - 1]
-                if (hasContent(lastMessage)) {
-                  lastMessage.content = aiResponse
+                // Update the specific assistant message we created, not just the last message
+                const assistantMessage = conv.messages[assistantMessageIndex]
+                if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                  assistantMessage.content = aiResponse
+                  debugLog(`[useStreamResponse] Updated assistant message at index ${assistantMessageIndex}`)
+                } else {
+                  debugLog(`[useStreamResponse] Could not find assistant message at index ${assistantMessageIndex}`, assistantMessage)
                 }
               } else {
                 debugLog(`[useStreamResponse] Could not find conversation with id: ${conversationId}`)
@@ -295,16 +305,18 @@ export const useStreamResponse = ({
           console.error('[useStreamResponse] Error stack:', error.stack)
           console.error('[useStreamResponse] Error message:', error.message)
         }
-        // Remove the assistant message if there was an error
-        setConversations((prev) => {
-          const updated = [...prev]
-          const conv = updated.find((c) => c.id === conversationId)
-          if (conv && conv.messages[conv.messages.length - 1].role === 'assistant') {
-            debugLog('[useStreamResponse] Removing assistant message due to error')
-            conv.messages.pop()
-          }
-          return updated
-        })
+        // Remove the assistant message if there was an error and we created one
+        if (assistantMessageCreated) {
+          setConversations((prev) => {
+            const updated = [...prev]
+            const conv = updated.find((c) => c.id === conversationId)
+            if (conv && assistantMessageIndex >= 0 && conv.messages[assistantMessageIndex]?.role === 'assistant') {
+              debugLog('[useStreamResponse] Removing assistant message due to error')
+              conv.messages.splice(assistantMessageIndex, 1)
+            }
+            return updated
+          })
+        }
       }
     } finally {
       debugLog('[useStreamResponse] Cleaning up stream state')
