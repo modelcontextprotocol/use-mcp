@@ -102,27 +102,32 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   };
 
   return (
-    <div className="flex h-dvh w-screen overflow-clip bg-white">
+    <div className="flex h-dvh w-screen overflow-clip bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100">
       <div className="flex flex-row flex-grow flex-1 overflow-hidden relative">
-        <ChatSidebar
-        sidebarVisible={sidebarVisible}
-        setSidebarVisible={setSidebarVisible}
-        conversations={conversations}
-        conversationId={conversationId}
-        setConversationId={setConversationId}
-        deleteConversation={deleteConversation}
-        editConversationTitle={editConversationTitle}
-        startNewConversation={startNewConversation}
-        selectedModel={selectedModel}
-        onModelChange={handleModelChange}
-        apiKeyUpdateTrigger={apiKeyUpdateTrigger}
-          onMcpToolsUpdate={setMcpTools}
-          />
-        <div className="flex flex-col flex-grow h-full w-[calc(100%-16rem)] lg:w-[calc(100%-32rem)]">
-          <ChatNavbar
-            sidebarVisible={sidebarVisible}
-            setSidebarVisible={setSidebarVisible}
-          />
+        {/* Sidebar and Navbar components hidden but kept in codebase */}
+        {false && (
+          <>
+            <ChatSidebar
+              sidebarVisible={sidebarVisible}
+              setSidebarVisible={setSidebarVisible}
+              conversations={conversations}
+              conversationId={conversationId}
+              setConversationId={setConversationId}
+              deleteConversation={deleteConversation}
+              editConversationTitle={editConversationTitle}
+              startNewConversation={startNewConversation}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+              onMcpToolsUpdate={setMcpTools}
+            />
+            <ChatNavbar
+              sidebarVisible={sidebarVisible}
+              setSidebarVisible={setSidebarVisible}
+            />
+          </>
+        )}
+        <div className="flex flex-col flex-grow h-full w-full">
           <ConversationThread
             conversations={conversations}
             conversationId={conversationId}

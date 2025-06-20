@@ -160,7 +160,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   console.log({ currentConversation })
 
   return (
-    <div className={`flex flex-col h-[calc(100%-3rem)] w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
+    <div className={`flex flex-col h-full w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
       <div
         ref={messagesContainerRef}
         className={`
@@ -170,19 +170,24 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         <div className="max-w-2xl mx-auto w-full px-4">
           {currentConversation.messages.length === 0 ? (
             <div className="text-center">
-              <h1 className="text-4xl font-semibold text-zinc-800">What do you want to know?</h1>
-              <div className="mt-4">
-                <h2 className="mt-2 text-md opacity-70">
-                  AI chat template built with React, Vite and Cloudflare Workers AI.
-                  <div className="mt-1 w-full">
-                    Find the source code on{' '}
-                    <a className="text-blue-700" href="https://github.com/thomasgauvin/ai-chat-template">
-                      GitHub
-                    </a>
-                    .
+              {/* Title and description text hidden but kept in codebase */}
+              {false && (
+                <>
+                  <h1 className="text-4xl font-semibold text-zinc-800">What do you want to know?</h1>
+                  <div className="mt-4">
+                    <h2 className="mt-2 text-md opacity-70">
+                      AI chat template built with React, Vite and Cloudflare Workers AI.
+                      <div className="mt-1 w-full">
+                        Find the source code on{' '}
+                        <a className="text-blue-700" href="https://github.com/thomasgauvin/ai-chat-template">
+                          GitHub
+                        </a>
+                        .
+                      </div>
+                    </h2>
                   </div>
-                </h2>
-              </div>
+                </>
+              )}
             </div>
           ) : (
             <div className="py-4 px-4 space-y-4">
