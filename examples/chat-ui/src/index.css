@@ -2,77 +2,15 @@
 @plugin "@tailwindcss/typography";
 @config "../tailwind.config.js";
 
-@keyframes rotate-gradient {
+@keyframes hue-rotate {
   0% {
-    transform: rotate(0deg);
+    filter: hue-rotate(0deg);
   }
   100% {
-    transform: rotate(360deg);
+    filter: hue-rotate(360deg);
   }
 }
 
-.animated-gradient-bg {
-  position: relative;
-  overflow: hidden;
-}
-
-.animated-gradient-bg::before {
-  content: '';
-  position: absolute;
-  top: -200%;
-  left: -200%;
-  width: 500%;
-  height: 500%;
-  background: conic-gradient(
-    from 0deg,
-    #fef7ff,
-    #fce7f3,
-    #f3e8ff,
-    #e0e7ff,
-    #dbeafe,
-    #dcfce7,
-    #fef3c7,
-    #fed7aa,
-    #fecaca,
-    #fbb6ce,
-    #e9d5ff,
-    #c7d2fe,
-    #bfdbfe,
-    #bbf7d0,
-    #fef08a,
-    #fdba74,
-    #fca5a5,
-    #f9a8d4,
-    #ddd6fe,
-    #a5b4fc,
-    #93c5fd,
-    #86efac,
-    #facc15,
-    #fb923c,
-    #f87171,
-    #f472b6,
-    #c4b5fd,
-    #818cf8,
-    #60a5fa,
-    #4ade80,
-    #eab308,
-    #ea580c,
-    #ef4444,
-    #ec4899,
-    #a78bfa,
-    #6366f1,
-    #3b82f6,
-    #22c55e,
-    #ca8a04,
-    #dc2626,
-    #dc2626,
-    #db2777,
-    #9333ea,
-    #4f46e5,
-    #2563eb,
-    #16a34a,
-    #fef7ff
-  );
-  animation: rotate-gradient 8s linear infinite;
-  z-index: -1;
+.animated-hue-bg {
+  animation: hue-rotate 8s linear infinite;
 }
