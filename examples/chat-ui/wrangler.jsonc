@@ -4,15 +4,22 @@
  */
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ai-chat-template",
-  "main": "api/index.ts",
+  "name": "chat-example-use-mcp",
+  "workers_dev": true,
+  //  "routes": [
+//    {
+//      "pattern": "chat.use-mcp.dev",
+//      "custom_domain": true
+//    }
+//  ],
+//  "main": "api/index.ts",
   "compatibility_date": "2025-02-07",
-  "ai": {
-    "binding": "AI"
-  },
+//  "ai": {
+//    "binding": "AI"
+//  },
   "assets": {
     "not_found_handling": "single-page-application",
-    "binding": "ASSETS",
+//    "binding": "ASSETS",
     "directory": "dist/client"
   },
   "observability": {
