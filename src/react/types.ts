@@ -1,4 +1,4 @@
-import { Tool, Resource, ResourceTemplate } from '@modelcontextprotocol/sdk/types.js'
+import { Tool, Resource, ResourceTemplate, Prompt } from '@modelcontextprotocol/sdk/types.js'
 
 export type UseMcpOptions = {
   /** The /sse URL of your remote MCP server */
@@ -35,6 +35,8 @@ export type UseMcpResult = {
   resources: Resource[]
   /** List of resource templates available from the connected MCP server */
   resourceTemplates: ResourceTemplate[]
+  /** List of prompts available from the connected MCP server */
+  prompts: Prompt[]
   /**
    * The current state of the MCP connection:
    * - 'discovering': Checking server existence and capabilities (including auth requirements).
@@ -75,6 +77,23 @@ export type UseMcpResult = {
    * @throws If the client is not in the 'ready' state or the read fails.
    */
   readResource: (uri: string) => Promise<{ contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }> }>
+  /**
+   * Function to list prompts from the MCP server.
+   * @returns A promise that resolves when prompts are refreshed.
+   * @throws If the client is not in the 'ready' state.
+   */
+  listPrompts: () => Promise<void>
+  /**
+   * Function to get a specific prompt from the MCP server.
+   * @param name The name of the prompt to get.
+   * @param args Optional arguments for the prompt.
+   * @returns A promise that resolves with the prompt messages.
+   * @throws If the client is not in the 'ready' state or the get fails.
+   */
+  getPrompt: (
+    name: string,
+    args?: Record<string, string>,
+  ) => Promise<{ messages: Array<{ role: 'user' | 'assistant'; content: { type: string; text?: string; [key: string]: any } }> }>
   /** Manually attempts to reconnect if the state is 'failed'. */
   retry: () => void
   /** Disconnects the client from the MCP server. */

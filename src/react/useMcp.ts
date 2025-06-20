@@ -5,9 +5,12 @@ import {
   ListToolsResultSchema,
   ListResourcesResultSchema,
   ReadResourceResultSchema,
+  ListPromptsResultSchema,
+  GetPromptResultSchema,
   Tool,
   Resource,
   ResourceTemplate,
+  Prompt,
 } from '@modelcontextprotocol/sdk/types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Import both transport types
@@ -45,6 +48,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   const [tools, setTools] = useState<Tool[]>([])
   const [resources, setResources] = useState<Resource[]>([])
   const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([])
+  const [prompts, setPrompts] = useState<Prompt[]>([])
   const [error, setError] = useState<string | undefined>(undefined)
   const [log, setLog] = useState<UseMcpResult['log']>([])
   const [authUrl, setAuthUrl] = useState<string | undefined>(undefined)
@@ -103,6 +107,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         setTools([])
         setResources([])
         setResourceTemplates([])
+        setPrompts([])
         setError(undefined)
         setAuthUrl(undefined)
       }
@@ -263,7 +268,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
-        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools and resources...`)
+        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools, resources, and prompts...`)
         successfulTransportRef.current = transportType // Store successful type
         setState('loading')
 
@@ -272,14 +277,18 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         // Load resources after tools
         const resourcesResponse = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
 
+        // Load prompts after resources
+        const promptsResponse = await clientRef.current!.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+
         if (isMountedRef.current) {
           // Check mount before final state updates
           setTools(toolsResponse.tools)
           setResources(resourcesResponse.resources)
           setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
+          setPrompts(promptsResponse.prompts)
           addLog(
             'info',
-            `Loaded ${toolsResponse.tools.length} tools, ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates.`,
+            `Loaded ${toolsResponse.tools.length} tools, ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates, ${promptsResponse.prompts.length} prompts.`,
           )
           setState('ready') // Final success state
           // connectingRef will be set to false after orchestration logic
@@ -583,6 +592,45 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     [state, addLog],
   ) // Depends on state for error message and stable addLog
 
+  // listPrompts is stable (depends on stable addLog)
+  const listPrompts = useCallback(async () => {
+    // Use stateRef for check, state for throwing error message
+    if (stateRef.current !== 'ready' || !clientRef.current) {
+      throw new Error(`MCP client is not ready (current state: ${state}). Cannot list prompts.`)
+    }
+    addLog('info', 'Listing prompts...')
+    try {
+      const promptsResponse = await clientRef.current.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+      if (isMountedRef.current) {
+        setPrompts(promptsResponse.prompts)
+        addLog('info', `Listed ${promptsResponse.prompts.length} prompts.`)
+      }
+    } catch (err) {
+      addLog('error', `Error listing prompts: ${err instanceof Error ? err.message : String(err)}`, err)
+      throw err
+    }
+  }, [state, addLog]) // Depends on state for error message and stable addLog
+
+  // getPrompt is stable (depends on stable addLog)
+  const getPrompt = useCallback(
+    async (name: string, args?: Record<string, string>) => {
+      // Use stateRef for check, state for throwing error message
+      if (stateRef.current !== 'ready' || !clientRef.current) {
+        throw new Error(`MCP client is not ready (current state: ${state}). Cannot get prompt "${name}".`)
+      }
+      addLog('info', `Getting prompt: ${name}`, args)
+      try {
+        const result = await clientRef.current.request({ method: 'prompts/get', params: { name, arguments: args } }, GetPromptResultSchema)
+        addLog('info', `Prompt "${name}" retrieved successfully`)
+        return result
+      } catch (err) {
+        addLog('error', `Error getting prompt "${name}": ${err instanceof Error ? err.message : String(err)}`, err)
+        throw err
+      }
+    },
+    [state, addLog],
+  ) // Depends on state for error message and stable addLog
+
   // ===== Effects =====
 
   // Effect for handling auth callback messages from popup (Stable dependencies)
@@ -672,12 +720,15 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     tools,
     resources,
     resourceTemplates,
+    prompts,
     error,
     log,
     authUrl,
     callTool,
     listResources,
     readResource,
+    listPrompts,
+    getPrompt,
     retry,
     disconnect,
     authenticate,
