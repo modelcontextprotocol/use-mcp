@@ -12,5 +12,5 @@
 }
 
 .animated-hue-bg {
-  animation: hue-rotate 8s linear infinite;
+  animation: hue-rotate 60s linear infinite;
 }
