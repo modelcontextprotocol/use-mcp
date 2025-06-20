@@ -22,6 +22,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   const [selectedModel, setSelectedModel] = useState<Model>(getSelectedModel());
   const [apiKeyUpdateTrigger, setApiKeyUpdateTrigger] = useState<number>(0);
   const [mcpTools, setMcpTools] = useState<Tool[]>([]);
+  const [animationDelay] = useState<number>(() => -Math.random() * 60);
   const db = useIndexedDB();
 
   const handleApiKeyUpdate = () => {
@@ -102,7 +103,10 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   };
 
   return (
-    <div className="flex h-dvh w-screen overflow-clip bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 animated-hue-bg">
+    <div 
+      className="flex h-dvh w-screen overflow-clip bg-gradient-to-br from-pink-100 via-purple-50 to-indigo-100 animated-hue-bg"
+      style={{ animationDelay: `${animationDelay}s` }}
+    >
       <div className="flex flex-row flex-grow flex-1 overflow-hidden relative">
         {/* Sidebar and Navbar components hidden but kept in codebase */}
         {false && (
