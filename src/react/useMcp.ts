@@ -274,11 +274,21 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         const toolsResponse = await clientRef.current!.request({ method: 'tools/list' }, ListToolsResultSchema)
 
-        // Load resources after tools
-        const resourcesResponse = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
+        // Load resources after tools (optional - not all servers support resources)
+        let resourcesResponse: { resources: Resource[]; resourceTemplates?: ResourceTemplate[] } = { resources: [], resourceTemplates: [] }
+        try {
+          resourcesResponse = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
+        } catch (err) {
+          addLog('debug', 'Server does not support resources/list method', err)
+        }
 
-        // Load prompts after resources
-        const promptsResponse = await clientRef.current!.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+        // Load prompts after resources (optional - not all servers support prompts)
+        let promptsResponse: { prompts: Prompt[] } = { prompts: [] }
+        try {
+          promptsResponse = await clientRef.current!.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+        } catch (err) {
+          addLog('debug', 'Server does not support prompts/list method', err)
+        }
 
         if (isMountedRef.current) {
           // Check mount before final state updates
@@ -286,10 +296,21 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           setResources(resourcesResponse.resources)
           setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
           setPrompts(promptsResponse.prompts)
-          addLog(
-            'info',
-            `Loaded ${toolsResponse.tools.length} tools, ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates, ${promptsResponse.prompts.length} prompts.`,
-          )
+          const summary = [`Loaded ${toolsResponse.tools.length} tools`]
+          if (
+            resourcesResponse.resources.length > 0 ||
+            (resourcesResponse.resourceTemplates && resourcesResponse.resourceTemplates.length > 0)
+          ) {
+            summary.push(`${resourcesResponse.resources.length} resources`)
+            if (Array.isArray(resourcesResponse.resourceTemplates) && resourcesResponse.resourceTemplates.length > 0) {
+              summary.push(`${resourcesResponse.resourceTemplates.length} resource templates`)
+            }
+          }
+          if (promptsResponse.prompts.length > 0) {
+            summary.push(`${promptsResponse.prompts.length} prompts`)
+          }
+
+          addLog('info', summary.join(', ') + '.')
           setState('ready') // Final success state
           // connectingRef will be set to false after orchestration logic
           connectAttemptRef.current = 0 // Reset on success
