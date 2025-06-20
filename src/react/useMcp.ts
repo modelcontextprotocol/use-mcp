@@ -1,5 +1,14 @@
 // useMcp.ts
-import { CallToolResultSchema, JSONRPCMessage, ListToolsResultSchema, Tool } from '@modelcontextprotocol/sdk/types.js'
+import {
+  CallToolResultSchema,
+  JSONRPCMessage,
+  ListToolsResultSchema,
+  ListResourcesResultSchema,
+  ReadResourceResultSchema,
+  Tool,
+  Resource,
+  ResourceTemplate,
+} from '@modelcontextprotocol/sdk/types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Import both transport types
 import { SSEClientTransport, SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js'
@@ -34,6 +43,8 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
   const [tools, setTools] = useState<Tool[]>([])
+  const [resources, setResources] = useState<Resource[]>([])
+  const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([])
   const [error, setError] = useState<string | undefined>(undefined)
   const [log, setLog] = useState<UseMcpResult['log']>([])
   const [authUrl, setAuthUrl] = useState<string | undefined>(undefined)
@@ -90,6 +101,8 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       if (isMountedRef.current && !quiet) {
         setState('discovering')
         setTools([])
+        setResources([])
+        setResourceTemplates([])
         setError(undefined)
         setAuthUrl(undefined)
       }
@@ -250,16 +263,24 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
-        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools...`)
+        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools and resources...`)
         successfulTransportRef.current = transportType // Store successful type
         setState('loading')
 
         const toolsResponse = await clientRef.current!.request({ method: 'tools/list' }, ListToolsResultSchema)
 
+        // Load resources after tools
+        const resourcesResponse = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
+
         if (isMountedRef.current) {
           // Check mount before final state updates
           setTools(toolsResponse.tools)
-          addLog('info', `Loaded ${toolsResponse.tools.length} tools.`)
+          setResources(resourcesResponse.resources)
+          setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
+          addLog(
+            'info',
+            `Loaded ${toolsResponse.tools.length} tools, ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates.`,
+          )
           setState('ready') // Final success state
           // connectingRef will be set to false after orchestration logic
           connectAttemptRef.current = 0 // Reset on success
@@ -519,6 +540,49 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     }
   }, [url, addLog, disconnect]) // Depends on url and stable callbacks
 
+  // listResources is stable (depends on stable addLog)
+  const listResources = useCallback(async () => {
+    // Use stateRef for check, state for throwing error message
+    if (stateRef.current !== 'ready' || !clientRef.current) {
+      throw new Error(`MCP client is not ready (current state: ${state}). Cannot list resources.`)
+    }
+    addLog('info', 'Listing resources...')
+    try {
+      const resourcesResponse = await clientRef.current.request({ method: 'resources/list' }, ListResourcesResultSchema)
+      if (isMountedRef.current) {
+        setResources(resourcesResponse.resources)
+        setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
+        addLog(
+          'info',
+          `Listed ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates.`,
+        )
+      }
+    } catch (err) {
+      addLog('error', `Error listing resources: ${err instanceof Error ? err.message : String(err)}`, err)
+      throw err
+    }
+  }, [state, addLog]) // Depends on state for error message and stable addLog
+
+  // readResource is stable (depends on stable addLog)
+  const readResource = useCallback(
+    async (uri: string) => {
+      // Use stateRef for check, state for throwing error message
+      if (stateRef.current !== 'ready' || !clientRef.current) {
+        throw new Error(`MCP client is not ready (current state: ${state}). Cannot read resource "${uri}".`)
+      }
+      addLog('info', `Reading resource: ${uri}`)
+      try {
+        const result = await clientRef.current.request({ method: 'resources/read', params: { uri } }, ReadResourceResultSchema)
+        addLog('info', `Resource "${uri}" read successfully`)
+        return result
+      } catch (err) {
+        addLog('error', `Error reading resource "${uri}": ${err instanceof Error ? err.message : String(err)}`, err)
+        throw err
+      }
+    },
+    [state, addLog],
+  ) // Depends on state for error message and stable addLog
+
   // ===== Effects =====
 
   // Effect for handling auth callback messages from popup (Stable dependencies)
@@ -606,10 +670,14 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   return {
     state,
     tools,
+    resources,
+    resourceTemplates,
     error,
     log,
     authUrl,
     callTool,
+    listResources,
+    readResource,
     retry,
     disconnect,
     authenticate,
