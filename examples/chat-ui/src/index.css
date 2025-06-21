@@ -13,4 +13,5 @@
 
 .animated-hue-bg {
   animation: hue-rotate 60s linear infinite;
+  animation-delay: var(--random-delay, 0s);
 }
