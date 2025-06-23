@@ -248,10 +248,24 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
                 {(() => {
                   try {
                     const servers = JSON.parse(localStorage.getItem('mcpServers') || '[]')
-                    const connectedServers = servers.filter((s: any) => s.enabled).length
-                    return mcpTools.length > 0 ? `${connectedServers} (${mcpTools.length})` : connectedServers.toString()
+                    const toolCounts = JSON.parse(localStorage.getItem('mcpServerToolCounts') || '{}')
+                    
+                    const enabledServers = servers.filter((s: any) => s.enabled).length
+                    const totalServers = servers.length
+                    const enabledTools = mcpTools.length
+                    
+                    // Calculate total tools across all servers (including disabled ones that were previously connected)
+                    const totalTools = servers.reduce((sum: number, server: any) => {
+                      return sum + (toolCounts[server.id] || 0)
+                    }, 0)
+                    
+                    if (totalServers === 0) {
+                      return "0 (0 servers) 0 (0 tools)"
+                    }
+                    
+                    return `${enabledServers} (${totalServers} servers) ${enabledTools} (${totalTools} tools)`
                   } catch {
-                    return mcpTools.length > 0 ? `1 (${mcpTools.length})` : "0"
+                    return mcpTools.length > 0 ? `1 (1 servers) ${mcpTools.length} (${mcpTools.length} tools)` : "0 (0 servers) 0 (0 tools)"
                   }
                 })()}
               </span>

@@ -59,12 +59,21 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   const [newServerUrl, setNewServerUrl] = useState('')
   const [showSettings, setShowSettings] = useState(false)
   const [connectionData, setConnectionData] = useState<Record<string, any>>({})
+  const [serverToolCounts, setServerToolCounts] = useState<Record<string, number>>(() => {
+    const stored = localStorage.getItem('mcpServerToolCounts')
+    return stored ? JSON.parse(stored) : {}
+  })
   const logRef = useRef<HTMLDivElement>(null)
 
   // Save servers to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('mcpServers', JSON.stringify(servers))
   }, [servers])
+
+  // Save tool counts to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('mcpServerToolCounts', JSON.stringify(serverToolCounts))
+  }, [serverToolCounts])
 
   useEffect(() => {
     if (isOpen) {
@@ -127,6 +136,11 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
       delete newData[serverId]
       return newData
     })
+    setServerToolCounts(prev => {
+      const newCounts = { ...prev }
+      delete newCounts[serverId]
+      return newCounts
+    })
   }
 
   // Handle toggling server enabled state
@@ -150,6 +164,14 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
       ...prev,
       [serverId]: data
     }))
+    
+    // Store tool count for this server (even if it gets disabled later)
+    if (data.tools && Array.isArray(data.tools)) {
+      setServerToolCounts(prev => ({
+        ...prev,
+        [serverId]: data.tools.length
+      }))
+    }
   }
 
   // Handle authentication for a specific server
