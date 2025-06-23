@@ -245,7 +245,15 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
               className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
             >
               <span className="text-sm text-zinc-500">
-                {mcpTools.length > 0 ? `1 (${mcpTools.length})` : "0"}
+                {(() => {
+                  try {
+                    const servers = JSON.parse(localStorage.getItem('mcpServers') || '[]')
+                    const connectedServers = servers.filter((s: any) => s.enabled).length
+                    return mcpTools.length > 0 ? `${connectedServers} (${mcpTools.length})` : connectedServers.toString()
+                  } catch {
+                    return mcpTools.length > 0 ? `1 (${mcpTools.length})` : "0"
+                  }
+                })()}
               </span>
               <span className="text-lg">🔌</span>
             </button>
