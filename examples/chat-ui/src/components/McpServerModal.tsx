@@ -187,13 +187,19 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   return (
     <>
-      <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 ${isOpen ? 'block' : 'hidden'}`}>
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
+      <div 
+        className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 ${isOpen ? 'block' : 'hidden'}`}
+        onClick={onClose}
+      >
+        <div 
+          className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex items-center justify-between p-6 border-b border-zinc-200">
             <h2 className="text-xl font-semibold text-zinc-900">MCP Servers</h2>
             <button
               onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-600 p-1"
+              className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer"
             >
               <X size={24} />
             </button>
