@@ -224,14 +224,14 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
           <div className="flex items-center gap-2 mt-2">
             <button
               onClick={() => setModelSelectionModal(true)}
-              className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors"
+              className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
             >
               <span className="text-lg">🧠</span>
               <span className="text-sm text-zinc-500">
                 {hasApiKey(selectedModel.provider.id) ? (
                   selectedModel.name.toLowerCase()
                 ) : (
-                  <span className="text-red-500">✕</span>
+                  "none"
                 )}
               </span>
             </button>
