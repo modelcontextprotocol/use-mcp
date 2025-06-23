@@ -6,12 +6,12 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "chat-example-use-mcp",
   "workers_dev": true,
-  //  "routes": [
-//    {
-//      "pattern": "chat.use-mcp.dev",
-//      "custom_domain": true
-//    }
-//  ],
+  "routes": [
+    {
+      "pattern": "chat.use-mcp.dev",
+      "custom_domain": true
+    }
+  ],
 //  "main": "api/index.ts",
   "compatibility_date": "2025-02-07",
 //  "ai": {
