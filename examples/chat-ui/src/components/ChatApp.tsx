@@ -140,6 +140,8 @@ const ChatApp: React.FC<ChatAppProps> = () => {
             db={db as IDBPDatabase}
             selectedModel={selectedModel}
             onApiKeyUpdate={handleApiKeyUpdate}
+            onModelChange={handleModelChange}
+            apiKeyUpdateTrigger={apiKeyUpdateTrigger}
             mcpTools={mcpTools}
           />
         </div>

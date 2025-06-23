@@ -8,9 +8,11 @@ import { type IDBPDatabase } from 'idb'
 import { type Tool } from 'use-mcp/react'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
+import ModelSelectionModal from './ModelSelectionModal'
 import { useAutoscroll } from '../hooks/useAutoscroll'
 import { useStreamResponse } from '../hooks/useStreamResponse'
 import { setApiKey } from '../utils/apiKeys'
+import { hasApiKey } from '../utils/apiKeys'
 import ApiKeyModal from './ApiKeyModal'
 
 interface ConversationThreadProps {
@@ -21,6 +23,8 @@ interface ConversationThreadProps {
   db: IDBPDatabase
   selectedModel: Model
   onApiKeyUpdate: () => void
+  onModelChange: (model: Model) => void
+  apiKeyUpdateTrigger: number
   mcpTools: Tool[]
 }
 
@@ -32,6 +36,8 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   db,
   selectedModel,
   onApiKeyUpdate,
+  onModelChange,
+  apiKeyUpdateTrigger,
   mcpTools,
 }) => {
   const [input, setInput] = useState<string>('')
@@ -39,6 +45,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     isOpen: false,
     model: null,
   })
+  const [modelSelectionModal, setModelSelectionModal] = useState(false)
 
   const { messagesEndRef, messagesContainerRef, scrollToBottom } = useAutoscroll()
 
@@ -212,6 +219,23 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             controller={controller}
             messagesCount={currentConversation.messages.length}
           />
+          
+          {/* Model selector indicator */}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={() => setModelSelectionModal(true)}
+              className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors"
+            >
+              <span className="text-lg">🧠</span>
+              <span className="text-sm text-zinc-500">
+                {hasApiKey(selectedModel.provider.id) ? (
+                  selectedModel.name.toLowerCase()
+                ) : (
+                  <span className="text-red-500">✕</span>
+                )}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -220,6 +244,14 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         onClose={handleApiKeyCancel}
         provider={apiKeyModal.model?.provider ?? { id: '', name: '', baseUrl: '', apiKeyHeader: '', documentationUrl: '' }}
         onSave={handleApiKeySave}
+      />
+
+      <ModelSelectionModal
+        isOpen={modelSelectionModal}
+        onClose={() => setModelSelectionModal(false)}
+        selectedModel={selectedModel}
+        onModelChange={onModelChange}
+        apiKeyUpdateTrigger={apiKeyUpdateTrigger}
       />
     </div>
   )
