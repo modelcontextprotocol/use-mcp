@@ -88,7 +88,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
     <>
       <div 
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ background: 'radial-gradient(circle, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.7) 100%)' }}
+        style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
         onClick={onClose}
       >
         <div 
