@@ -11,7 +11,19 @@
   }
 }
 
-.animated-hue-bg {
+.animated-bg-container {
+  position: relative;
+}
+
+.animated-bg-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #fdf2f8, #faf5ff, #eef2ff);
   animation: hue-rotate 60s linear infinite;
   animation-delay: var(--random-delay, 0s);
+  z-index: -1;
 }
