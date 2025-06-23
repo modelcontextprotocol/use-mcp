@@ -242,10 +242,10 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
               onClick={() => setMcpServerModal(true)}
               className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
             >
-              <span className="text-lg">🔌</span>
               <span className="text-sm text-zinc-500">
                 {mcpTools.length > 0 ? `1 (${mcpTools.length})` : "0"}
               </span>
+              <span className="text-lg">🔌</span>
             </button>
           </div>
         </div>
