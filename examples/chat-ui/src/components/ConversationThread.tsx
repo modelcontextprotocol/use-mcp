@@ -27,6 +27,7 @@ interface ConversationThreadProps {
   onModelChange: (model: Model) => void
   apiKeyUpdateTrigger: number
   mcpTools: Tool[]
+  onMcpToolsUpdate: (tools: Tool[]) => void
 }
 
 const ConversationThread: React.FC<ConversationThreadProps> = ({
@@ -40,6 +41,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   onModelChange,
   apiKeyUpdateTrigger,
   mcpTools,
+  onMcpToolsUpdate,
 }) => {
   const [input, setInput] = useState<string>('')
   const [apiKeyModal, setApiKeyModal] = useState<{ isOpen: boolean; model: Model | null }>({
@@ -269,9 +271,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
       <McpServerModal
         isOpen={mcpServerModal}
         onClose={() => setMcpServerModal(false)}
-        onToolsUpdate={(tools) => {
-          // This will be handled by the existing MCP tools logic in ChatApp
-        }}
+        onToolsUpdate={onMcpToolsUpdate}
       />
     </div>
   )

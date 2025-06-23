@@ -143,6 +143,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
             onModelChange={handleModelChange}
             apiKeyUpdateTrigger={apiKeyUpdateTrigger}
             mcpTools={mcpTools}
+            onMcpToolsUpdate={setMcpTools}
           />
         </div>
       </div>
