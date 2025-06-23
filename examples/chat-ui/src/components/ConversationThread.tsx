@@ -260,12 +260,12 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
                     }, 0)
                     
                     if (totalServers === 0) {
-                      return "0 (0) servers, 0 (0) tools"
+                      return "0/0 servers, 0/0 tools"
                     }
                     
-                    return `${enabledServers} (${totalServers}) servers, ${enabledTools} (${totalTools}) tools`
+                    return `${enabledServers}/${totalServers} servers, ${enabledTools}/${totalTools} tools`
                   } catch {
-                    return mcpTools.length > 0 ? `1 (1) servers, ${mcpTools.length} (${mcpTools.length}) tools` : "0 (0) servers, 0 (0) tools"
+                    return mcpTools.length > 0 ? `1/1 servers, ${mcpTools.length}/${mcpTools.length} tools` : "0/0 servers, 0/0 tools"
                   }
                 })()}
               </span>
