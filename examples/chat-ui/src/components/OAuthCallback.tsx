@@ -8,6 +8,7 @@ export function OAuthCallback() {
 
   return (
     <div className="min-h-screen animated-bg-container flex items-center justify-center p-4">
+      <div className="animated-bg"></div>
       <div className="bg-white rounded-lg shadow-xl p-8 text-center max-w-md w-full">
         <h1 className="text-2xl font-bold text-zinc-900 mb-4">Authenticating...</h1>
         <p className="text-zinc-600 mb-2">Please wait while we complete your authentication.</p>

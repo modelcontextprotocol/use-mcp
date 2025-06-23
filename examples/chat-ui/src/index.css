@@ -13,19 +13,33 @@
 
 .animated-bg-container {
   position: relative;
+  /*overflow: hidden;*/
+  /*height: 500vh;*/
 }
 
-.animated-bg-container::before {
+.animated-bg {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, #fdf2f8, #faf5ff, #eef2ff);
-  background-size: 100% 100vh;
+  top: 0vh;
+  left: 0vw;
+  right: 0vw;
+  bottom: 0vh;
+  overflow: hidden;
+}
+
+.animated-bg::before {
+  content: '';
+  position: absolute;
+  top: -100vh;
+  left: -1000vw;
+  right: -1000vw;
+  bottom: -100vh;
+  background: linear-gradient(180deg, #fdf2f8, #faf5ff, #eef2ff, #faf5ff, #fdf2f8);
+  /*background: linear-gradient(180deg, red, black, blue, black, red);*/
+  background-size: 100% 200vh;
   background-repeat: repeat-y;
   animation: hue-rotate 60s linear infinite;
   animation-delay: var(--random-delay, 0s);
   z-index: -1;
+  transform: rotate(-20deg);
 }
