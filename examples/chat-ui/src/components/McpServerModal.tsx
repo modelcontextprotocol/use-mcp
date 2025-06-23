@@ -185,11 +185,9 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     }
   }
 
-  if (!isOpen) return null
-
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className={`fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 ${isOpen ? 'block' : 'hidden'}`}>
         <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden">
           <div className="flex items-center justify-between p-6 border-b border-zinc-200">
             <h2 className="text-xl font-semibold text-zinc-900">MCP Servers</h2>
