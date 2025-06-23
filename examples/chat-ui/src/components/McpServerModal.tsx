@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, Info, Settings, Plus, Trash2, Power, PowerOff } from 'lucide-react'
 import { useMcp, type Tool } from 'use-mcp/react'
 
@@ -63,7 +63,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     const stored = localStorage.getItem('mcpServerToolCounts')
     return stored ? JSON.parse(stored) : {}
   })
-  const logRef = useRef<HTMLDivElement>(null)
+  // const logRef = useRef<HTMLDivElement>(null) // Removed for now as debug logs not implemented in multi-server version
 
   // Save servers to localStorage whenever they change
   useEffect(() => {
