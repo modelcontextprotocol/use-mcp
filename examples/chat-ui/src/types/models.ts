@@ -41,6 +41,12 @@ export const availableModels: Model[] = [
     modelId: 'llama-3.3-70b-versatile'
   },
   {
+    id: 'qwen-3-32b',
+    name: 'Qwen 3 32B',
+    provider: providers.groq,
+    modelId: 'qwen/qwen3-32b'
+  },
+  {
     id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 4 Sonnet',
     provider: providers.anthropic,
