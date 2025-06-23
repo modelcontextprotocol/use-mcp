@@ -9,6 +9,7 @@ import { type Tool } from 'use-mcp/react'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import ModelSelectionModal from './ModelSelectionModal'
+import McpServerModal from './McpServerModal'
 import { useAutoscroll } from '../hooks/useAutoscroll'
 import { useStreamResponse } from '../hooks/useStreamResponse'
 import { setApiKey } from '../utils/apiKeys'
@@ -46,6 +47,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     model: null,
   })
   const [modelSelectionModal, setModelSelectionModal] = useState(false)
+  const [mcpServerModal, setMcpServerModal] = useState(false)
 
   const { messagesEndRef, messagesContainerRef, scrollToBottom } = useAutoscroll()
 
@@ -220,8 +222,8 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             messagesCount={currentConversation.messages.length}
           />
           
-          {/* Model selector indicator */}
-          <div className="flex items-center gap-2 mt-2">
+          {/* Model selector and MCP server indicators */}
+          <div className="flex items-center justify-between mt-2">
             <button
               onClick={() => setModelSelectionModal(true)}
               className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
@@ -233,6 +235,16 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
                 ) : (
                   "none"
                 )}
+              </span>
+            </button>
+            
+            <button
+              onClick={() => setMcpServerModal(true)}
+              className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
+            >
+              <span className="text-lg">🔌</span>
+              <span className="text-sm text-zinc-500">
+                {mcpTools.length > 0 ? `1 (${mcpTools.length})` : "0"}
               </span>
             </button>
           </div>
@@ -252,6 +264,14 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         selectedModel={selectedModel}
         onModelChange={onModelChange}
         apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+      />
+
+      <McpServerModal
+        isOpen={mcpServerModal}
+        onClose={() => setMcpServerModal(false)}
+        onToolsUpdate={(tools) => {
+          // This will be handled by the existing MCP tools logic in ChatApp
+        }}
       />
     </div>
   )
