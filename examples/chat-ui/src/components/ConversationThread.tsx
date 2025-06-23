@@ -171,7 +171,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   console.log({ currentConversation })
 
   return (
-    <div className={`flex flex-col h-full w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
+    <div className={`flex flex-col min-h-screen w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
       <div
         ref={messagesContainerRef}
         className={`

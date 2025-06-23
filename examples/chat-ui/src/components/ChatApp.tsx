@@ -104,10 +104,10 @@ const ChatApp: React.FC<ChatAppProps> = () => {
 
   return (
     <div 
-      className="flex h-dvh w-screen overflow-clip animated-bg-container"
+      className="flex min-h-screen w-screen animated-bg-container"
       style={{ '--random-delay': `${animationDelay}s` } as React.CSSProperties}
     >
-      <div className="flex flex-row flex-grow flex-1 overflow-hidden relative">
+      <div className="flex flex-row flex-grow flex-1 min-h-screen relative">
         {/* Sidebar and Navbar components hidden but kept in codebase */}
         {false && (
           <>
