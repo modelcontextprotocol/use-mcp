@@ -200,7 +200,8 @@ export const useStreamResponse = ({
 
                     if (event.type === 'reasoning') {
                         debugLog(`[useStreamResponse] Reasoning event:`, event)
-                        reasoning += event.textDelta || ''
+                        reasoning += (event as any).textDelta || ''
+                        debugLog(`[useStreamResponse] Reasoning content so far:`, reasoning.length, 'chars')
                     } else if (event.type === 'tool-call') {
                         const eventKey = `tool-call-${event.toolCallId}`
                         if (processedEvents.has(eventKey)) {
@@ -317,6 +318,7 @@ export const useStreamResponse = ({
 
             debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
             debugLog(`[useStreamResponse] Final aiResponse content:`, JSON.stringify(aiResponse))
+            debugLog(`[useStreamResponse] Final reasoning content:`, reasoning.length, 'chars:', reasoning.substring(0, 100))
             
             // Add reasoning to the final message if we collected any
             if (reasoning && assistantMessageCreated) {
@@ -333,6 +335,8 @@ export const useStreamResponse = ({
                     }
                     return updated
                 })
+            } else {
+                debugLog(`[useStreamResponse] No reasoning to add. reasoning length:`, reasoning.length, 'assistantMessageCreated:', assistantMessageCreated)
             }
         } catch (error: unknown) {
             if (controller.signal.aborted) {
