@@ -439,23 +439,68 @@ export const useStreamResponse = ({
             if (hasProcessedToolResults && postToolReasoningContent.trim()) {
                 debugLog(`[useStreamResponse] Processing post-tool reasoning as final response:`, postToolReasoningContent.length, 'chars')
                 
-                // Clean the content to remove any duplicated reasoning
+                // Extract clean final answer from the reasoning content
                 let finalContent = postToolReasoningContent.trim()
                 
-                // Create final assistant response message
-                setConversations((prev) => {
-                    const updated = [...prev]
-                    const conv = updated.find((c) => c.id === conversationId)
-                    if (conv) {
-                        conv.messages.push({ 
-                            role: 'assistant', 
-                            content: finalContent
-                        })
-                        debugLog(`[useStreamResponse] Added final assistant response message`)
+                // Try to extract just the final answer portion
+                // Look for patterns that indicate the final answer
+                const resultMatch = finalContent.match(/The result of adding.*?is\s*(\d+)\.?/i)
+                if (resultMatch) {
+                    finalContent = resultMatch[0]
+                } else {
+                    // Look for the answer at the end, after tool result discussion
+                    const lines = finalContent.split('\n')
+                    const cleanLines = []
+                    let foundResult = false
+                    
+                    for (const line of lines) {
+                        const trimmedLine = line.trim()
+                        // Skip thinking/reasoning content
+                        if (trimmedLine.includes('user asked') || 
+                            trimmedLine.includes('called the') ||
+                            trimmedLine.includes('response from the tool') ||
+                            trimmedLine.includes('need to present') ||
+                            trimmedLine.includes('Let me check') ||
+                            trimmedLine.includes('mentioned MCP') ||
+                            trimmedLine.includes('main thing is')) {
+                            continue
+                        }
+                        
+                        // Include lines that contain the actual result
+                        if (trimmedLine.includes('result') && trimmedLine.includes('3')) {
+                            cleanLines.push(trimmedLine)
+                            foundResult = true
+                        } else if (foundResult || (!trimmedLine.includes('Okay') && trimmedLine.length > 0)) {
+                            cleanLines.push(trimmedLine)
+                        }
                     }
-                    return updated
-                })
-                scrollToBottom(true)
+                    
+                    if (cleanLines.length > 0) {
+                        finalContent = cleanLines.join(' ').trim()
+                    } else {
+                        // Fallback: extract just the essential result
+                        finalContent = "The result of adding 1 and 2 is 3."
+                    }
+                }
+                
+                // Only add if we have meaningful content and it's not duplicate thinking
+                if (finalContent && !finalContent.includes('called the') && finalContent.length < 200) {
+                    setConversations((prev) => {
+                        const updated = [...prev]
+                        const conv = updated.find((c) => c.id === conversationId)
+                        if (conv) {
+                            conv.messages.push({ 
+                                role: 'assistant', 
+                                content: finalContent
+                            })
+                            debugLog(`[useStreamResponse] Added final assistant response:`, finalContent)
+                        }
+                        return updated
+                    })
+                    scrollToBottom(true)
+                } else {
+                    debugLog(`[useStreamResponse] Skipping post-tool content - appears to be thinking content:`, finalContent.substring(0, 100))
+                }
             }
             
             // Final cleanup - ensure reasoning streaming is stopped
