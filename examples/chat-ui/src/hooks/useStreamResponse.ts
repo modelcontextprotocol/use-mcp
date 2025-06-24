@@ -312,19 +312,31 @@ export const useStreamResponse = ({
             }
 
             debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
+            debugLog(`[useStreamResponse] Final aiResponse content:`, JSON.stringify(aiResponse))
             
             // Extract reasoning from the result after streaming completes
             const finalReasoning = await result.reasoning
-            if (finalReasoning && assistantMessageCreated) {
-                debugLog(`[useStreamResponse] Extracted reasoning:`, finalReasoning)
+            const finalText = await result.text
+            debugLog(`[useStreamResponse] Final result.text:`, JSON.stringify(finalText))
+            
+            if (assistantMessageCreated) {
                 setConversations((prev) => {
                     const updated = [...prev]
                     const conv = updated.find((c) => c.id === conversationId)
                     if (conv && assistantMessageIndex >= 0) {
                         const assistantMessage = conv.messages[assistantMessageIndex]
                         if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                            assistantMessage.reasoning = finalReasoning
-                            debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
+                            // Use the final cleaned text from the result instead of our tracked aiResponse
+                            if (finalText && supportsReasoning(selectedModel)) {
+                                assistantMessage.content = finalText
+                                debugLog(`[useStreamResponse] Updated content with cleaned result.text`)
+                            }
+                            
+                            if (finalReasoning) {
+                                assistantMessage.reasoning = finalReasoning
+                                debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
+                            }
+                            debugLog(`[useStreamResponse] Final message content:`, JSON.stringify(assistantMessage.content))
                         }
                     }
                     return updated

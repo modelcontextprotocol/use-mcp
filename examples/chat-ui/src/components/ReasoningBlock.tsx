@@ -25,7 +25,7 @@ const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ reasoning }) => {
     return (
         <div className="mb-3">
             <div
-                className={`text-sm text-zinc-600 border border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-colors ${shouldTruncate && !isExpanded ? "line-clamp-1" : ""
+                className={`text-xs text-zinc-600 border border-zinc-200 rounded-lg p-3 *bg-zinc-50 cursor-pointer hover:bg-zinc-50 transition-colors ${shouldTruncate && !isExpanded ? "line-clamp-1" : ""
                     }`}
                 onClick={toggleExpanded}
             >
@@ -34,17 +34,17 @@ const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ reasoning }) => {
                     <div className={`${shouldTruncate && !isExpanded ? "truncate" : "whitespace-pre-wrap"}`}>
                         {displayText}
                     </div>
-                    {shouldTruncate && (
-                        <button
-                            className="text-zinc-400 hover:text-zinc-600 text-xs ml-auto flex-shrink-0"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleExpanded();
-                            }}
-                        >
-                            {isExpanded ? "↑" : "↓"}
-                        </button>
-                    )}
+                    {/*{shouldTruncate && (*/}
+                    {/*    <button*/}
+                    {/*        className="text-zinc-400 hover:text-zinc-600 text-xs ml-auto flex-shrink-0"*/}
+                    {/*        onClick={(e) => {*/}
+                    {/*            e.stopPropagation();*/}
+                    {/*            toggleExpanded();*/}
+                    {/*        }}*/}
+                    {/*    >*/}
+                    {/*        {isExpanded ? "↑" : "↓"}*/}
+                    {/*    </button>*/}
+                    {/*)}*/}
                 </div>
             </div>
         </div>
