@@ -101,7 +101,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 
   //when new message chunks are streamed in, scroll to bottom
   useEffect(() => {
-    scrollToBottom()
+    scrollToBottom(isLoading && streamStarted)
   }, [aiResponseRef.current])
 
   //when conversation changes, scroll to bottom

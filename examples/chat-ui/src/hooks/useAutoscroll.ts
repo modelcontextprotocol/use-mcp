@@ -22,9 +22,9 @@ export const useAutoscroll = () => {
     };
   }, []);
 
-  const scrollToBottom = () => {
-    if (shouldAutoScrollRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (force?: boolean) => {
+    if (shouldAutoScrollRef.current || force) {
+      messagesEndRef.current?.scrollIntoView({ behavior: force ? "instant" : "smooth" });
     }
   };
 

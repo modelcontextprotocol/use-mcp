@@ -187,18 +187,34 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         const commonOptions: SSEClientTransportOptions = {
           authProvider: authProviderRef.current,
-          requestInit: { headers: customHeaders },
+          requestInit: { 
+            headers: {
+              'Accept': 'application/json, text/event-stream',
+              ...customHeaders 
+            }
+          },
         }
         const targetUrl = new URL(url)
 
+        addLog('debug', `Creating ${transportType.toUpperCase()} transport for URL: ${targetUrl.toString()}`)
+        addLog('debug', `Transport options:`, { 
+          authProvider: !!authProviderRef.current, 
+          headers: customHeaders,
+          url: targetUrl.toString()
+        })
+
         if (transportType === 'http') {
+          addLog('debug', 'Creating StreamableHTTPClientTransport...')
           transportInstance = new StreamableHTTPClientTransport(targetUrl, commonOptions)
+          addLog('debug', 'StreamableHTTPClientTransport created successfully')
         } else {
           // sse
+          addLog('debug', 'Creating SSEClientTransport...')
           transportInstance = new SSEClientTransport(targetUrl, commonOptions)
+          addLog('debug', 'SSEClientTransport created successfully')
         }
         transportRef.current = transportInstance // Assign to ref immediately
-        addLog('debug', `${transportType.toUpperCase()} transport created.`)
+        addLog('debug', `${transportType.toUpperCase()} transport created and assigned to ref.`)
       } catch (err) {
         // Use stable failConnection
         failConnection(
@@ -217,6 +233,13 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       }
       transportInstance.onerror = (err: Error) => {
         // Transport errors usually mean connection is lost/failed definitively for this transport
+        addLog('warn', `Transport error event (${transportType.toUpperCase()}):`, err)
+        addLog('debug', `Error details:`, {
+          message: err.message,
+          stack: err.stack,
+          name: err.name,
+          cause: err.cause
+        })
         // Use stable failConnection
         failConnection(`Transport error (${transportType.toUpperCase()}): ${err.message}`, err)
         // Should we return 'failed' here? failConnection sets state, maybe that's enough.
@@ -247,6 +270,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // 3. Attempt client.connect()
       try {
         addLog('info', `Connecting client via ${transportType.toUpperCase()}...`)
+        addLog('debug', `About to call client.connect() with transport instance`)
+        addLog('debug', `Transport instance type: ${transportInstance.constructor.name}`)
+        
         await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
@@ -270,6 +296,12 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       } catch (connectErr) {
         // --- Error Handling Path ---
         addLog('debug', `Client connect error via ${transportType.toUpperCase()}:`, connectErr)
+        addLog('debug', `Connect error details:`, {
+          message: connectErr instanceof Error ? connectErr.message : String(connectErr),
+          stack: connectErr instanceof Error ? connectErr.stack : 'N/A',
+          name: connectErr instanceof Error ? connectErr.name : 'Unknown',
+          cause: connectErr instanceof Error ? connectErr.cause : undefined
+        })
         const errorInstance = connectErr instanceof Error ? connectErr : new Error(String(connectErr))
 
         // Check for 404/405 specifically for HTTP transport

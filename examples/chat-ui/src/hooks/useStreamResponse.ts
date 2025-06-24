@@ -22,7 +22,7 @@ const hasContent = (message: Message): message is UserMessage | AssistantMessage
 interface UseStreamResponseProps {
     conversationId?: number
     setConversations: React.Dispatch<React.SetStateAction<Conversation[]>>
-    scrollToBottom: () => void
+    scrollToBottom: (force?: boolean) => void
     selectedModel: Model
     onApiKeyRequired: (model: Model) => Promise<boolean>
     mcpTools: Tool[]
@@ -284,7 +284,7 @@ export const useStreamResponse = ({
                                 }
                                 return updated
                             })
-                            scrollToBottom()
+                            scrollToBottom(true)
                         } else {
                             console.warn('[useStreamResponse] Tool call event missing toolName:', event)
                         }
@@ -382,7 +382,7 @@ export const useStreamResponse = ({
                             return updated
                         })
 
-                        scrollToBottom()
+                        scrollToBottom(true)
                     }
                 } catch (e) {
                     console.error('[useStreamResponse] Error in full stream processing:', e)

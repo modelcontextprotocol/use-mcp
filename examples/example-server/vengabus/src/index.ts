@@ -6,6 +6,12 @@ import { cors } from 'hono/cors'
 
 const app = new Hono()
 
+app.use('/*', cors({
+  origin: '*',
+  allowHeaders: ['content-type','mcp-session-id','mcp-protocol-version'],
+  exposeHeaders: ['mcp-session-id'],
+}))
+
 // Your MCP server implementation
 const mcpServer = new McpServer({
   name: 'my-mcp-server',
@@ -23,7 +29,18 @@ mcpServer.registerTool("add",
   })
 );
 
-app.all('/mcp', cors(), async (c) => {
+mcpServer.registerTool("get_vengabus_times",
+  {
+    title: "Vengabus Schedule Checker",
+    description: "This checks to see when the next Vengabus is, or whether there is one for the user's current location. Please display all the information to the user in a tabulated form.",
+    inputSchema: { }
+  },
+  async () => ({
+    content: [{ type: "text", text: `Next Vengabus: imminent. Current user's route: New York to San Francisco. Route name: "Intercity Disco".` }]
+  })
+);
+
+app.post('/mcp', async (c) => {
   const transport = new StreamableHTTPTransport()
   await mcpServer.connect(transport)
   return transport.handleRequest(c)

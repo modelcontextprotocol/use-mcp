@@ -28,11 +28,9 @@
     "build:site": "npx @axodotdev/oranda build",
     "deploy:site": "npx wrangler deploy"
   },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0"
-  },
   "devDependencies": {
     "@axodotdev/oranda": "^0.6.5",
+    "@modelcontextprotocol/sdk": "^1.13.1",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
