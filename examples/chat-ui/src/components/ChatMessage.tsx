@@ -34,7 +34,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         className={` 
         ${
           message.role === "user"
-            ? "max-w-[80%] rounded-2xl px-3 py-2 border border-zinc-200/10 bg-zinc-100 text-black"
+            ? "max-w-[80%] rounded-2xl px-3 py-2 border border-zinc-200/10 bg-white text-black"
             : " text-zinc-900 w-full"
         }`}
       >

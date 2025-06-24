@@ -271,9 +271,18 @@ export const useStreamResponse = ({
                         // Remove thinking tags from the display text (they should be extracted by middleware)
                         let cleanedResponse = aiResponse
                         if (supportsReasoning(selectedModel)) {
+                            debugLog(`[useStreamResponse] Original response:`, aiResponse.substring(0, 100))
+                            // Remove complete thinking blocks
                             cleanedResponse = aiResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-                            // Also handle unclosed think tags
+                            // Remove unclosed think tags (everything from <think> to end)
                             cleanedResponse = cleanedResponse.replace(/<think>[\s\S]*$/g, '').trim()
+                            // Remove any remaining opening think tags
+                            cleanedResponse = cleanedResponse.replace(/<think>/g, '').trim()
+                            // Remove any remaining closing think tags
+                            cleanedResponse = cleanedResponse.replace(/<\/think>/g, '').trim()
+                            // Clean up any remaining whitespace or newlines at the start
+                            cleanedResponse = cleanedResponse.replace(/^\s+/, '')
+                            debugLog(`[useStreamResponse] Cleaned response:`, cleanedResponse.substring(0, 100))
                         }
 
                         setConversations((prev) => {
