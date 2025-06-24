@@ -1,0 +1,14 @@
+{
+	"name": "vengabus",
+	"scripts": {
+		"dev": "wrangler dev",
+		"deploy": "wrangler deploy --minify",
+		"cf-typegen": "wrangler types --env-interface CloudflareBindings"
+	},
+	"dependencies": {
+		"hono": "^4.8.2"
+	},
+	"devDependencies": {
+		"wrangler": "^4.21.0"
+	}
+}
