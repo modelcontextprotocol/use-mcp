@@ -323,14 +323,24 @@ export const useStreamResponse = ({
             // Add reasoning to the final message if we collected any
             if (reasoning && assistantMessageCreated) {
                 debugLog(`[useStreamResponse] Adding collected reasoning:`, reasoning.substring(0, 100))
+                
+                // Clean the reasoning content by removing think tags
+                let cleanedReasoning = reasoning
+                // Remove opening and closing think tags
+                cleanedReasoning = cleanedReasoning.replace(/<think>/g, '').replace(/<\/think>/g, '')
+                // Trim any leading/trailing whitespace
+                cleanedReasoning = cleanedReasoning.trim()
+                
+                debugLog(`[useStreamResponse] Cleaned reasoning:`, cleanedReasoning.substring(0, 100))
+                
                 setConversations((prev) => {
                     const updated = [...prev]
                     const conv = updated.find((c) => c.id === conversationId)
                     if (conv && assistantMessageIndex >= 0) {
                         const assistantMessage = conv.messages[assistantMessageIndex]
                         if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                            assistantMessage.reasoning = reasoning
-                            debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
+                            assistantMessage.reasoning = cleanedReasoning
+                            debugLog(`[useStreamResponse] Added cleaned reasoning to assistant message at index ${assistantMessageIndex}`)
                         }
                     }
                     return updated
