@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { streamText, tool, jsonSchema } from 'ai'
+import { streamText, tool, jsonSchema, wrapLanguageModel, extractReasoningMiddleware } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAnthropic } from '@ai-sdk/anthropic'
 import { type Message, type Conversation, type UserMessage, type AssistantMessage, type SystemMessage } from '../types'
@@ -94,10 +94,13 @@ export const useStreamResponse = ({
     }
 
     const getModelInstance = (model: Model, apiKey: string) => {
+        let baseModel
+        
         switch (model.provider.id) {
             case 'groq': {
                 const groqProvider = createGroq({ apiKey })
-                return groqProvider(model.modelId)
+                baseModel = groqProvider(model.modelId)
+                break
             }
             case 'anthropic': {
                 const anthropicProvider = createAnthropic({
@@ -106,16 +109,30 @@ export const useStreamResponse = ({
                         'anthropic-dangerous-direct-browser-access': 'true',
                     },
                 })
-                return anthropicProvider(model.modelId)
+                baseModel = anthropicProvider(model.modelId)
+                break
             }
             default:
                 throw new Error(`Unsupported provider: ${model.provider.id}`)
         }
+
+        // Wrap reasoning-capable models with extractReasoningMiddleware
+        if (supportsReasoning(model)) {
+            debugLog(`[useStreamResponse] Wrapping model with extractReasoningMiddleware for ${model.modelId}`)
+            return wrapLanguageModel({
+                model: baseModel,
+                middleware: extractReasoningMiddleware({ 
+                    tagName: 'think',
+                    startWithReasoning: true // This ensures reasoning tags are prepended if missing
+                }),
+            })
+        }
+
+        return baseModel
     }
 
     const streamResponse = async (messages: Message[]) => {
         let aiResponse = ''
-        let reasoning = ''
         let assistantMessageIndex = -1 // Track the index of our assistant message
         let assistantMessageCreated = false // Track if we've created the assistant message yet
 
@@ -169,27 +186,6 @@ export const useStreamResponse = ({
                 abortSignal: controller.signal,
             }
 
-            // Add reasoning parameters for supported models
-            if (supportsReasoning(selectedModel)) {
-                debugLog(`[useStreamResponse] Enabling reasoning for model: ${selectedModel.modelId}`)
-
-                if (selectedModel.provider.id === 'groq') {
-                    // For Groq models, use reasoning_format parameter
-                    streamOptions.experimental_providerOptions = {
-                        groq: {
-                            reasoning_format: 'parsed'
-                        }
-                    }
-                } else if (selectedModel.provider.id === 'anthropic') {
-                    // For Anthropic models, enable thinking
-                    streamOptions.experimental_providerOptions = {
-                        anthropic: {
-                            thinking: { type: 'enabled', budgetTokens: 12000 }
-                        }
-                    }
-                }
-            }
-
             const result = await streamText(streamOptions)
 
             debugLog(`[useStreamResponse] streamText result obtained, starting to process fullStream`)
@@ -201,10 +197,7 @@ export const useStreamResponse = ({
                 try {
                     debugLog(`[useStreamResponse] Full stream event:`, event.type, event)
 
-                    if (event.type === 'reasoning') {
-                        debugLog(`[useStreamResponse] Reasoning event:`, event)
-                        reasoning += (event as any).textDelta || ''
-                    } else if (event.type === 'tool-call') {
+                    if (event.type === 'tool-call') {
                         const eventKey = `tool-call-${event.toolCallId}`
                         if (processedEvents.has(eventKey)) {
                             debugLog(`[useStreamResponse] Skipping duplicate tool call:`, eventKey)
@@ -247,7 +240,7 @@ export const useStreamResponse = ({
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
                                 if (conv) {
-                                    conv.messages.push({ role: 'assistant', content: '', reasoning: reasoning || undefined })
+                                    conv.messages.push({ role: 'assistant', content: '' })
                                     assistantMessageIndex = conv.messages.length - 1
                                     debugLog(`[useStreamResponse] Created assistant message at index ${assistantMessageIndex}`)
                                 }
@@ -284,10 +277,6 @@ export const useStreamResponse = ({
                                 const assistantMessage = conv.messages[assistantMessageIndex]
                                 if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
                                     assistantMessage.content = aiResponse
-                                    // Update reasoning if available
-                                    if (reasoning) {
-                                        assistantMessage.reasoning = reasoning
-                                    }
                                     debugLog(`[useStreamResponse] Updated assistant message at index ${assistantMessageIndex}`)
                                 } else {
                                     debugLog(`[useStreamResponse] Could not find assistant message at index ${assistantMessageIndex}`, assistantMessage)
@@ -306,6 +295,24 @@ export const useStreamResponse = ({
             }
 
             debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
+            
+            // Extract reasoning from the result after streaming completes
+            const finalReasoning = await result.reasoning
+            if (finalReasoning && assistantMessageCreated) {
+                debugLog(`[useStreamResponse] Extracted reasoning:`, finalReasoning)
+                setConversations((prev) => {
+                    const updated = [...prev]
+                    const conv = updated.find((c) => c.id === conversationId)
+                    if (conv && assistantMessageIndex >= 0) {
+                        const assistantMessage = conv.messages[assistantMessageIndex]
+                        if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                            assistantMessage.reasoning = finalReasoning
+                            debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
+                        }
+                    }
+                    return updated
+                })
+            }
         } catch (error: unknown) {
             if (controller.signal.aborted) {
                 debugLog('[useStreamResponse] Stream aborted')
