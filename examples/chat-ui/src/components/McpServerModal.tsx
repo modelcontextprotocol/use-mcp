@@ -13,9 +13,11 @@ interface McpServer {
 function McpConnection({
   server,
   onConnectionUpdate,
+  transportType,
 }: {
   server: McpServer
   onConnectionUpdate: (serverId: string, data: any) => void
+  transportType: 'auto' | 'http' | 'sse'
 }) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
@@ -23,7 +25,7 @@ function McpConnection({
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
-    httpOnly: true, // DEBUG: Only try HTTP transport, no SSE fallback
+    transportType,
   })
 
   // Update parent component with connection data
@@ -64,6 +66,22 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     const stored = localStorage.getItem('mcpServerToolCounts')
     return stored ? JSON.parse(stored) : {}
   })
+  const [transportType, setTransportType] = useState<'auto' | 'http' | 'sse'>(() => {
+    const stored = localStorage.getItem('mcpTransportType')
+    return (stored as 'auto' | 'http' | 'sse') || 'auto'
+  })
+
+  // Helper to cycle through transport types
+  const cycleTransportType = () => {
+    setTransportType(current => {
+      switch (current) {
+        case 'auto': return 'http'
+        case 'http': return 'sse'
+        case 'sse': return 'auto'
+        default: return 'auto'
+      }
+    })
+  }
   // const logRef = useRef<HTMLDivElement>(null) // Removed for now as debug logs not implemented in multi-server version
 
   // Save servers to localStorage whenever they change
@@ -75,6 +93,11 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   useEffect(() => {
     localStorage.setItem('mcpServerToolCounts', JSON.stringify(serverToolCounts))
   }, [serverToolCounts])
+
+  // Save transport type to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('mcpTransportType', transportType)
+  }, [transportType])
 
   useEffect(() => {
     if (isOpen) {
@@ -296,6 +319,11 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                       
                       <div className="flex items-center gap-2">
                         {getStatusBadge(server.enabled ? state : 'disabled')}
+                        {server.enabled && state === 'ready' && (
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded font-mono">
+                            {transportType.toUpperCase()}
+                          </span>
+                        )}
                         <button
                           onClick={() => handleToggleServer(server.id)}
                           className={`p-1 rounded ${server.enabled ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-50'}`}
@@ -372,7 +400,16 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
             {/* Add New Server */}
             <div className="border-t pt-4">
-              <h3 className="font-medium text-sm mb-3">Add New Server</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">Add New Server</h3>
+                <button
+                  onClick={cycleTransportType}
+                  className="px-2 py-1 text-xs border border-gray-300 rounded bg-gray-50 hover:bg-gray-100 font-mono"
+                  title="Click to cycle through transport types"
+                >
+                  {transportType.toUpperCase()}
+                </button>
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -420,6 +457,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
           key={server.id}
           server={server}
           onConnectionUpdate={handleConnectionUpdate}
+          transportType={transportType}
         />
       ))}
     </>

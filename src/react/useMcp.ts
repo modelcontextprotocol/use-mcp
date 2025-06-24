@@ -30,7 +30,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     debug = false,
     autoRetry = false,
     autoReconnect = DEFAULT_RECONNECT_DELAY,
-    httpOnly = false,
+    transportType = 'auto',
   } = options
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
@@ -315,12 +315,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           errorMessage === 'Load failed' /* Safari */
 
         if (transportType === 'http' && (is404 || is405 || isLikelyCors)) {
-          if (httpOnly) {
-            addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). httpOnly=true, no fallback.`)
-            failConnection(`HTTP transport failed: ${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}`, errorInstance)
-            return 'failed'
-          }
-          addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
+          addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}).`)
           return 'fallback' // Signal that fallback should be attempted
         }
 
@@ -361,7 +356,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
             addLog('error', 'Auth flow failed:', sdkAuthError)
             // Auth failed, but still allow fallback to SSE
-            if (transportType === 'http' && !httpOnly) {
+            if (transportType === 'http') {
               return 'fallback' // Try SSE even after auth failure
             } else {
               failConnection(
@@ -377,12 +372,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         // Don't call failConnection here for HTTP transport - let orchestration handle it
         // so that SSE fallback can still be attempted
         if (transportType === 'http') {
-          if (httpOnly) {
-            addLog('warn', `HTTP transport failed: ${errorMessage}. httpOnly=true, no fallback.`)
-            failConnection(`HTTP transport failed: ${errorMessage}`, errorInstance)
-            return 'failed'
-          }
-          addLog('warn', `HTTP transport failed: ${errorMessage}. Will attempt fallback to SSE.`)
+          addLog('warn', `HTTP transport failed: ${errorMessage}.`)
           return 'fallback'
         } else {
           // For SSE transport, we can fail immediately since there's no further fallback
@@ -395,15 +385,26 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     // --- Orchestrate Connection Attempts ---
     let finalStatus: 'success' | 'auth_redirect' | 'failed' | 'fallback' = 'failed' // Default to failed
 
-    // 1. Try HTTP
-    const httpResult = await tryConnectWithTransport('http')
-
-    // 2. Try SSE only if HTTP requested fallback and we haven't redirected
-    if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
-      const sseResult = await tryConnectWithTransport('sse')
-      finalStatus = sseResult // Use SSE result as final status
+    if (transportType === 'sse') {
+      // SSE only - skip HTTP entirely
+      addLog('debug', 'Using SSE-only transport mode')
+      finalStatus = await tryConnectWithTransport('sse')
+    } else if (transportType === 'http') {
+      // HTTP only - no fallback
+      addLog('debug', 'Using HTTP-only transport mode')
+      finalStatus = await tryConnectWithTransport('http')
     } else {
-      finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
+      // Auto mode - try HTTP first, fallback to SSE
+      addLog('debug', 'Using auto transport mode (HTTP with SSE fallback)')
+      const httpResult = await tryConnectWithTransport('http')
+
+      // Try SSE only if HTTP requested fallback and we haven't redirected
+      if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
+        const sseResult = await tryConnectWithTransport('sse')
+        finalStatus = sseResult // Use SSE result as final status
+      } else {
+        finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
+      }
     }
 
     // If we still have 'fallback' status, convert to 'failed' since no more transports to try
