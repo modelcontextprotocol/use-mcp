@@ -12,6 +12,7 @@ export interface SystemMessage extends BaseMessage {
 
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
+  reasoning?: string;
 }
 
 export interface ToolCallMessage {

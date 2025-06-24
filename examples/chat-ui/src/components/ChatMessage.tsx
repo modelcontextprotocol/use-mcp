@@ -5,6 +5,7 @@ import rehypeHighlight from "rehype-highlight";
 import { type Message } from "../types";
 import ToolCallMessage from "./ToolCallMessage";
 import ToolResultMessage from "./ToolResultMessage";
+import ReasoningBlock from "./ReasoningBlock";
 
 interface ChatMessageProps {
   message: Message;
@@ -37,6 +38,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             : " text-zinc-900 w-full"
         }`}
       >
+        {/* Show reasoning block for assistant messages with reasoning */}
+        {message.role === "assistant" && "reasoning" in message && message.reasoning && (
+          <ReasoningBlock reasoning={message.reasoning} />
+        )}
+        
         <div className="prose prose-zinc">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}

@@ -168,7 +168,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     }
   }, [conversations])
 
-  console.log({ currentConversation })
+  // console.log({ currentConversation })
 
   return (
     <div className={`flex flex-col min-h-screen w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
@@ -233,7 +233,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
               <span className="text-lg">🧠</span>
               <span className="text-sm text-zinc-500">
                 {hasApiKey(selectedModel.provider.id) ? (
-                  selectedModel.name.toLowerCase()
+                  selectedModel.name.toLowerCase() + ' (' + selectedModel.provider.name.toLowerCase() + ')'
                 ) : (
                   "none"
                 )}
