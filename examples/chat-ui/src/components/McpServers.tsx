@@ -10,6 +10,7 @@ function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; o
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
+    preventAutoAuth: true, // Prevent automatic popups on page load
   })
 
   // Update parent component with connection data
@@ -103,6 +104,8 @@ export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) 
     switch (state) {
       case 'discovering':
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Discovering</span>
+      case 'pending_auth':
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>Authentication Required</span>
       case 'authenticating':
         return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Authenticating</span>
       case 'connecting':
@@ -184,19 +187,32 @@ export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) 
           )}
         </div>
 
-        {/* Authentication Link if needed */}
-        {authUrl && (
-          <div className="p-3 bg-orange-50 border border-orange-200 rounded">
-            <p className="text-xs mb-2">Authentication required. Please click the link below:</p>
-            <a
-              href={authUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-orange-700 hover:text-orange-800 underline"
-              onClick={handleManualAuth}
-            >
-              Authenticate in new window
-            </a>
+        {/* Authentication Action for pending_auth or existing authUrl */}
+        {(state === 'pending_auth' || authUrl) && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-xs mb-2">
+              {state === 'pending_auth'
+                ? 'Authentication is required to connect to this server.'
+                : 'Authentication popup was blocked. You can open the authentication page manually:'}
+            </p>
+            <div className="space-y-2">
+              <button
+                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium"
+                onClick={handleManualAuth}
+              >
+                Open Authentication Popup
+              </button>
+              {authUrl && (
+                <a
+                  href={authUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-center text-xs text-blue-700 hover:text-blue-800 underline"
+                >
+                  Or open in new tab instead
+                </a>
+              )}
+            </div>
           </div>
         )}
 

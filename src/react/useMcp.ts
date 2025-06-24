@@ -34,6 +34,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     autoRetry = false,
     autoReconnect = DEFAULT_RECONNECT_DELAY,
     transportType = 'auto',
+    preventAutoAuth = false,
   } = options
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
@@ -326,9 +327,22 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         // Check for Auth error (Simplified - requires more thought for interaction with fallback)
         if (errorInstance instanceof UnauthorizedError || errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-          addLog('info', 'Authentication required. Initiating SDK auth flow...')
+          addLog('info', 'Authentication required.')
+
+          // Check if we have existing tokens before triggering auth flow
+          assert(authProviderRef.current, 'Auth Provider not available for auth flow')
+          const existingTokens = await authProviderRef.current.tokens()
+
+          // If preventAutoAuth is enabled and no valid tokens exist, go to pending_auth state
+          if (preventAutoAuth && !existingTokens) {
+            addLog('info', 'Authentication required but auto-auth prevented. User action needed.')
+            setState('pending_auth')
+            // We'll set the auth URL when the user manually triggers auth
+            return 'auth_redirect' // Signal that we need user action
+          }
+
           // Ensure state is set only once if multiple attempts trigger auth
-          if (stateRef.current !== 'authenticating') {
+          if (stateRef.current !== 'authenticating' && stateRef.current !== 'pending_auth') {
             setState('authenticating')
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
             authTimeoutRef.current = setTimeout(() => {
@@ -337,7 +351,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           }
 
           try {
-            assert(authProviderRef.current, 'Auth Provider not available for auth flow')
             const authResult = await auth(authProviderRef.current, { serverUrl: url })
 
             if (!isMountedRef.current) return 'failed' // Unmounted during auth
@@ -519,13 +532,44 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   }, [addLog, connect]) // Depends only on stable callbacks
 
   // authenticate is stable (depends on stable addLog, retry, connect)
-  const authenticate = useCallback(() => {
+  const authenticate = useCallback(async () => {
     addLog('info', 'Manual authentication requested...')
     const currentState = stateRef.current // Use ref
 
     if (currentState === 'failed') {
       addLog('info', 'Attempting to reconnect and authenticate via retry...')
       retry()
+    } else if (currentState === 'pending_auth') {
+      addLog('info', 'Proceeding with authentication from pending state...')
+      setState('authenticating')
+      if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+      authTimeoutRef.current = setTimeout(() => {
+        /* ... timeout logic ... */
+      }, AUTH_TIMEOUT)
+
+      try {
+        assert(authProviderRef.current, 'Auth Provider not available for manual auth')
+        const authResult = await auth(authProviderRef.current, { serverUrl: url })
+
+        if (!isMountedRef.current) return
+
+        if (authResult === 'AUTHORIZED') {
+          addLog('info', 'Manual authentication successful. Re-attempting connection...')
+          if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+          connectingRef.current = false
+          connect() // Restart full connection sequence
+        } else if (authResult === 'REDIRECT') {
+          addLog('info', 'Redirecting for manual authentication. Waiting for callback...')
+          // State is already authenticating, wait for callback
+        }
+      } catch (authError) {
+        if (!isMountedRef.current) return
+        if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+        failConnection(
+          `Manual authentication failed: ${authError instanceof Error ? authError.message : String(authError)}`,
+          authError instanceof Error ? authError : undefined,
+        )
+      }
     } else if (currentState === 'authenticating') {
       addLog('warn', 'Already attempting authentication. Check for blocked popups or wait for timeout.')
       const manualUrl = authProviderRef.current?.getLastAttemptedAuthUrl()
@@ -545,7 +589,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // assert(authProviderRef.current, "Auth Provider not available");
       // auth(authProviderRef.current, { serverUrl: url }).catch(failConnection);
     }
-  }, [addLog, retry, authUrl]) // Depends on stable callbacks and authUrl state
+  }, [addLog, retry, authUrl, url, failConnection, connect]) // Depends on stable callbacks and authUrl state
 
   // clearStorage is stable (depends on stable addLog, disconnect)
   const clearStorage = useCallback(() => {
