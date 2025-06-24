@@ -138,6 +138,7 @@ export const useStreamResponse = ({
         let reasoningEndTime: number | undefined = undefined
         let assistantMessageIndex = -1 // Track the index of our assistant message
         let assistantMessageCreated = false // Track if we've created the assistant message yet
+        let hasProcessedToolResults = false // Track if we've processed tool results
 
         debugLog(`[useStreamResponse] streamResponse called with ${messages.length} messages`)
         debugLog(`[useStreamResponse] Messages:`, messages)
@@ -202,6 +203,43 @@ export const useStreamResponse = ({
 
                     if (event.type === 'reasoning') {
                         debugLog(`[useStreamResponse] Reasoning event:`, event)
+                        
+                        // If we've processed tool results, treat this as text content instead
+                        if (hasProcessedToolResults) {
+                            debugLog(`[useStreamResponse] Converting post-tool reasoning to text content`)
+                            
+                            // Create assistant message if needed
+                            if (!assistantMessageCreated) {
+                                debugLog(`[useStreamResponse] Creating assistant message for post-tool response`)
+                                setConversations((prev) => {
+                                    const updated = [...prev]
+                                    const conv = updated.find((c) => c.id === conversationId)
+                                    if (conv) {
+                                        conv.messages.push({ role: 'assistant', content: '' })
+                                        assistantMessageIndex = conv.messages.length - 1
+                                    }
+                                    return updated
+                                })
+                                assistantMessageCreated = true
+                            }
+                            
+                            // Add to content instead of reasoning
+                            aiResponse += event.textDelta
+                            
+                            setConversations((prev) => {
+                                const updated = [...prev]
+                                const conv = updated.find((c) => c.id === conversationId)
+                                if (conv && assistantMessageIndex >= 0) {
+                                    const assistantMessage = conv.messages[assistantMessageIndex]
+                                    if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                                        assistantMessage.content = aiResponse
+                                    }
+                                }
+                                return updated
+                            })
+                            scrollToBottom(true)
+                            continue
+                        }
                         
                         // Track reasoning start time and create assistant message if needed
                         if (!reasoningStartTime) {
@@ -296,14 +334,24 @@ export const useStreamResponse = ({
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
                                 if (conv) {
-                                    // Add tool result message
-                                    conv.messages.push({
-                                        role: 'tool-result',
-                                        toolName: event.toolName,
-                                        toolArgs: event.args || {},
-                                        toolResult: event.result,
-                                        callId: event.toolCallId,
-                                    })
+                                    // Check if this tool result already exists to prevent duplicates
+                                    const existingResult = conv.messages.find(
+                                        (msg) => msg.role === 'tool-result' && 'callId' in msg && msg.callId === event.toolCallId
+                                    )
+                                    if (!existingResult) {
+                                        // Add tool result message
+                                        conv.messages.push({
+                                            role: 'tool-result',
+                                            toolName: event.toolName,
+                                            toolArgs: event.args || {},
+                                            toolResult: event.result,
+                                            callId: event.toolCallId,
+                                        })
+                                        debugLog(`[useStreamResponse] Added tool result for callId: ${event.toolCallId}`)
+                                        hasProcessedToolResults = true
+                                    } else {
+                                        debugLog(`[useStreamResponse] Skipping duplicate tool result for callId: ${event.toolCallId}`)
+                                    }
                                 }
                                 return updated
                             })
