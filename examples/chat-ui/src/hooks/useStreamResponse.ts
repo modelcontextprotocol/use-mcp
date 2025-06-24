@@ -288,6 +288,29 @@ export const useStreamResponse = ({
                         } else {
                             console.warn('[useStreamResponse] Tool call event missing toolName:', event)
                         }
+                    } else if (event.type === 'tool-result') {
+                        debugLog(`[useStreamResponse] Tool result:`, event)
+                        
+                        if (event.toolName && event.toolCallId) {
+                            setConversations((prev) => {
+                                const updated = [...prev]
+                                const conv = updated.find((c) => c.id === conversationId)
+                                if (conv) {
+                                    // Add tool result message
+                                    conv.messages.push({
+                                        role: 'tool-result',
+                                        toolName: event.toolName,
+                                        toolArgs: event.args || {},
+                                        toolResult: event.result,
+                                        callId: event.toolCallId,
+                                    })
+                                }
+                                return updated
+                            })
+                            scrollToBottom(true)
+                        } else {
+                            console.warn('[useStreamResponse] Tool result event missing toolName or toolCallId:', event)
+                        }
                     } else if (event.type === 'text-delta') {
                         debugLog(`[useStreamResponse] Text delta:`, event.textDelta)
 
