@@ -489,29 +489,19 @@ export const useStreamResponse = ({
                         const updated = [...prev]
                         const conv = updated.find((c) => c.id === conversationId)
                         if (conv) {
-                            // Check if there's already an assistant message with only reasoning content
-                            const existingAssistantMsg = assistantMessageIndex >= 0 ? conv.messages[assistantMessageIndex] : null
-                            if (existingAssistantMsg && 
-                                existingAssistantMsg.role === 'assistant' && 
-                                (!existingAssistantMsg.content || existingAssistantMsg.content.trim() === '') &&
-                                existingAssistantMsg.reasoning) {
-                                // Update the existing assistant message with final content
-                                existingAssistantMsg.content = finalContent
-                                debugLog(`[useStreamResponse] Updated existing assistant message with final content:`, finalContent)
+                            // Always create a NEW message at the end (after tool calls) for final response
+                            // Check if we already have a message with this content to avoid duplicates
+                            const isDuplicate = conv.messages.some(msg => 
+                                msg.role === 'assistant' && msg.content === finalContent
+                            )
+                            if (!isDuplicate) {
+                                conv.messages.push({ 
+                                    role: 'assistant', 
+                                    content: finalContent
+                                })
+                                debugLog(`[useStreamResponse] Added final assistant response at end:`, finalContent)
                             } else {
-                                // Check if we already have a message with this content to avoid duplicates
-                                const isDuplicate = conv.messages.some(msg => 
-                                    msg.role === 'assistant' && msg.content === finalContent
-                                )
-                                if (!isDuplicate) {
-                                    conv.messages.push({ 
-                                        role: 'assistant', 
-                                        content: finalContent
-                                    })
-                                    debugLog(`[useStreamResponse] Added new final assistant response:`, finalContent)
-                                } else {
-                                    debugLog(`[useStreamResponse] Skipping duplicate assistant response:`, finalContent)
-                                }
+                                debugLog(`[useStreamResponse] Skipping duplicate assistant response:`, finalContent)
                             }
                         }
                         return updated
