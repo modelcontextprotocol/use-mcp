@@ -54,11 +54,13 @@ const ReasoningBlock: React.FC<ReasoningBlockProps> = ({
                     
                     {isExpanded ? (
                         // Expanded view: show reasoning content
-                        <div className="whitespace-pre-wrap flex-1">
-                            {reasoning}
-                            {isStreaming && (
-                                <span className="inline-block w-2 h-4 bg-zinc-400 ml-1 animate-pulse"></span>
-                            )}
+                        <div className={`flex-1 ${isStreaming ? "overflow-hidden whitespace-nowrap flex justify-end" : "whitespace-pre-wrap"}`}>
+                            <span className={isStreaming ? "inline-block" : ""}>
+                                {reasoning}
+                                {isStreaming && (
+                                    <span className="inline-block w-2 h-4 bg-zinc-400 ml-1 animate-pulse"></span>
+                                )}
+                            </span>
                         </div>
                     ) : (
                         // Collapsed view: show timing summary
