@@ -139,6 +139,7 @@ export const useStreamResponse = ({
         let assistantMessageIndex = -1 // Track the index of our assistant message
         let assistantMessageCreated = false // Track if we've created the assistant message yet
         let hasProcessedToolResults = false // Track if we've processed tool results
+        let postToolReasoningContent = '' // Track reasoning content after tool results
 
         debugLog(`[useStreamResponse] streamResponse called with ${messages.length} messages`)
         debugLog(`[useStreamResponse] Messages:`, messages)
@@ -204,40 +205,10 @@ export const useStreamResponse = ({
                     if (event.type === 'reasoning') {
                         debugLog(`[useStreamResponse] Reasoning event:`, event)
                         
-                        // If we've processed tool results, treat this as text content instead
+                        // If we've processed tool results, collect this content for final response
                         if (hasProcessedToolResults) {
-                            debugLog(`[useStreamResponse] Converting post-tool reasoning to text content`)
-                            
-                            // Create assistant message if needed
-                            if (!assistantMessageCreated) {
-                                debugLog(`[useStreamResponse] Creating assistant message for post-tool response`)
-                                setConversations((prev) => {
-                                    const updated = [...prev]
-                                    const conv = updated.find((c) => c.id === conversationId)
-                                    if (conv) {
-                                        conv.messages.push({ role: 'assistant', content: '' })
-                                        assistantMessageIndex = conv.messages.length - 1
-                                    }
-                                    return updated
-                                })
-                                assistantMessageCreated = true
-                            }
-                            
-                            // Add to content instead of reasoning
-                            aiResponse += event.textDelta
-                            
-                            setConversations((prev) => {
-                                const updated = [...prev]
-                                const conv = updated.find((c) => c.id === conversationId)
-                                if (conv && assistantMessageIndex >= 0) {
-                                    const assistantMessage = conv.messages[assistantMessageIndex]
-                                    if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                                        assistantMessage.content = aiResponse
-                                    }
-                                }
-                                return updated
-                            })
-                            scrollToBottom(true)
+                            postToolReasoningContent += event.textDelta
+                            debugLog(`[useStreamResponse] Collecting post-tool reasoning:`, postToolReasoningContent.length, 'chars')
                             continue
                         }
                         
@@ -463,6 +434,29 @@ export const useStreamResponse = ({
             debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
             debugLog(`[useStreamResponse] Final aiResponse content:`, JSON.stringify(aiResponse))
             debugLog(`[useStreamResponse] Final reasoning content:`, reasoning.length, 'chars:', reasoning.substring(0, 100))
+            
+            // Process post-tool reasoning content as final response
+            if (hasProcessedToolResults && postToolReasoningContent.trim()) {
+                debugLog(`[useStreamResponse] Processing post-tool reasoning as final response:`, postToolReasoningContent.length, 'chars')
+                
+                // Clean the content to remove any duplicated reasoning
+                let finalContent = postToolReasoningContent.trim()
+                
+                // Create final assistant response message
+                setConversations((prev) => {
+                    const updated = [...prev]
+                    const conv = updated.find((c) => c.id === conversationId)
+                    if (conv) {
+                        conv.messages.push({ 
+                            role: 'assistant', 
+                            content: finalContent
+                        })
+                        debugLog(`[useStreamResponse] Added final assistant response message`)
+                    }
+                    return updated
+                })
+                scrollToBottom(true)
+            }
             
             // Final cleanup - ensure reasoning streaming is stopped
             if (assistantMessageCreated && reasoningStartTime) {
