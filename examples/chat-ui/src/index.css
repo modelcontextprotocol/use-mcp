@@ -14,7 +14,7 @@
 .animated-bg-container {
   position: relative;
   /*overflow: hidden;*/
-  height: 500vh;
+  /*height: 500vh;*/
 }
 
 .animated-bg-container::before {
@@ -24,7 +24,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: repeating-linear-gradient(150deg, #fdf2f8, #faf5ff, #eef2ff, #faf5ff, #fdf2f8 100vmax);
+  background: repeating-linear-gradient(150deg, #fdf2f8, #faf5ff, #eef2ff, #faf5ff, #fdf2f8 200vmax);
   animation: hue-rotate 60s linear infinite;
   animation-delay: var(--random-delay, 0s);
   z-index: -1;
