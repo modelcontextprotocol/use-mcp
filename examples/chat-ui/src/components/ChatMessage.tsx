@@ -39,8 +39,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         }`}
       >
         {/* Show reasoning block for assistant messages with reasoning */}
-        {message.role === "assistant" && "reasoning" in message && message.reasoning && (
-          <ReasoningBlock reasoning={message.reasoning} />
+        {message.role === "assistant" && "reasoning" in message && (message.reasoning || message.isReasoningStreaming) && (
+          <ReasoningBlock 
+            reasoning={message.reasoning || ""} 
+            isStreaming={message.isReasoningStreaming}
+            startTime={message.reasoningStartTime}
+            endTime={message.reasoningEndTime}
+          />
         )}
         
         <div className="prose prose-zinc">

@@ -1,11 +1,30 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 interface ReasoningBlockProps {
     reasoning: string;
+    isStreaming?: boolean;
+    startTime?: number;
+    endTime?: number;
 }
 
-const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ reasoning }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ 
+    reasoning, 
+    isStreaming = false, 
+    startTime, 
+    endTime 
+}) => {
+    const [isExpanded, setIsExpanded] = useState(isStreaming); // Start expanded when streaming
+    
+    // Auto-collapse when streaming finishes
+    useEffect(() => {
+        if (!isStreaming && startTime && endTime) {
+            // Add a small delay before collapsing so user can see completion
+            const timer = setTimeout(() => {
+                setIsExpanded(false);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [isStreaming, startTime, endTime]);
 
     if (!reasoning || reasoning.trim().length === 0) {
         return null;
@@ -15,36 +34,56 @@ const ReasoningBlock: React.FC<ReasoningBlockProps> = ({ reasoning }) => {
         setIsExpanded(!isExpanded);
     };
 
-    // Truncate the reasoning text for the collapsed state
-    const maxLength = 120;
-    const shouldTruncate = reasoning.length > maxLength;
-    const displayText = isExpanded || !shouldTruncate
-        ? reasoning
-        : reasoning.substring(0, maxLength) + "...";
+    // Calculate thinking duration
+    const duration = startTime && endTime ? (endTime - startTime) / 1000 : null;
+    
+    // Format duration nicely
+    const formatDuration = (seconds: number) => {
+        if (seconds < 1) {
+            return `${Math.round(seconds * 1000)}ms`;
+        }
+        return `${seconds.toFixed(1)}s`;
+    };
 
     return (
         <div className="mb-3">
             <div
-                className={`text-xs text-zinc-600 border border-zinc-200 rounded-lg p-3 *bg-zinc-50 cursor-pointer hover:bg-zinc-50 transition-colors ${shouldTruncate && !isExpanded ? "line-clamp-1" : ""
-                    }`}
+                className={`text-sm text-zinc-600 border border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-all duration-300 ${
+                    isExpanded ? "border-zinc-300" : ""
+                }`}
                 onClick={toggleExpanded}
             >
                 <div className="flex items-start gap-2">
                     <span className="text-zinc-400 text-xs mt-0.5 flex-shrink-0">💭</span>
-                    <div className={`${shouldTruncate && !isExpanded ? "truncate" : "whitespace-pre-wrap"}`}>
-                        {displayText}
-                    </div>
-                    {/*{shouldTruncate && (*/}
-                    {/*    <button*/}
-                    {/*        className="text-zinc-400 hover:text-zinc-600 text-xs ml-auto flex-shrink-0"*/}
-                    {/*        onClick={(e) => {*/}
-                    {/*            e.stopPropagation();*/}
-                    {/*            toggleExpanded();*/}
-                    {/*        }}*/}
-                    {/*    >*/}
-                    {/*        {isExpanded ? "↑" : "↓"}*/}
-                    {/*    </button>*/}
-                    {/*)}*/}
+                    
+                    {isExpanded ? (
+                        // Expanded view: show reasoning content
+                        <div className="whitespace-pre-wrap flex-1">
+                            {reasoning}
+                            {isStreaming && (
+                                <span className="inline-block w-2 h-4 bg-zinc-400 ml-1 animate-pulse"></span>
+                            )}
+                        </div>
+                    ) : (
+                        // Collapsed view: show timing summary
+                        <div className="flex-1">
+                            <span className="text-zinc-500">
+                                {isStreaming ? "Thinking..." : 
+                                 duration ? `Thought for ${formatDuration(duration)}` : 
+                                 "Thought process"}
+                            </span>
+                        </div>
+                    )}
+                    
+                    <button
+                        className="text-zinc-400 hover:text-zinc-600 text-xs ml-auto flex-shrink-0"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            toggleExpanded();
+                        }}
+                    >
+                        {isExpanded ? "↑" : "↓"}
+                    </button>
                 </div>
             </div>
         </div>

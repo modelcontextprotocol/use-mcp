@@ -13,6 +13,9 @@ export interface SystemMessage extends BaseMessage {
 export interface AssistantMessage extends BaseMessage {
   role: "assistant";
   reasoning?: string;
+  reasoningStartTime?: number;
+  reasoningEndTime?: number;
+  isReasoningStreaming?: boolean;
 }
 
 export interface ToolCallMessage {
