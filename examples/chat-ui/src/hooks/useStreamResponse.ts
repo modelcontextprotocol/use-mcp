@@ -268,15 +268,23 @@ export const useStreamResponse = ({
                             aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
                         }
 
+                        // Remove thinking tags from the display text (they should be extracted by middleware)
+                        let cleanedResponse = aiResponse
+                        if (supportsReasoning(selectedModel)) {
+                            cleanedResponse = aiResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
+                            // Also handle unclosed think tags
+                            cleanedResponse = cleanedResponse.replace(/<think>[\s\S]*$/g, '').trim()
+                        }
+
                         setConversations((prev) => {
                             const updated = [...prev]
                             const conv = updated.find((c) => c.id === conversationId)
                             if (conv) {
-                                debugLog(`[useStreamResponse] Updating conversation message content (length: ${aiResponse.length})`)
+                                debugLog(`[useStreamResponse] Updating conversation message content (length: ${cleanedResponse.length})`)
                                 // Update the specific assistant message we created, not just the last message
                                 const assistantMessage = conv.messages[assistantMessageIndex]
                                 if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                                    assistantMessage.content = aiResponse
+                                    assistantMessage.content = cleanedResponse
                                     debugLog(`[useStreamResponse] Updated assistant message at index ${assistantMessageIndex}`)
                                 } else {
                                     debugLog(`[useStreamResponse] Could not find assistant message at index ${assistantMessageIndex}`, assistantMessage)
