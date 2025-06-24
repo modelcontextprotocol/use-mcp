@@ -107,7 +107,6 @@ const ChatApp: React.FC<ChatAppProps> = () => {
       className="flex min-h-screen w-screen animated-bg-container"
       style={{ '--random-delay': `${animationDelay}s` } as React.CSSProperties}
     >
-      <div className="animated-bg"></div>
       <div className="flex flex-row flex-grow flex-1 min-h-screen relative">
         {/* Sidebar and Navbar components hidden but kept in codebase */}
         {false && (
