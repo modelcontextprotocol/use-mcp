@@ -15,14 +15,10 @@ const ReasoningBlock: React.FC<ReasoningBlockProps> = ({
 }) => {
     const [isExpanded, setIsExpanded] = useState(isStreaming); // Start expanded when streaming
     
-    // Auto-collapse when streaming finishes
+    // Auto-collapse instantly when streaming finishes
     useEffect(() => {
         if (!isStreaming && startTime && endTime) {
-            // Add a small delay before collapsing so user can see completion
-            const timer = setTimeout(() => {
-                setIsExpanded(false);
-            }, 500);
-            return () => clearTimeout(timer);
+            setIsExpanded(false);
         }
     }, [isStreaming, startTime, endTime]);
 
