@@ -133,6 +133,7 @@ export const useStreamResponse = ({
 
     const streamResponse = async (messages: Message[]) => {
         let aiResponse = ''
+        let reasoning = ''
         let assistantMessageIndex = -1 // Track the index of our assistant message
         let assistantMessageCreated = false // Track if we've created the assistant message yet
 
@@ -197,7 +198,10 @@ export const useStreamResponse = ({
                 try {
                     debugLog(`[useStreamResponse] Full stream event:`, event.type, event)
 
-                    if (event.type === 'tool-call') {
+                    if (event.type === 'reasoning') {
+                        debugLog(`[useStreamResponse] Reasoning event:`, event)
+                        reasoning += event.textDelta || ''
+                    } else if (event.type === 'tool-call') {
                         const eventKey = `tool-call-${event.toolCallId}`
                         if (processedEvents.has(eventKey)) {
                             debugLog(`[useStreamResponse] Skipping duplicate tool call:`, eventKey)
@@ -314,29 +318,17 @@ export const useStreamResponse = ({
             debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
             debugLog(`[useStreamResponse] Final aiResponse content:`, JSON.stringify(aiResponse))
             
-            // Extract reasoning from the result after streaming completes
-            const finalReasoning = await result.reasoning
-            const finalText = await result.text
-            debugLog(`[useStreamResponse] Final result.text:`, JSON.stringify(finalText))
-            
-            if (assistantMessageCreated) {
+            // Add reasoning to the final message if we collected any
+            if (reasoning && assistantMessageCreated) {
+                debugLog(`[useStreamResponse] Adding collected reasoning:`, reasoning.substring(0, 100))
                 setConversations((prev) => {
                     const updated = [...prev]
                     const conv = updated.find((c) => c.id === conversationId)
                     if (conv && assistantMessageIndex >= 0) {
                         const assistantMessage = conv.messages[assistantMessageIndex]
                         if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                            // Use the final cleaned text from the result instead of our tracked aiResponse
-                            if (finalText && supportsReasoning(selectedModel)) {
-                                assistantMessage.content = finalText
-                                debugLog(`[useStreamResponse] Updated content with cleaned result.text`)
-                            }
-                            
-                            if (finalReasoning) {
-                                assistantMessage.reasoning = finalReasoning
-                                debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
-                            }
-                            debugLog(`[useStreamResponse] Final message content:`, JSON.stringify(assistantMessage.content))
+                            assistantMessage.reasoning = reasoning
+                            debugLog(`[useStreamResponse] Added reasoning to assistant message at index ${assistantMessageIndex}`)
                         }
                     }
                     return updated
