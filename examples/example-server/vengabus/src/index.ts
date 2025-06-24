@@ -35,9 +35,15 @@ mcpServer.registerTool("get_vengabus_times",
     description: "This checks to see when the next Vengabus is, or whether there is one for the user's current location. Please display all the information to the user in a tabulated form.",
     inputSchema: { }
   },
-  async () => ({
-    content: [{ type: "text", text: `Next Vengabus: imminent. Current user's route: New York to San Francisco. Route name: "Intercity Disco".` }]
-  })
+  async () => {
+    await scheduler.wait(100)
+    return ({
+      content: [{
+        type: 'text',
+        text: `Next Vengabus: imminent. Current user's route: New York to San Francisco. Route name: "Intercity Disco".`
+      }]
+    })
+  }
 );
 
 app.post('/mcp', async (c) => {

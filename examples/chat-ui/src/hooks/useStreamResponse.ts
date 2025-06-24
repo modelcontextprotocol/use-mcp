@@ -273,6 +273,28 @@ export const useStreamResponse = ({
                         processedEvents.add(eventKey)
 
                         debugLog(`[useStreamResponse] Tool call event:`, event)
+                        
+                        // End reasoning phase immediately when we see a tool call for linear flow
+                        if (reasoningStartTime && !reasoningEndTime) {
+                            reasoningEndTime = Date.now()
+                            debugLog(`[useStreamResponse] Reasoning ended due to tool call at:`, reasoningEndTime, 'Duration:', reasoningEndTime - reasoningStartTime, 'ms')
+                            
+                            // Update reasoning end time and stop streaming immediately
+                            setConversations((prev) => {
+                                const updated = [...prev]
+                                const conv = updated.find((c) => c.id === conversationId)
+                                if (conv && assistantMessageIndex >= 0) {
+                                    const assistantMessage = conv.messages[assistantMessageIndex]
+                                    if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                                        assistantMessage.reasoningEndTime = reasoningEndTime
+                                        assistantMessage.isReasoningStreaming = false
+                                        debugLog(`[useStreamResponse] Stopped reasoning streaming due to tool call`)
+                                    }
+                                }
+                                return updated
+                            })
+                        }
+                        
                         if (event.toolName) {
                             setConversations((prev) => {
                                 const updated = [...prev]
