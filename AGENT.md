@@ -27,6 +27,10 @@
 - Log errors with appropriate levels (debug, info, warn, error)
 - Defensive error handling with specific error types when available
 
+## Development Workflow
+- **Commit changes frequently** after each logical change or debugging step
+- Use descriptive commit messages that explain what was changed and why
+
 ### React Patterns
 - Use React hooks with useRef for mutable values
 - Stable callbacks with useCallback and appropriate dependencies

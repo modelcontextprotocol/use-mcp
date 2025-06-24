@@ -30,6 +30,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     debug = false,
     autoRetry = false,
     autoReconnect = DEFAULT_RECONNECT_DELAY,
+    httpOnly = false,
   } = options
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
@@ -314,6 +315,11 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           errorMessage === 'Load failed' /* Safari */
 
         if (transportType === 'http' && (is404 || is405 || isLikelyCors)) {
+          if (httpOnly) {
+            addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). httpOnly=true, no fallback.`)
+            failConnection(`HTTP transport failed: ${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}`, errorInstance)
+            return 'failed'
+          }
           addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
           return 'fallback' // Signal that fallback should be attempted
         }
@@ -355,7 +361,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
             addLog('error', 'Auth flow failed:', sdkAuthError)
             // Auth failed, but still allow fallback to SSE
-            if (transportType === 'http') {
+            if (transportType === 'http' && !httpOnly) {
               return 'fallback' // Try SSE even after auth failure
             } else {
               failConnection(
@@ -371,6 +377,11 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         // Don't call failConnection here for HTTP transport - let orchestration handle it
         // so that SSE fallback can still be attempted
         if (transportType === 'http') {
+          if (httpOnly) {
+            addLog('warn', `HTTP transport failed: ${errorMessage}. httpOnly=true, no fallback.`)
+            failConnection(`HTTP transport failed: ${errorMessage}`, errorInstance)
+            return 'failed'
+          }
           addLog('warn', `HTTP transport failed: ${errorMessage}. Will attempt fallback to SSE.`)
           return 'fallback'
         } else {

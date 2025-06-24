@@ -23,6 +23,7 @@ function McpConnection({
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
+    httpOnly: true, // DEBUG: Only try HTTP transport, no SSE fallback
   })
 
   // Update parent component with connection data
