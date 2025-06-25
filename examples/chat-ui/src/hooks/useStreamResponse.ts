@@ -7,6 +7,13 @@ import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
 import { type Tool } from 'use-mcp/react'
 
+// Debug logging for message operations
+const debugMessages = (...args: any[]) => {
+    if (typeof window !== 'undefined' && localStorage.getItem('USE_MCP_DEBUG') === 'true') {
+        console.log('[Messages]', ...args)
+    }
+}
+
 // Type guard for messages with content
 const hasContent = (message: Message): message is UserMessage | AssistantMessage | SystemMessage => {
     return 'content' in message
@@ -177,6 +184,7 @@ export const useStreamResponse = ({
                                         reasoningStartTime: currentReasoningStartTime
                                     })
                                     assistantMessageIndex = conv.messages.length - 1
+                                    debugMessages('Added new reasoning assistant message at index', assistantMessageIndex)
                                 }
                                 return updated
                             })
@@ -243,6 +251,7 @@ export const useStreamResponse = ({
                                             toolArgs: event.args || {},
                                             callId: event.toolCallId || 'unknown',
                                         })
+                                        debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
                                     }
                                 }
                                 return updated
@@ -271,6 +280,7 @@ export const useStreamResponse = ({
                                             toolResult: (event as any).result,
                                             callId: (event as any).toolCallId,
                                         })
+                                        debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
                                     } else {
                                     }
                                 }
@@ -317,6 +327,7 @@ export const useStreamResponse = ({
                                 if (conv) {
                                     conv.messages.push({ role: 'assistant', content: '' })
                                     assistantMessageIndex = conv.messages.length - 1
+                                    debugMessages('Added new content assistant message at index', assistantMessageIndex, '(after reasoning:', needsNewAssistantMessage, ')')
                                 }
                                 return updated
                             })
@@ -378,6 +389,7 @@ export const useStreamResponse = ({
                 }
             }
 
+            debugMessages('Stream processing completed. Final message count:', assistantMessageCreated ? 'created' : 'none')
             
             // Final cleanup - ensure reasoning streaming is stopped
             if (assistantMessageCreated && currentReasoningStartTime) {
@@ -417,6 +429,7 @@ export const useStreamResponse = ({
         } finally {
             setStreamStarted(false)
             setController(new AbortController())
+            debugMessages('Stream response function completed')
         }
         return aiResponse
     }
