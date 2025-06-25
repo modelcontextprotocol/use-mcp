@@ -7,13 +7,6 @@ import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
 import { type Tool } from 'use-mcp/react'
 
-// Debug logging helper
-const debugLog = (...args: any[]) => {
-    if (typeof window !== 'undefined' && localStorage.getItem('USE_MCP_DEBUG') === 'true') {
-        console.log(...args)
-    }
-}
-
 // Type guard for messages with content
 const hasContent = (message: Message): message is UserMessage | AssistantMessage | SystemMessage => {
     return 'content' in message
@@ -45,38 +38,28 @@ export const useStreamResponse = ({
     const convertMcpToolsToAiTools = (mcpTools: Tool[]) => {
         const aiTools: Record<string, any> = {}
 
-        debugLog(`[useStreamResponse] Converting ${mcpTools.length} MCP tools to AI format`)
-
         mcpTools.forEach((mcpTool) => {
             const schema = mcpTool.inputSchema || { type: 'object', properties: {} }
-            debugLog(`[useStreamResponse] Converting tool: ${mcpTool.name}`, { description: mcpTool.description, schema })
 
             aiTools[mcpTool.name] = tool({
                 description: mcpTool.description,
                 parameters: jsonSchema(schema as any),
-                execute: async (args: unknown, options?: any) => {
-                    debugLog(`[useStreamResponse] Tool "${mcpTool.name}" execute called with args:`, args)
-                    debugLog(`[useStreamResponse] Tool execute options:`, options)
-
+                execute: async (args: unknown) => {
                     try {
                         // Call the MCP tool using the callTool method attached to the tool
                         if ('callTool' in mcpTool && typeof mcpTool.callTool === 'function') {
-                            debugLog(`[useStreamResponse] Calling MCP tool "${mcpTool.name}"...`)
                             const result = await mcpTool.callTool(args as Record<string, unknown>)
-                            debugLog(`[useStreamResponse] Tool "${mcpTool.name}" returned result:`, result)
                             return result
                         } else {
                             throw new Error(`Tool ${mcpTool.name} does not have a callable implementation`)
                         }
                     } catch (error) {
-                        console.error(`[useStreamResponse] Error calling MCP tool ${mcpTool.name}:`, error)
+                        console.error(`Error calling MCP tool ${mcpTool.name}:`, error)
                         throw error
                     }
                 },
             })
         })
-
-        debugLog(`[useStreamResponse] Converted tools:`, Object.keys(aiTools))
         return aiTools
     }
 
@@ -118,9 +101,6 @@ export const useStreamResponse = ({
 
         // For reasoning-capable models, we'll handle reasoning events manually
         // since the middleware expects <think> tags but the API sends reasoning fields directly
-        if (supportsReasoning(model)) {
-            debugLog(`[useStreamResponse] Using raw model for ${model.modelId} - will handle reasoning manually`)
-        }
 
         return baseModel
     }
@@ -132,11 +112,6 @@ export const useStreamResponse = ({
         let currentReasoningEndTime: number | undefined = undefined
         let assistantMessageIndex = -1 // Track the index of our assistant message
         let assistantMessageCreated = false // Track if we've created the assistant message yet
-
-        debugLog(`[useStreamResponse] streamResponse called with ${messages.length} messages`)
-        debugLog(`[useStreamResponse] Messages:`, messages)
-        debugLog(`[useStreamResponse] Current conversationId:`, conversationId)
-        debugLog(`[useStreamResponse] MCP tools available:`, mcpTools.length)
 
         // Check if API key is available
         let apiKey = getApiKey(selectedModel.provider.id)
@@ -154,17 +129,10 @@ export const useStreamResponse = ({
         try {
             const modelInstance = getModelInstance(selectedModel, apiKey)
 
-            debugLog(`[useStreamResponse] Setting stream started to true`)
             setStreamStarted(true)
 
             // Convert MCP tools to AI package format
             const aiTools = convertMcpToolsToAiTools(mcpTools)
-
-            debugLog(`[useStreamResponse] Starting streamText with ${Object.keys(aiTools).length} tools available`)
-            debugLog(`[useStreamResponse] Messages:`, messages.map(m => ({
-                role: m.role,
-                content: hasContent(m) ? m.content.substring(0, 100) + '...' : 'no content'
-            })))
 
             // Prepare stream options
             const streamOptions: any = {
@@ -185,30 +153,18 @@ export const useStreamResponse = ({
 
             const result = await streamText(streamOptions)
 
-            debugLog(`[useStreamResponse] streamText result obtained, starting to process fullStream`)
-
             // Use fullStream to get all events including tool calls, results, and text
             for await (const event of result.fullStream) {
                 try {
-                    debugLog(`[useStreamResponse] Full stream event:`, event.type, event)
-                    
-                    // Debug: Check for raw reasoning/content data in events
-                    if ((event as any).type === 'text-delta') {
-                        debugLog(`[useStreamResponse] Raw event data:`, JSON.stringify(event, null, 2))
-                    }
 
                     if (event.type === 'reasoning') {
-                        debugLog(`[useStreamResponse] Reasoning event:`, event)
-                        
                         // Track reasoning start time and create assistant message if needed
                         if (!currentReasoningStartTime) {
                             currentReasoningStartTime = Date.now()
                             currentReasoning = '' // Reset reasoning content for new session
-                            debugLog(`[useStreamResponse] Reasoning started at:`, currentReasoningStartTime)
                             
                             // Create a new assistant message for reasoning (even if we already have one)
                             // This handles multiple reasoning sessions in the same conversation turn
-                            debugLog(`[useStreamResponse] Creating new assistant message for reasoning session`)
                             setConversations((prev) => {
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
@@ -221,7 +177,6 @@ export const useStreamResponse = ({
                                         reasoningStartTime: currentReasoningStartTime
                                     })
                                     assistantMessageIndex = conv.messages.length - 1
-                                    debugLog(`[useStreamResponse] Created assistant message at index ${assistantMessageIndex}`)
                                 }
                                 return updated
                             })
@@ -229,7 +184,6 @@ export const useStreamResponse = ({
                         }
                         
                         currentReasoning += (event as any).textDelta || ''
-                        debugLog(`[useStreamResponse] Reasoning content so far:`, currentReasoning.length, 'chars')
                         
                         // Update the assistant message with streaming reasoning in real-time
                         if (assistantMessageCreated) {
@@ -248,12 +202,10 @@ export const useStreamResponse = ({
                             })
                         }
                     } else if (event.type === 'tool-call') {
-                        debugLog(`[useStreamResponse] Tool call event:`, event)
                         
                         // End reasoning phase immediately when we see a tool call for linear flow
                         if (currentReasoningStartTime && !currentReasoningEndTime) {
                             currentReasoningEndTime = Date.now()
-                            debugLog(`[useStreamResponse] Reasoning ended due to tool call at:`, currentReasoningEndTime, 'Duration:', currentReasoningEndTime - currentReasoningStartTime, 'ms')
                             
                             // Update reasoning end time and stop streaming immediately
                             setConversations((prev) => {
@@ -264,7 +216,6 @@ export const useStreamResponse = ({
                                     if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
                                         assistantMessage.reasoningEndTime = currentReasoningEndTime
                                         assistantMessage.isReasoningStreaming = false
-                                        debugLog(`[useStreamResponse] Stopped reasoning streaming due to tool call`)
                                     }
                                 }
                                 return updated
@@ -298,10 +249,9 @@ export const useStreamResponse = ({
                             })
                             scrollToBottom(true)
                         } else {
-                            console.warn('[useStreamResponse] Tool call event missing toolName:', event)
+                            console.warn('Tool call event missing toolName:', event)
                         }
                     } else if ((event as any).type === 'tool-result') {
-                        debugLog(`[useStreamResponse] Tool result:`, event)
                         
                         if ((event as any).toolName && (event as any).toolCallId) {
                             setConversations((prev) => {
@@ -321,25 +271,21 @@ export const useStreamResponse = ({
                                             toolResult: (event as any).result,
                                             callId: (event as any).toolCallId,
                                         })
-                                        debugLog(`[useStreamResponse] Added tool result for callId: ${(event as any).toolCallId}`)
                                     } else {
-                                        debugLog(`[useStreamResponse] Tool result already exists for callId: ${(event as any).toolCallId}`)
                                     }
                                 }
                                 return updated
                             })
                             scrollToBottom(true)
                         } else {
-                            console.warn('[useStreamResponse] Tool result event missing toolName or toolCallId:', event)
+                            console.warn('Tool result event missing toolName or toolCallId:', event)
                         }
                     } else if (event.type === 'text-delta') {
-                        debugLog(`[useStreamResponse] Text delta:`, event.textDelta)
 
                         // Check if we have an existing reasoning message that needs to be finalized
                         let needsNewAssistantMessage = false
                         if (currentReasoningStartTime && !currentReasoningEndTime) {
                             currentReasoningEndTime = Date.now()
-                            debugLog(`[useStreamResponse] Reasoning ended at:`, currentReasoningEndTime, 'Duration:', currentReasoningEndTime - currentReasoningStartTime, 'ms')
                             
                             // Update reasoning end time and stop streaming
                             setConversations((prev) => {
@@ -365,14 +311,12 @@ export const useStreamResponse = ({
 
                         // Create assistant message on first text delta if not already created OR if we just finished reasoning
                         if (!assistantMessageCreated || needsNewAssistantMessage) {
-                            debugLog(`[useStreamResponse] Creating new assistant message for content (after reasoning: ${needsNewAssistantMessage})`)
                             setConversations((prev) => {
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
                                 if (conv) {
                                     conv.messages.push({ role: 'assistant', content: '' })
                                     assistantMessageIndex = conv.messages.length - 1
-                                    debugLog(`[useStreamResponse] Created assistant message at index ${assistantMessageIndex}`)
                                 }
                                 return updated
                             })
@@ -386,7 +330,6 @@ export const useStreamResponse = ({
                         const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
                         if (titleMatch) {
                             const title = titleMatch[1].trim()
-                            debugLog(`[useStreamResponse] Extracted title: ${title}`)
                             setConversations((prev) => {
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
@@ -401,7 +344,6 @@ export const useStreamResponse = ({
                         // Remove thinking tags from the display text (they should be extracted by middleware)
                         let cleanedResponse = aiResponse
                         if (supportsReasoning(selectedModel)) {
-                            debugLog(`[useStreamResponse] Original response:`, aiResponse.substring(0, 100))
                             // Remove complete thinking blocks
                             cleanedResponse = aiResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
                             // Remove unclosed think tags (everything from <think> to end)
@@ -412,24 +354,19 @@ export const useStreamResponse = ({
                             cleanedResponse = cleanedResponse.replace(/<\/think>/g, '').trim()
                             // Clean up any remaining whitespace or newlines at the start
                             cleanedResponse = cleanedResponse.replace(/^\s+/, '')
-                            debugLog(`[useStreamResponse] Cleaned response:`, cleanedResponse.substring(0, 100))
                         }
 
                         setConversations((prev) => {
                             const updated = [...prev]
                             const conv = updated.find((c) => c.id === conversationId)
                             if (conv) {
-                                debugLog(`[useStreamResponse] Updating conversation message content (length: ${cleanedResponse.length})`)
                                 // Update the specific assistant message we created, not just the last message
                                 const assistantMessage = conv.messages[assistantMessageIndex]
                                 if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
                                     assistantMessage.content = cleanedResponse
-                                    debugLog(`[useStreamResponse] Updated assistant message at index ${assistantMessageIndex}`)
                                 } else {
-                                    debugLog(`[useStreamResponse] Could not find assistant message at index ${assistantMessageIndex}`, assistantMessage)
                                 }
                             } else {
-                                debugLog(`[useStreamResponse] Could not find conversation with id: ${conversationId}`)
                             }
                             return updated
                         })
@@ -437,19 +374,15 @@ export const useStreamResponse = ({
                         scrollToBottom(true)
                     }
                 } catch (e) {
-                    console.error('[useStreamResponse] Error in full stream processing:', e)
+                    console.error('Error in full stream processing:', e)
                 }
             }
 
-            debugLog(`[useStreamResponse] Finished processing full stream. Final response length: ${aiResponse.length}`)
-            debugLog(`[useStreamResponse] Final aiResponse content:`, JSON.stringify(aiResponse))
-            debugLog(`[useStreamResponse] Final reasoning content:`, currentReasoning.length, 'chars:', currentReasoning.substring(0, 100))
             
             // Final cleanup - ensure reasoning streaming is stopped
             if (assistantMessageCreated && currentReasoningStartTime) {
                 if (!currentReasoningEndTime) {
                     currentReasoningEndTime = Date.now()
-                    debugLog(`[useStreamResponse] Final reasoning end time:`, currentReasoningEndTime)
                 }
                 
                 setConversations((prev) => {
@@ -460,7 +393,6 @@ export const useStreamResponse = ({
                         if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
                             assistantMessage.isReasoningStreaming = false
                             assistantMessage.reasoningEndTime = currentReasoningEndTime
-                            debugLog(`[useStreamResponse] Final reasoning cleanup completed`)
                         }
                     }
                     return updated
@@ -468,21 +400,14 @@ export const useStreamResponse = ({
             }
         } catch (error: unknown) {
             if (controller.signal.aborted) {
-                debugLog('[useStreamResponse] Stream aborted')
             } else {
-                console.error('[useStreamResponse] Error generating response:', error)
-                // Log additional error details
-                if (error instanceof Error) {
-                    console.error('[useStreamResponse] Error stack:', error.stack)
-                    console.error('[useStreamResponse] Error message:', error.message)
-                }
+                console.error('Error generating response:', error)
                 // Remove the assistant message if there was an error and we created one
                 if (assistantMessageCreated) {
                     setConversations((prev) => {
                         const updated = [...prev]
                         const conv = updated.find((c) => c.id === conversationId)
                         if (conv && assistantMessageIndex >= 0 && conv.messages[assistantMessageIndex]?.role === 'assistant') {
-                            debugLog('[useStreamResponse] Removing assistant message due to error')
                             conv.messages.splice(assistantMessageIndex, 1)
                         }
                         return updated
@@ -490,7 +415,6 @@ export const useStreamResponse = ({
                 }
             }
         } finally {
-            debugLog('[useStreamResponse] Cleaning up stream state')
             setStreamStarted(false)
             setController(new AbortController())
         }
