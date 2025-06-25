@@ -172,7 +172,7 @@ export const useStreamResponse = ({
                 // We have an existing reasoning block!
                 updatedMessage = {
                   ...lastMessage,
-                  content: lastMessage.content + event.textDelta.trim(),
+                  content: lastMessage.content + event.textDelta,
                 }
               } else {
                 // We need a new reasoning block!
@@ -183,7 +183,7 @@ export const useStreamResponse = ({
                 newMessage = {
                   role: 'assistant',
                   type: 'reasoning',
-                  content: event.textDelta.trim(),
+                  content: event.textDelta,
                   isReasoningStreaming: true,
                   reasoningStartTime: currentReasoningStartTime!,
                 }
@@ -234,90 +234,19 @@ export const useStreamResponse = ({
                 //   console.warn('Tool result event missing toolName or toolCallId:', event)
                 // }
               } else if (event.type === 'text-delta') {
-                console.info(`TODO TEXT DELTA`, event)
-
-                // // Check if we have an existing reasoning message that needs to be finalized
-                // let needsNewAssistantMessage = false
-                // if (currentReasoningStartTime && !currentReasoningEndTime) {
-                //   currentReasoningEndTime = Date.now()
-                //
-                //   // Update reasoning end time and stop streaming
-                //   setConversations((prev) => {
-                //     const updated = [...prev]
-                //     const conv = updated.find((c) => c.id === conversationId)
-                //     if (conv && assistantMessageIndex >= 0) {
-                //       const assistantMessage = conv.messages[assistantMessageIndex]
-                //       if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                //         assistantMessage.isReasoningStreaming = false
-                //         assistantMessage.reasoningEndTime = currentReasoningEndTime
-                //       }
-                //     }
-                //     return updated
-                //   })
-                //
-                //   // Reset reasoning state after reasoning ends
-                //   currentReasoningStartTime = undefined
-                //   currentReasoningEndTime = undefined
-                //   // Force creation of new assistant message for content
-                //   needsNewAssistantMessage = true
-                //   assistantMessageCreated = false
-                // }
-                //
-                // // Create assistant message on first text delta if not already created OR if we just finished reasoning
-                // if (!assistantMessageCreated || needsNewAssistantMessage) {
-                //   setConversations((prev) => {
-                //     const updated = [...prev]
-                //     const conv = updated.find((c) => c.id === conversationId)
-                //     if (conv) {
-                //       conv.messages.push({ role: 'assistant', content: '' })
-                //       assistantMessageIndex = conv.messages.length - 1
-                //       debugMessages(
-                //         'Added new content assistant message at index',
-                //         assistantMessageIndex,
-                //         '(after reasoning:',
-                //         needsNewAssistantMessage,
-                //         ')'
-                //       )
-                //       debugMessages('Current messages:', JSON.stringify(conv.messages))
-                //     }
-                //     return updated
-                //   })
-                //   assistantMessageCreated = true
-                // }
-                //
-                // aiResponse += event.textDelta
-                // aiResponseRef.current = aiResponse
-                //
-                // //custom extraction of <chat-title> tag
-                // const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
-                // if (titleMatch) {
-                //   const title = titleMatch[1].trim()
-                //   setConversations((prev) => {
-                //     const updated = [...prev]
-                //     const conv = updated.find((c) => c.id === conversationId)
-                //     if (conv) {
-                //       conv.title = title
-                //     }
-                //     return updated
-                //   })
-                //   aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
-                // }
-                //
-                // setConversations((prev) => {
-                //   const updated = [...prev]
-                //   const conv = updated.find((c) => c.id === conversationId)
-                //   if (conv) {
-                //     // Update the specific assistant message we created, not just the last message
-                //     const assistantMessage = conv.messages[assistantMessageIndex]
-                //     if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                //       assistantMessage.content = aiResponse
-                //     }
-                //   } else {
-                //   }
-                //   return updated
-                // })
-                //
-                // scrollToBottom(true)
+                if (lastMessage?.role !== 'assistant' || lastMessage.type !== 'content') {
+                  newMessage = {
+                    role: 'assistant',
+                    content: event.textDelta,
+                    type: 'content',
+                  }
+                } else {
+                  updatedMessage = {
+                    ...lastMessage,
+                    content: lastMessage.content + event.textDelta,
+                  }
+                }
+                scrollToBottom(true)
               }
             }
           } catch (e) {
@@ -327,7 +256,7 @@ export const useStreamResponse = ({
           if (updatedMessage || newMessage) {
             updated = prev.map((c) => {
               if (c.id !== conversationId) return c
-              let messages = [...c.messages]
+              const messages = [...c.messages]
 
               if (updatedMessage) {
                 messages.splice(-1, 1, updatedMessage)
