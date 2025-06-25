@@ -159,17 +159,16 @@ export const useStreamResponse = ({
       // Use fullStream to get all events including tool calls, results, and text
       for await (const event of result.fullStream) {
         console.log(JSON.stringify(event))
-        try {
-          if (event.type === 'reasoning') {
-            setConversations((prev) => {
-              const updated = [...prev]
-              const conv = updated.find((c) => c.id === conversationId)
-              if (!conv) {
-                console.error(`Missing conversation for ID ${conversationId}! Ignoring ${JSON.stringify(event)}`)
-                return updated
-              }
-              const lastMessage = conv.messages?.at(-1)
-
+        setConversations((prev) => {
+          const updated = [...prev]
+          const conv = updated.find((c) => c.id === conversationId)
+          if (!conv) {
+            console.error(`Missing conversation for ID ${conversationId}! Ignoring ${JSON.stringify(event)}`)
+            return updated
+          }
+          const lastMessage = conv.messages?.at(-1)
+          try {
+            if (event.type === 'reasoning') {
               if (lastMessage?.role === 'assistant' && lastMessage.type === 'reasoning') {
                 // We have an existing reasoning block!
                 lastMessage.content = lastMessage.content + event.textDelta.trim()
@@ -191,162 +190,169 @@ export const useStreamResponse = ({
                   debugMessages('Current messages:', JSON.stringify(conv.messages))
                 }
               }
-              return updated
-            })
-          } else if (event.type === 'tool-call') {
-            // End reasoning phase immediately when we see a tool call for linear flow
-            if (currentReasoningStartTime && !currentReasoningEndTime) {
-              currentReasoningEndTime = Date.now()
+            }
 
-              // Update reasoning end time and stop streaming immediately
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv && assistantMessageIndex >= 0) {
-                  const assistantMessage = conv.messages[assistantMessageIndex]
-                  if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                    assistantMessage.reasoningEndTime = currentReasoningEndTime
-                    assistantMessage.isReasoningStreaming = false
+            // We're not thinking, so maybe close the last message?
+            if (lastMessage?.role === 'assistant' && lastMessage.type === 'reasoning') {
+              lastMessage.reasoningEndTime = Date.now()
+            }
+
+            if (event.type === 'tool-call') {
+              // End reasoning phase immediately when we see a tool call for linear flow
+              if (currentReasoningStartTime && !currentReasoningEndTime) {
+                currentReasoningEndTime = Date.now()
+
+                // Update reasoning end time and stop streaming immediately
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv && assistantMessageIndex >= 0) {
+                    const assistantMessage = conv.messages[assistantMessageIndex]
+                    if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                      assistantMessage.reasoningEndTime = currentReasoningEndTime
+                      assistantMessage.isReasoningStreaming = false
+                    }
                   }
-                }
-                return updated
-              })
+                  return updated
+                })
 
-              // Reset reasoning state for potential new reasoning session
-              currentReasoningStartTime = undefined
-              currentReasoningEndTime = undefined
-              assistantMessageCreated = false
-            }
-
-            if (event.toolName) {
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv) {
-                  conv.messages.push({
-                    role: 'tool-call',
-                    toolName: event.toolName,
-                    toolArgs: event.args || {},
-                    callId: event.toolCallId || 'unknown',
-                  })
-                  debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
-                  debugMessages('Current messages:', JSON.stringify(conv.messages))
-                }
-                return updated
-              })
-              scrollToBottom(true)
-            } else {
-              console.warn('Tool call event missing toolName:', event)
-            }
-          } else if ((event as any).type === 'tool-result') {
-            if ((event as any).toolName && (event as any).toolCallId) {
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv) {
-                  conv.messages.push({
-                    role: 'tool-result',
-                    toolName: (event as any).toolName,
-                    toolArgs: (event as any).args || {},
-                    toolResult: (event as any).result,
-                    callId: (event as any).toolCallId,
-                  })
-                  debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
-                  debugMessages('Current messages:', JSON.stringify(conv.messages))
-                }
-                return updated
-              })
-              scrollToBottom(true)
-            } else {
-              console.warn('Tool result event missing toolName or toolCallId:', event)
-            }
-          } else if (event.type === 'text-delta') {
-            // Check if we have an existing reasoning message that needs to be finalized
-            let needsNewAssistantMessage = false
-            if (currentReasoningStartTime && !currentReasoningEndTime) {
-              currentReasoningEndTime = Date.now()
-
-              // Update reasoning end time and stop streaming
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv && assistantMessageIndex >= 0) {
-                  const assistantMessage = conv.messages[assistantMessageIndex]
-                  if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                    assistantMessage.isReasoningStreaming = false
-                    assistantMessage.reasoningEndTime = currentReasoningEndTime
-                  }
-                }
-                return updated
-              })
-
-              // Reset reasoning state after reasoning ends
-              currentReasoningStartTime = undefined
-              currentReasoningEndTime = undefined
-              // Force creation of new assistant message for content
-              needsNewAssistantMessage = true
-              assistantMessageCreated = false
-            }
-
-            // Create assistant message on first text delta if not already created OR if we just finished reasoning
-            if (!assistantMessageCreated || needsNewAssistantMessage) {
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv) {
-                  conv.messages.push({ role: 'assistant', content: '' })
-                  assistantMessageIndex = conv.messages.length - 1
-                  debugMessages(
-                    'Added new content assistant message at index',
-                    assistantMessageIndex,
-                    '(after reasoning:',
-                    needsNewAssistantMessage,
-                    ')'
-                  )
-                  debugMessages('Current messages:', JSON.stringify(conv.messages))
-                }
-                return updated
-              })
-              assistantMessageCreated = true
-            }
-
-            aiResponse += event.textDelta
-            aiResponseRef.current = aiResponse
-
-            //custom extraction of <chat-title> tag
-            const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
-            if (titleMatch) {
-              const title = titleMatch[1].trim()
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv) {
-                  conv.title = title
-                }
-                return updated
-              })
-              aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
-            }
-
-            setConversations((prev) => {
-              const updated = [...prev]
-              const conv = updated.find((c) => c.id === conversationId)
-              if (conv) {
-                // Update the specific assistant message we created, not just the last message
-                const assistantMessage = conv.messages[assistantMessageIndex]
-                if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                  assistantMessage.content = aiResponse
-                }
-              } else {
+                // Reset reasoning state for potential new reasoning session
+                currentReasoningStartTime = undefined
+                currentReasoningEndTime = undefined
+                assistantMessageCreated = false
               }
-              return updated
-            })
 
-            scrollToBottom(true)
+              if (event.toolName) {
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv) {
+                    conv.messages.push({
+                      role: 'tool-call',
+                      toolName: event.toolName,
+                      toolArgs: event.args || {},
+                      callId: event.toolCallId || 'unknown',
+                    })
+                    debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
+                    debugMessages('Current messages:', JSON.stringify(conv.messages))
+                  }
+                  return updated
+                })
+                scrollToBottom(true)
+              } else {
+                console.warn('Tool call event missing toolName:', event)
+              }
+            } else if ((event as any).type === 'tool-result') {
+              if ((event as any).toolName && (event as any).toolCallId) {
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv) {
+                    conv.messages.push({
+                      role: 'tool-result',
+                      toolName: (event as any).toolName,
+                      toolArgs: (event as any).args || {},
+                      toolResult: (event as any).result,
+                      callId: (event as any).toolCallId,
+                    })
+                    debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
+                    debugMessages('Current messages:', JSON.stringify(conv.messages))
+                  }
+                  return updated
+                })
+                scrollToBottom(true)
+              } else {
+                console.warn('Tool result event missing toolName or toolCallId:', event)
+              }
+            } else if (event.type === 'text-delta') {
+              // Check if we have an existing reasoning message that needs to be finalized
+              let needsNewAssistantMessage = false
+              if (currentReasoningStartTime && !currentReasoningEndTime) {
+                currentReasoningEndTime = Date.now()
+
+                // Update reasoning end time and stop streaming
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv && assistantMessageIndex >= 0) {
+                    const assistantMessage = conv.messages[assistantMessageIndex]
+                    if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                      assistantMessage.isReasoningStreaming = false
+                      assistantMessage.reasoningEndTime = currentReasoningEndTime
+                    }
+                  }
+                  return updated
+                })
+
+                // Reset reasoning state after reasoning ends
+                currentReasoningStartTime = undefined
+                currentReasoningEndTime = undefined
+                // Force creation of new assistant message for content
+                needsNewAssistantMessage = true
+                assistantMessageCreated = false
+              }
+
+              // Create assistant message on first text delta if not already created OR if we just finished reasoning
+              if (!assistantMessageCreated || needsNewAssistantMessage) {
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv) {
+                    conv.messages.push({ role: 'assistant', content: '' })
+                    assistantMessageIndex = conv.messages.length - 1
+                    debugMessages(
+                      'Added new content assistant message at index',
+                      assistantMessageIndex,
+                      '(after reasoning:',
+                      needsNewAssistantMessage,
+                      ')'
+                    )
+                    debugMessages('Current messages:', JSON.stringify(conv.messages))
+                  }
+                  return updated
+                })
+                assistantMessageCreated = true
+              }
+
+              aiResponse += event.textDelta
+              aiResponseRef.current = aiResponse
+
+              //custom extraction of <chat-title> tag
+              const titleMatch = aiResponse.match(/<chat-title>(.*?)<\/chat-title>/)
+              if (titleMatch) {
+                const title = titleMatch[1].trim()
+                setConversations((prev) => {
+                  const updated = [...prev]
+                  const conv = updated.find((c) => c.id === conversationId)
+                  if (conv) {
+                    conv.title = title
+                  }
+                  return updated
+                })
+                aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
+              }
+
+              setConversations((prev) => {
+                const updated = [...prev]
+                const conv = updated.find((c) => c.id === conversationId)
+                if (conv) {
+                  // Update the specific assistant message we created, not just the last message
+                  const assistantMessage = conv.messages[assistantMessageIndex]
+                  if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
+                    assistantMessage.content = aiResponse
+                  }
+                } else {
+                }
+                return updated
+              })
+
+              scrollToBottom(true)
+            }
+          } catch (e) {
+            console.error('Error in full stream processing:', e)
           }
-        } catch (e) {
-          console.error('Error in full stream processing:', e)
-        }
+          return updated
+        })
       }
 
       debugMessages('Stream processing completed. Final message count:', assistantMessageCreated ? 'created' : 'none')
