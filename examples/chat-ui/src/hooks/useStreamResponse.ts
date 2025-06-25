@@ -1,19 +1,12 @@
-import { useState, useRef } from 'react'
-import { streamText, tool, jsonSchema } from 'ai'
+import { useRef, useState } from 'react'
+import { CoreMessage, jsonSchema, streamText, tool } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAnthropic } from '@ai-sdk/anthropic'
-import { type Message, type Conversation, type UserMessage, type AssistantMessage, type SystemMessage } from '../types'
+import { type AssistantMessage, type Conversation, type Message, type SystemMessage, type UserMessage } from '../types'
 import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
 import { type Tool } from 'use-mcp/react'
 import { useConversationUpdater } from './useConversationUpdater'
-
-// Debug logging for message operations
-const debugMessages = (...args: any[]) => {
-  if (typeof window !== 'undefined' && localStorage.getItem('USE_MCP_DEBUG') === 'true') {
-    console.log('[Messages]', ...args)
-  }
-}
 
 // Type guard for messages with content
 const hasContent = (message: Message): message is UserMessage | AssistantMessage | SystemMessage => {
@@ -41,10 +34,10 @@ export const useStreamResponse = ({
   const [streamStarted, setStreamStarted] = useState(false)
   const [controller, setController] = useState(new AbortController())
   const aiResponseRef = useRef<string>('')
-  
+
   const { updateConversation } = useConversationUpdater({
     conversationId,
-    setConversations
+    setConversations,
   })
 
   // Convert MCP tools to the format expected by the 'ai' package
@@ -140,18 +133,20 @@ export const useStreamResponse = ({
       // Convert MCP tools to AI package format
       const aiTools = convertMcpToolsToAiTools(mcpTools)
 
+      console.log({ messages })
+      const messagesToSend: CoreMessage[] = messages
+        .filter((msg) => ['user', 'assistant', 'system'].includes(msg.role) && hasContent(msg))
+        .map((msg) => {
+          const contentMsg = msg as UserMessage | AssistantMessage | SystemMessage
+          return {
+            role: contentMsg.role,
+            content: contentMsg.content,
+          }
+        })
       // Prepare stream options
       const streamOptions = {
         model: modelInstance,
-        messages: messages
-          .filter((msg) => ['user', 'assistant', 'system'].includes(msg.role) && hasContent(msg))
-          .map((msg) => {
-            const contentMsg = msg as UserMessage | AssistantMessage | SystemMessage
-            return {
-              role: contentMsg.role,
-              content: contentMsg.content,
-            }
-          }),
+        messages: messagesToSend,
         tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
         maxSteps: 5, // Allow up to 5 steps for tool calling
         abortSignal: controller.signal,
@@ -161,10 +156,11 @@ export const useStreamResponse = ({
 
       // Use fullStream to get all events including tool calls, results, and text
       for await (const event of result.fullStream) {
-        console.log({ 'result.fullStream.event': event })
+        const eventTime = Date.now()
+        // console.log({ 'result.fullStream.event': event })
         updateConversation((conv) => {
           const lastMessage = conv.messages?.at(-1)
-          console.log({ setConversations: event, conv: JSON.parse(JSON.stringify(conv)) })
+          // console.log({ setConversations: event, conv: JSON.parse(JSON.stringify(conv)) })
           let updatedMessage: Message | undefined
           let newMessage: Message | undefined
           try {
@@ -177,7 +173,7 @@ export const useStreamResponse = ({
                 }
               } else {
                 // We need a new reasoning block!
-                const currentReasoningStartTime = Date.now()
+                const currentReasoningStartTime = eventTime
 
                 // Create a new assistant message for reasoning (even if we already have one)
                 // This handles multiple reasoning sessions in the same conversation turn
@@ -194,9 +190,15 @@ export const useStreamResponse = ({
               if (lastMessage?.role === 'assistant' && lastMessage.type === 'reasoning') {
                 updatedMessage = {
                   ...lastMessage,
-                  reasoningEndTime: Date.now(),
+                  reasoningEndTime: eventTime,
                   isReasoningStreaming: false,
                 }
+
+                // Try hacking the tool call loop to include reasoning blocks
+                messagesToSend.push({
+                  role: 'assistant',
+                  content: `<think>${lastMessage.content}</think>`,
+                })
               }
 
               if (event.type === 'tool-call') {
@@ -243,7 +245,7 @@ export const useStreamResponse = ({
           } catch (e) {
             console.error('Error in full stream processing:', e)
           }
-          
+
           if (updatedMessage || newMessage) {
             const messages = [...conv.messages]
 
@@ -255,39 +257,13 @@ export const useStreamResponse = ({
               messages.push(newMessage)
             }
 
-            console.log({ updatedMessage, newMessage })
+            // console.log({ updatedMessage, newMessage })
             return { ...conv, messages }
           }
-          
+
           return conv
         })
       }
-
-      // Show final conversation state
-      updateConversation((conv) => {
-        debugMessages('Final conversation state:', JSON.stringify(conv.messages))
-        return conv
-      })
-      //
-      // // Final cleanup - ensure reasoning streaming is stopped
-      // if (assistantMessageCreated && currentReasoningStartTime) {
-      //   if (!currentReasoningEndTime) {
-      //     currentReasoningEndTime = Date.now()
-      //   }
-      //
-      //   setConversations((prev) => {
-      //     const updated = [...prev]
-      //     const conv = updated.find((c) => c.id === conversationId)
-      //     if (conv && assistantMessageIndex >= 0) {
-      //       const assistantMessage = conv.messages[assistantMessageIndex]
-      //       if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-      //         assistantMessage.isReasoningStreaming = false
-      //         assistantMessage.reasoningEndTime = currentReasoningEndTime
-      //       }
-      //     }
-      //     return updated
-      //   })
-      // }
     } catch (error: unknown) {
       if (controller.signal.aborted) {
       } else {
@@ -296,7 +272,6 @@ export const useStreamResponse = ({
     } finally {
       setStreamStarted(false)
       setController(new AbortController())
-      debugMessages('Stream response function completed')
     }
   }
 

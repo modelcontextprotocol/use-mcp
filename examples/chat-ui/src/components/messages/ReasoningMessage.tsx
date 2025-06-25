@@ -29,9 +29,8 @@ const ReasoningMessage: React.FC<ReasoningMessageProps> = ({ message }) => {
 
   // Format duration nicely
   const formatDuration = (seconds: number) => {
-    if (seconds < 1) {
-      return `${Math.round(seconds * 1000)}ms`
-    }
+    if (seconds < 0.001) return `< 1ms`
+    if (seconds < 1) return `${Math.round(seconds * 1000)}ms`
     return `${seconds.toFixed(1)}s`
   }
 
@@ -39,8 +38,8 @@ const ReasoningMessage: React.FC<ReasoningMessageProps> = ({ message }) => {
     <div className={`flex justify-start`}>
       <div className={`text-zinc-900 w-full`}>
         <div
-          className={`text-xs/5 text-zinc-600 border opacity-80 hover:opacity-100 border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 ${
-            isExpanded ? 'border-zinc-300 opacity-100' : ''
+          className={`text-xs/5 text-zinc-600 border border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 ${
+            isExpanded ? 'border-zinc-300' : ''
           }`}
           onClick={toggleExpanded}
         >
@@ -61,7 +60,11 @@ const ReasoningMessage: React.FC<ReasoningMessageProps> = ({ message }) => {
               // Collapsed view: show timing summary
               <div className="flex-1">
                 <span className="text-zinc-500">
-                  {message.isReasoningStreaming ? 'Thinking...' : duration ? `Thought for ${formatDuration(duration)}` : 'Thought process'}
+                  {message.isReasoningStreaming
+                    ? 'Thinking...'
+                    : typeof duration === 'number'
+                      ? `Thought for ${formatDuration(duration)}`
+                      : 'Thought process'}
                 </span>
               </div>
             )}
