@@ -39,7 +39,7 @@ const ReasoningMessage: React.FC<ReasoningMessageProps> = ({ message }) => {
     <div className={`flex justify-start`}>
       <div className={`text-zinc-900 w-full`}>
         <div
-          className={`text-xs/5 text-zinc-600 border opacity-80 hover:opacity-100 border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-all duration-300 ${
+          className={`text-xs/5 text-zinc-600 border opacity-80 hover:opacity-100 border-zinc-200 rounded-lg p-3 bg-zinc-50 cursor-pointer hover:bg-zinc-100 ${
             isExpanded ? 'border-zinc-300 opacity-100' : ''
           }`}
           onClick={toggleExpanded}
