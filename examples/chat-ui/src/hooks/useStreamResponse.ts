@@ -6,6 +6,7 @@ import { type Message, type Conversation, type UserMessage, type AssistantMessag
 import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
 import { type Tool } from 'use-mcp/react'
+import { useConversationUpdater } from './useConversationUpdater'
 
 // Debug logging for message operations
 const debugMessages = (...args: any[]) => {
@@ -40,6 +41,11 @@ export const useStreamResponse = ({
   const [streamStarted, setStreamStarted] = useState(false)
   const [controller, setController] = useState(new AbortController())
   const aiResponseRef = useRef<string>('')
+  
+  const { updateConversation } = useConversationUpdater({
+    conversationId,
+    setConversations
+  })
 
   // Convert MCP tools to the format expected by the 'ai' package
   const convertMcpToolsToAiTools = (mcpTools: Tool[]) => {
@@ -71,17 +77,17 @@ export const useStreamResponse = ({
   }
 
   // Check if a model supports reasoning
-  const supportsReasoning = (model: Model) => {
-    const reasoningModels = [
-      'qwen/qwen3-32b',
-      'qwen-qwq-32b',
-      'deepseek-r1-distill-llama-70b',
-      'claude-4-opus-20250514',
-      'claude-4-sonnet-20250514',
-      'claude-3-7-sonnet-20250219',
-    ]
-    return reasoningModels.includes(model.modelId)
-  }
+  // const supportsReasoning = (model: Model) => {
+  //   const reasoningModels = [
+  //     'qwen/qwen3-32b',
+  //     'qwen-qwq-32b',
+  //     'deepseek-r1-distill-llama-70b',
+  //     'claude-4-opus-20250514',
+  //     'claude-4-sonnet-20250514',
+  //     'claude-3-7-sonnet-20250219',
+  //   ]
+  //   return reasoningModels.includes(model.modelId)
+  // }
 
   const getModelInstance = (model: Model, apiKey: string) => {
     let baseModel
@@ -156,12 +162,7 @@ export const useStreamResponse = ({
       // Use fullStream to get all events including tool calls, results, and text
       for await (const event of result.fullStream) {
         console.log({ 'result.fullStream.event': event })
-        setConversations((prev) => {
-          const conv = prev.find((c) => c.id === conversationId)
-          if (!conv) {
-            console.error(`Missing conversation for ID ${conversationId}! Ignoring ${JSON.stringify(event)}`)
-            return prev
-          }
+        updateConversation((conv) => {
           const lastMessage = conv.messages?.at(-1)
           console.log({ setConversations: event, conv: JSON.parse(JSON.stringify(conv)) })
           let updatedMessage: Message | undefined
@@ -242,35 +243,30 @@ export const useStreamResponse = ({
           } catch (e) {
             console.error('Error in full stream processing:', e)
           }
-          let updated = prev
+          
           if (updatedMessage || newMessage) {
-            updated = prev.map((c) => {
-              if (c.id !== conversationId) return c
-              const messages = [...c.messages]
+            const messages = [...conv.messages]
 
-              if (updatedMessage) {
-                messages.splice(-1, 1, updatedMessage)
-              }
+            if (updatedMessage) {
+              messages.splice(-1, 1, updatedMessage)
+            }
 
-              if (newMessage) {
-                messages.push(newMessage)
-              }
+            if (newMessage) {
+              messages.push(newMessage)
+            }
 
-              return { ...c, messages }
-            })
+            console.log({ updatedMessage, newMessage })
+            return { ...conv, messages }
           }
-          console.log({ updatedMessage, newMessage })
-          return updated
+          
+          return conv
         })
       }
 
       // Show final conversation state
-      setConversations((prev) => {
-        const conv = prev.find((c) => c.id === conversationId)
-        if (conv) {
-          debugMessages('Final conversation state:', JSON.stringify(conv.messages))
-        }
-        return prev
+      updateConversation((conv) => {
+        debugMessages('Final conversation state:', JSON.stringify(conv.messages))
+        return conv
       })
       //
       // // Final cleanup - ensure reasoning streaming is stopped

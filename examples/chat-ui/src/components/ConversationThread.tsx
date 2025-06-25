@@ -12,6 +12,7 @@ import ModelSelectionModal from './ModelSelectionModal'
 import McpServerModal from './McpServerModal'
 import { useAutoscroll } from '../hooks/useAutoscroll'
 import { useStreamResponse } from '../hooks/useStreamResponse'
+import { useConversationUpdater } from '../hooks/useConversationUpdater'
 import { setApiKey } from '../utils/apiKeys'
 import { hasApiKey } from '../utils/apiKeys'
 import ApiKeyModal from './ApiKeyModal'
@@ -88,6 +89,11 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     }
   }
 
+  const { updateConversation } = useConversationUpdater({
+    conversationId,
+    setConversations
+  })
+
   const { isLoading, setIsLoading, streamStarted, controller, streamResponse, aiResponseRef } = useStreamResponse({
     conversationId,
     setConversations,
@@ -133,14 +139,10 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
     setInput('')
     setIsLoading(true)
 
-    setConversations((prev) => {
-      const updated = [...prev]
-      const conv = updated.find((c) => c.id === conversationId)
-      if (conv && conv.messages?.[conv.messages.length - 1] !== userMessage) {
-        conv.messages.push(userMessage)
-      }
-      return updated
-    })
+    updateConversation((conv) => ({
+      ...conv,
+      messages: [...conv.messages, userMessage]
+    }))
 
     await streamResponse([...currentConversation.messages, userMessage])
 
