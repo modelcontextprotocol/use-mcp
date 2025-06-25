@@ -162,6 +162,7 @@ export const useStreamResponse = ({
 
             // Use fullStream to get all events including tool calls, results, and text
             for await (const event of result.fullStream) {
+              console.log(JSON.stringify(event))
                 try {
 
                     if (event.type === 'reasoning') {

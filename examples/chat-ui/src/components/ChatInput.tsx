@@ -37,9 +37,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, setInput, handleSubmit, is
       <form onSubmit={handleSubmit} className={`w-full items-center`}>
         <div className="flex justify-end items-center">
           <textarea
+            id="chat-input"
             ref={textareaRef}
             value={input}
             rows={1}
+            onFocus={() => console.clear()}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full flex-1 p-3 bg-transparent resize-none focus:outline-none"
