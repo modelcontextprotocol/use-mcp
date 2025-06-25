@@ -14,7 +14,7 @@ const ToolCallMessage: React.FC<ToolCallMessageProps> = ({ message }) => {
   const shouldTruncate = json.length > 100
 
   return (
-    <div className="flex gap-3 py-3 px-4 bg-blue-50 border border-blue-200 rounded-lg">
+    <div className="flex gap-3 py-2 px-4 bg-blue-50 border border-blue-200 rounded-lg">
       <div className={`flex-shrink-0 h-full ${shouldTruncate ? 'mt-1' : 'mt-2.5'}`}>
         <Wrench size={16} className="text-blue-600" />
       </div>

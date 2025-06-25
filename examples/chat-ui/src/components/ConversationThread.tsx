@@ -91,7 +91,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 
   const { updateConversation } = useConversationUpdater({
     conversationId,
-    setConversations
+    setConversations,
   })
 
   const { isLoading, setIsLoading, streamStarted, controller, streamResponse, aiResponseRef } = useStreamResponse({
@@ -141,7 +141,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
 
     updateConversation((conv) => ({
       ...conv,
-      messages: [...conv.messages, userMessage]
+      messages: [...conv.messages, userMessage],
     }))
 
     await streamResponse([...currentConversation.messages, userMessage])
@@ -173,7 +173,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   // console.log({ currentConversation })
 
   return (
-    <div className={`flex flex-col min-h-screen w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
+    <div className={`flex flex-col min-h-screen py-12 w-full ${currentConversation.messages.length === 0 ? 'justify-center' : ''}`}>
       <div
         ref={messagesContainerRef}
         className={`
@@ -195,7 +195,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         </div>
       </div>
 
-      <div className={`p-4 ${currentConversation.messages.length === 0 ? 'pb-35' : ''}`}>
+      <div className={`p-4 ${currentConversation.messages.length === 0 ? 'pb-20' : ''}`}>
         <div className="max-w-2xl mx-auto">
           <ChatInput
             input={input}

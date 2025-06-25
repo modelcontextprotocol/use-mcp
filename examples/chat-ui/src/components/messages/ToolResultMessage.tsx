@@ -14,7 +14,7 @@ const ToolResultMessage: React.FC<ToolResultMessageProps> = ({ message }) => {
   const shouldTruncate = json.length > 48
 
   return (
-    <div className="flex gap-3 py-3 px-4 bg-green-50 border border-green-200 rounded-lg">
+    <div className="flex gap-3 py-3 px-4 bg-green-50 border border-green-300 rounded-lg">
       <div className={`flex-shrink-0 h-full ${shouldTruncate ? 'mt-1' : 'mt-2.5'}`}>
         <CheckCircle size={16} className="text-green-600" />
       </div>
