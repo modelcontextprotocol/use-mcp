@@ -241,20 +241,14 @@ export const useStreamResponse = ({
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
                                 if (conv) {
-                                    // Check if this tool call already exists
-                                    const existingToolCall = conv.messages.find(
-                                        (msg) => msg.role === 'tool-call' && 'callId' in msg && msg.callId === event.toolCallId
-                                    )
-                                    if (!existingToolCall) {
-                                        conv.messages.push({
-                                            role: 'tool-call',
-                                            toolName: event.toolName,
-                                            toolArgs: event.args || {},
-                                            callId: event.toolCallId || 'unknown',
-                                        })
-                                        debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
-                                        debugMessages('Current messages:', JSON.stringify(conv.messages))
-                                    }
+                                    conv.messages.push({
+                                        role: 'tool-call',
+                                        toolName: event.toolName,
+                                        toolArgs: event.args || {},
+                                        callId: event.toolCallId || 'unknown',
+                                    })
+                                    debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
+                                    debugMessages('Current messages:', JSON.stringify(conv.messages))
                                 }
                                 return updated
                             })
@@ -269,23 +263,15 @@ export const useStreamResponse = ({
                                 const updated = [...prev]
                                 const conv = updated.find((c) => c.id === conversationId)
                                 if (conv) {
-                                    // Check if this tool result already exists
-                                    const existingToolResult = conv.messages.find(
-                                        (msg) => msg.role === 'tool-result' && 'callId' in msg && msg.callId === (event as any).toolCallId
-                                    )
-                                    if (!existingToolResult) {
-                                        // Add tool result message
-                                        conv.messages.push({
-                                            role: 'tool-result',
-                                            toolName: (event as any).toolName,
-                                            toolArgs: (event as any).args || {},
-                                            toolResult: (event as any).result,
-                                            callId: (event as any).toolCallId,
-                                        })
-                                        debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
-                                        debugMessages('Current messages:', JSON.stringify(conv.messages))
-                                    } else {
-                                    }
+                                    conv.messages.push({
+                                        role: 'tool-result',
+                                        toolName: (event as any).toolName,
+                                        toolArgs: (event as any).args || {},
+                                        toolResult: (event as any).result,
+                                        callId: (event as any).toolCallId,
+                                    })
+                                    debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
+                                    debugMessages('Current messages:', JSON.stringify(conv.messages))
                                 }
                                 return updated
                             })
