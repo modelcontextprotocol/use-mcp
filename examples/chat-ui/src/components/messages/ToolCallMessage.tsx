@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Wrench } from 'lucide-react'
-import { type ToolCallMessage } from '../types'
+import { type ToolCallMessage } from '../../types'
 
 interface ToolCallMessageProps {
   message: ToolCallMessage

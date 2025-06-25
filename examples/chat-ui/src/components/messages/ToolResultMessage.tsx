@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, CheckCircle } from 'lucide-react'
-import { type ToolResultMessage } from '../types'
+import { type ToolResultMessage } from '../../types'
 
 interface ToolResultMessageProps {
   message: ToolResultMessage

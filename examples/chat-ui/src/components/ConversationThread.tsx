@@ -6,7 +6,7 @@ import { type Conversation, type Message } from '../types'
 import { type Model } from '../types/models'
 import { type IDBPDatabase } from 'idb'
 import { type Tool } from 'use-mcp/react'
-import ChatMessage from './ChatMessage'
+import ChatMessage from './messages/ChatMessage.tsx'
 import ChatInput from './ChatInput'
 import ModelSelectionModal from './ModelSelectionModal'
 import McpServerModal from './McpServerModal'
@@ -180,43 +180,12 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
       >
         <div className="max-w-2xl mx-auto w-full px-4">
           {currentConversation.messages.length === 0 ? (
-            <div className="text-center">
-              {/* Title and description text hidden but kept in codebase */}
-              {false && (
-                <>
-                  <h1 className="text-4xl font-semibold text-zinc-800">What do you want to know?</h1>
-                  <div className="mt-4">
-                    <h2 className="mt-2 text-md opacity-70">
-                      AI chat template built with React, Vite and Cloudflare Workers AI.
-                      <div className="mt-1 w-full">
-                        Find the source code on{' '}
-                        <a className="text-blue-700" href="https://github.com/thomasgauvin/ai-chat-template">
-                          GitHub
-                        </a>
-                        .
-                      </div>
-                    </h2>
-                  </div>
-                </>
-              )}
-            </div>
+            <div className="text-center">{/*<h1 className="text-9xl font-semibold text-zinc-800 h-20 overflow-auto">use-mcp</h1>*/}</div>
           ) : (
             <div className="py-4 px-4 space-y-4">
-              {currentConversation.messages
-                .filter((message) => {
-                  // Filter out empty assistant messages (no content and no reasoning)
-                  if (
-                    message.role === 'assistant' &&
-                    (!message.content || !message.content.trim()) &&
-                    !('reasoning' in message && (message.reasoning || message.isReasoningStreaming))
-                  ) {
-                    return false
-                  }
-                  return true
-                })
-                .map((message, index) => (
-                  <ChatMessage key={index} message={message} />
-                ))}
+              {currentConversation.messages.map((message, index) => (
+                <ChatMessage key={index} message={message} />
+              ))}
               {isLoading && !streamStarted && <div className="text-center text-sm text-zinc-600">Thinking...</div>}
               <div ref={messagesEndRef} />
             </div>

@@ -15,7 +15,7 @@ export interface AssistantMessage extends BaseMessage {
   type: 'content'
 }
 
-export interface AssistantReasoningMessage extends BaseMessage {
+export interface ReasoningMessage extends BaseMessage {
   role: 'assistant'
   type: 'reasoning'
   reasoningStartTime: number
@@ -38,7 +38,7 @@ export interface ToolResultMessage {
   callId: string
 }
 
-export type Message = UserMessage | SystemMessage | AssistantMessage | AssistantReasoningMessage | ToolCallMessage | ToolResultMessage
+export type Message = UserMessage | SystemMessage | AssistantMessage | ReasoningMessage | ToolCallMessage | ToolResultMessage
 
 export interface Conversation {
   id?: number
