@@ -14,6 +14,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   readonly clientName: string
   readonly clientUri: string
   readonly callbackUrl: string
+  readonly scopes: string[]
 
   constructor(
     serverUrl: string,
@@ -22,6 +23,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       clientName?: string
       clientUri?: string
       callbackUrl?: string
+      scopes?: string[]
     } = {},
   ) {
     this.serverUrl = serverUrl
@@ -29,6 +31,9 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     this.serverUrlHash = this.hashString(serverUrl)
     this.clientName = options.clientName || 'MCP Browser Client'
     this.clientUri = options.clientUri || (typeof window !== 'undefined' ? window.location.origin : '')
+    this.scopes = options.scopes && options.scopes.length > 0 
+      ? options.scopes
+      : ['openid', 'profile', 'email', 'mcp'] // default scopes
     this.callbackUrl =
       options.callbackUrl ||
       (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback')
@@ -48,7 +53,10 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       response_types: ['code'],
       client_name: this.clientName,
       client_uri: this.clientUri,
-      // scope: 'openid profile email mcp', // Example scopes, adjust as needed
+      scope: this.scopes.join(' '),
+      // NOTE: If using dynamic registration, ensure the scopes are appropriate for your server.
+      // If your server requires specific scopes, you can adjust this accordingly.
+      // Default scopes: 'openid profile email mcp', 
     }
   }
 
@@ -135,6 +143,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
         clientName: this.clientName,
         clientUri: this.clientUri,
         callbackUrl: this.callbackUrl,
+        scopes: this.scopes,
       },
     }
     localStorage.setItem(stateKey, JSON.stringify(stateData))

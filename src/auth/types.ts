@@ -15,5 +15,6 @@ export interface StoredState {
     clientName: string
     clientUri: string
     callbackUrl: string
+    scopes?: string[]
   }
 }
