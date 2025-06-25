@@ -115,10 +115,6 @@ export const useStreamResponse = ({
   const streamResponse = async (messages: Message[]) => {
     let aiResponse = ''
     let currentReasoning = ''
-    let currentReasoningStartTime: number | undefined = undefined
-    let currentReasoningEndTime: number | undefined = undefined
-    let assistantMessageIndex = -1 // Track the index of our assistant message
-    let assistantMessageCreated = false // Track if we've created the assistant message yet
 
     // Check if API key is available
     let apiKey = getApiKey(selectedModel.provider.id)
@@ -165,51 +161,38 @@ export const useStreamResponse = ({
         console.log(JSON.stringify(event))
         try {
           if (event.type === 'reasoning') {
-            // Track reasoning start time and create assistant message if needed
-            if (!currentReasoningStartTime) {
-              currentReasoningStartTime = Date.now()
-              currentReasoning = '' // Reset reasoning content for new session
+            setConversations((prev) => {
+              const updated = [...prev]
+              const conv = updated.find((c) => c.id === conversationId)
+              if (!conv) {
+                console.error(`Missing conversation for ID ${conversationId}! Ignoring ${JSON.stringify(event)}`)
+                return updated
+              }
+              const lastMessage = conv.messages?.at(-1)
 
-              // Create a new assistant message for reasoning (even if we already have one)
-              // This handles multiple reasoning sessions in the same conversation turn
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
+              if (lastMessage?.role === 'assistant' && lastMessage.type === 'reasoning') {
+                // We have an existing reasoning block!
+                lastMessage.content = lastMessage.content + event.textDelta.trim()
+              } else {
+                // We need a new reasoning block!
+                const currentReasoningStartTime = Date.now()
+
+                // Create a new assistant message for reasoning (even if we already have one)
+                // This handles multiple reasoning sessions in the same conversation turn
                 if (conv) {
                   conv.messages.push({
                     role: 'assistant',
-                    content: '',
-                    reasoning: '',
+                    type: 'reasoning',
+                    content: event.textDelta.trim(),
                     isReasoningStreaming: true,
-                    reasoningStartTime: currentReasoningStartTime,
+                    reasoningStartTime: currentReasoningStartTime!,
                   })
-                  assistantMessageIndex = conv.messages.length - 1
-                  debugMessages('Added new reasoning assistant message at index', assistantMessageIndex)
+                  debugMessages('Added new reasoning assistant message at index', conv.messages.length - 1)
                   debugMessages('Current messages:', JSON.stringify(conv.messages))
                 }
-                return updated
-              })
-              assistantMessageCreated = true
-            }
-
-            currentReasoning += (event as any).textDelta || ''
-
-            // Update the assistant message with streaming reasoning in real-time
-            if (assistantMessageCreated) {
-              setConversations((prev) => {
-                const updated = [...prev]
-                const conv = updated.find((c) => c.id === conversationId)
-                if (conv && assistantMessageIndex >= 0) {
-                  const assistantMessage = conv.messages[assistantMessageIndex]
-                  if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                    assistantMessage.reasoning = currentReasoning.trim()
-                    assistantMessage.isReasoningStreaming = true
-                    assistantMessage.reasoningStartTime = currentReasoningStartTime
-                  }
-                }
-                return updated
-              })
-            }
+              }
+              return updated
+            })
           } else if (event.type === 'tool-call') {
             // End reasoning phase immediately when we see a tool call for linear flow
             if (currentReasoningStartTime && !currentReasoningEndTime) {
@@ -345,21 +328,6 @@ export const useStreamResponse = ({
               aiResponse = aiResponse.replace(/<chat-title>.*?<\/chat-title>/, '').trim()
             }
 
-            // Remove thinking tags from the display text (they should be extracted by middleware)
-            let cleanedResponse = aiResponse
-            if (supportsReasoning(selectedModel)) {
-              // Remove complete thinking blocks
-              cleanedResponse = aiResponse.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
-              // Remove unclosed think tags (everything from <think> to end)
-              cleanedResponse = cleanedResponse.replace(/<think>[\s\S]*$/g, '').trim()
-              // Remove any remaining opening think tags
-              cleanedResponse = cleanedResponse.replace(/<think>/g, '').trim()
-              // Remove any remaining closing think tags
-              cleanedResponse = cleanedResponse.replace(/<\/think>/g, '').trim()
-              // Clean up any remaining whitespace or newlines at the start
-              cleanedResponse = cleanedResponse.replace(/^\s+/, '')
-            }
-
             setConversations((prev) => {
               const updated = [...prev]
               const conv = updated.find((c) => c.id === conversationId)
@@ -367,8 +335,7 @@ export const useStreamResponse = ({
                 // Update the specific assistant message we created, not just the last message
                 const assistantMessage = conv.messages[assistantMessageIndex]
                 if (assistantMessage && hasContent(assistantMessage) && assistantMessage.role === 'assistant') {
-                  assistantMessage.content = cleanedResponse
-                } else {
+                  assistantMessage.content = aiResponse
                 }
               } else {
               }

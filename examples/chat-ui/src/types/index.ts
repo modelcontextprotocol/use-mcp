@@ -12,10 +12,15 @@ export interface SystemMessage extends BaseMessage {
 
 export interface AssistantMessage extends BaseMessage {
   role: 'assistant'
-  reasoning?: string
-  reasoningStartTime?: number
+  type: 'content'
+}
+
+export interface AssistantReasoningMessage extends BaseMessage {
+  role: 'assistant'
+  type: 'reasoning'
+  reasoningStartTime: number
   reasoningEndTime?: number
-  isReasoningStreaming?: boolean
+  isReasoningStreaming: boolean
 }
 
 export interface ToolCallMessage {
@@ -33,7 +38,7 @@ export interface ToolResultMessage {
   callId: string
 }
 
-export type Message = UserMessage | SystemMessage | AssistantMessage | ToolCallMessage | ToolResultMessage
+export type Message = UserMessage | SystemMessage | AssistantMessage | AssistantReasoningMessage | ToolCallMessage | ToolResultMessage
 
 export interface Conversation {
   id?: number
