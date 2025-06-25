@@ -211,28 +211,18 @@ export const useStreamResponse = ({
                   console.warn('Tool call event missing toolName:', event)
                 }
               } else if (event.type === 'tool-result') {
-                console.info(`TODO TOOL RESULT`, event)
-                // if (event.toolName && event.toolCallId) {
-                //   setConversations((prev) => {
-                //     const updated = [...prev]
-                //     const conv = updated.find((c) => c.id === conversationId)
-                //     if (conv) {
-                //       conv.messages.push({
-                //         role: 'tool-result',
-                //         toolName: event.toolName,
-                //         toolArgs: event.args || {},
-                //         toolResult: event.result,
-                //         callId: event.toolCallId,
-                //       })
-                //       debugMessages('Added new tool-result message:', event.toolName, 'callId:', event.toolCallId)
-                //       debugMessages('Current messages:', JSON.stringify(conv.messages))
-                //     }
-                //     return updated
-                //   })
-                //   scrollToBottom(true)
-                // } else {
-                //   console.warn('Tool result event missing toolName or toolCallId:', event)
-                // }
+                if (event.toolName && event.toolCallId) {
+                  newMessage = {
+                    role: 'tool-result',
+                    toolName: event.toolName,
+                    toolArgs: event.args || {},
+                    toolResult: event.result,
+                    callId: event.toolCallId,
+                  }
+                  scrollToBottom(true)
+                } else {
+                  console.warn('Tool result event missing toolName or toolCallId:', event)
+                }
               } else if (event.type === 'text-delta') {
                 if (lastMessage?.role !== 'assistant' || lastMessage.type !== 'content') {
                   newMessage = {
