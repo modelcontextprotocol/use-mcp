@@ -20,12 +20,10 @@ const ToolCallMessage: React.FC<ToolCallMessageProps> = ({ message }) => {
       <div className="flex-grow min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-blue-800 text-sm">Tool Call</span>
-          <span className="text-blue-600 text-sm font-mono bg-blue-100 px-2 py-0.5 rounded">
-            {message.toolName}
-          </span>
+          <span className="text-blue-600 text-sm font-mono bg-blue-100 px-2 py-0.5 rounded">{message.toolName}</span>
         </div>
-        
-        <div 
+
+        <div
           className={`text-sm text-blue-700 font-mono bg-blue-100 p-2 rounded ${shouldTruncate ? 'cursor-pointer hover:bg-blue-200' : ''}`}
           onClick={() => shouldTruncate && setExpanded(!expanded)}
         >
@@ -34,15 +32,11 @@ const ToolCallMessage: React.FC<ToolCallMessageProps> = ({ message }) => {
               {expanded ? JSON.stringify(message.toolArgs, null, 2) : `${argsPreview}${shouldTruncate ? '...' : ''}`}
             </span>
             {shouldTruncate && (
-              <button className="ml-2 flex-shrink-0">
-                {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
+              <button className="ml-2 flex-shrink-0">{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
             )}
           </div>
           {expanded && shouldTruncate && (
-            <pre className="mt-2 whitespace-pre-wrap break-words max-h-64 overflow-y-auto">
-              {JSON.stringify(message.toolArgs, null, 2)}
-            </pre>
+            <pre className="mt-2 whitespace-pre-wrap break-words max-h-64 overflow-y-auto">{JSON.stringify(message.toolArgs, null, 2)}</pre>
           )}
         </div>
       </div>

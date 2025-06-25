@@ -1,2 +1,2 @@
-export const storeName = "conversations";
-export const dbName = "localgpt";
+export const storeName = 'conversations'
+export const dbName = 'localgpt'

@@ -1,36 +1,30 @@
-import React from "react";
-import {
-  Edit,
-  Trash2,
-  PanelLeftClose,
-  PanelLeftOpen,
-  SquarePen,
-} from "lucide-react";
-import ModelSelector from "./ModelSelector";
-import { McpServers } from "./McpServers";
-import { type Model } from "../types/models";
-import { type Message } from "../types";
-import { type Tool } from "use-mcp/react";
+import React from 'react'
+import { Edit, Trash2, PanelLeftClose, PanelLeftOpen, SquarePen } from 'lucide-react'
+import ModelSelector from './ModelSelector'
+import { McpServers } from './McpServers'
+import { type Model } from '../types/models'
+import { type Message } from '../types'
+import { type Tool } from 'use-mcp/react'
 
 interface Conversation {
-  id?: number;
-  title: string;
-  messages: Message[];
+  id?: number
+  title: string
+  messages: Message[]
 }
 
 interface ChatSidebarProps {
-  sidebarVisible: boolean;
-  setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
-  conversations: Conversation[];
-  conversationId: number | undefined;
-  setConversationId: React.Dispatch<React.SetStateAction<number | undefined>>;
-  deleteConversation: (id: number) => void;
-  editConversationTitle: (id: number, newTitle: string) => void;
-  startNewConversation: () => void;
-  selectedModel: Model;
-  onModelChange: (model: Model) => void;
-  apiKeyUpdateTrigger: number;
-  onMcpToolsUpdate: (tools: Tool[]) => void;
+  sidebarVisible: boolean
+  setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>
+  conversations: Conversation[]
+  conversationId: number | undefined
+  setConversationId: React.Dispatch<React.SetStateAction<number | undefined>>
+  deleteConversation: (id: number) => void
+  editConversationTitle: (id: number, newTitle: string) => void
+  startNewConversation: () => void
+  selectedModel: Model
+  onModelChange: (model: Model) => void
+  apiKeyUpdateTrigger: number
+  onMcpToolsUpdate: (tools: Tool[]) => void
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -48,21 +42,16 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onMcpToolsUpdate,
 }) => {
   const handleConversationClick = (id: number | undefined) => {
-    setConversationId(id);
-    if (window.matchMedia("(max-width: 768px)").matches) {
-      setSidebarVisible(false);
+    setConversationId(id)
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      setSidebarVisible(false)
     }
-  };
+  }
 
   return (
     <>
       {/* Mobile overlay */}
-      {sidebarVisible && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/30 z-20"
-          onClick={() => setSidebarVisible(false)}
-        />
-      )}
+      {sidebarVisible && <div className="md:hidden fixed inset-0 bg-black/30 z-20" onClick={() => setSidebarVisible(false)} />}
       <div
         className={`
           fixed md:relative
@@ -71,16 +60,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
           bg-zinc-50
           transition-all duration-300
           
-          ${
-            sidebarVisible
-              ? "w-64 lg:w-[32rem] translate-x-0"
-              : "w-0 -translate-x-full md:translate-x-0"
-          }
+          ${sidebarVisible ? 'w-64 lg:w-[32rem] translate-x-0' : 'w-0 -translate-x-full md:translate-x-0'}
         `}
       >
         <div
           className={`m-2 flex items-center justify-between 
-          ${sidebarVisible ? "sticky" : "hidden"}
+          ${sidebarVisible ? 'sticky' : 'hidden'}
           `}
         >
           <button
@@ -90,11 +75,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               hover:bg-zinc-100 hover:cursor-pointer
               transition-colors text-zinc-600 hover:text-zinc-800"
           >
-            {sidebarVisible ? (
-              <PanelLeftClose size={20} />
-            ) : (
-              <PanelLeftOpen size={20} />
-            )}
+            {sidebarVisible ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
           </button>
           <button
             className="rounded-lg p-[0.4em]
@@ -116,28 +97,21 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <li
                   key={conversation.id}
                   className={`cursor-pointer p-2 transition-colors rounded-lg ${
-                    conversation.id === conversationId ||
-                    (!conversationId && !conversation.id)
-                      ? "bg-zinc-200 text-zinc-900"
-                      : "hover:bg-zinc-200 text-zinc-600"
+                    conversation.id === conversationId || (!conversationId && !conversation.id)
+                      ? 'bg-zinc-200 text-zinc-900'
+                      : 'hover:bg-zinc-200 text-zinc-600'
                   }`}
                   onClick={() => handleConversationClick(conversation.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="truncate flex-grow text-sm">
-                      {conversation.title}
-                    </span>
+                    <span className="truncate flex-grow text-sm">{conversation.title}</span>
                     <div className="flex space-x-2 ml-2">
                       <button
                         className="opacity-60 hover:opacity-100 transition-opacity"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          const newTitle = prompt(
-                            "Enter new title:",
-                            conversation.title
-                          );
-                          if (newTitle)
-                            editConversationTitle(conversation.id!, newTitle);
+                          e.stopPropagation()
+                          const newTitle = prompt('Enter new title:', conversation.title)
+                          if (newTitle) editConversationTitle(conversation.id!, newTitle)
                         }}
                       >
                         <Edit size={14} />
@@ -145,9 +119,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       <button
                         className="opacity-60 hover:opacity-100 transition-opacity"
                         onClick={(e) => {
-                          e.stopPropagation();
-                          deleteConversation(conversation.id!);
-                          setConversationId(undefined);
+                          e.stopPropagation()
+                          deleteConversation(conversation.id!)
+                          setConversationId(undefined)
                         }}
                       >
                         <Trash2 size={14} />
@@ -158,20 +132,16 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
               ))}
             </ul>
           </div>
-          
+
           {/* Model Selector and MCP Servers at bottom */}
           <div className="p-2 border-t border-zinc-200 space-y-3">
-            <ModelSelector
-              selectedModel={selectedModel}
-              onModelChange={onModelChange}
-              apiKeyUpdateTrigger={apiKeyUpdateTrigger}
-            />
+            <ModelSelector selectedModel={selectedModel} onModelChange={onModelChange} apiKeyUpdateTrigger={apiKeyUpdateTrigger} />
             <McpServers onToolsUpdate={onMcpToolsUpdate} />
           </div>
         </div>
       </div>
     </>
-  );
-};
+  )
+}
 
-export default ChatSidebar;
+export default ChatSidebar

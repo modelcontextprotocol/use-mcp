@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import ChatApp from "./components/ChatApp";
-import { OAuthCallback } from "./components/OAuthCallback";
+import ChatApp from './components/ChatApp'
+import { OAuthCallback } from './components/OAuthCallback'
 
 function App() {
   return (
@@ -10,7 +10,7 @@ function App() {
         <Route path="/" element={<ChatApp />} />
       </Routes>
     </Router>
-  );
+  )
 }
 
-export default App;
+export default App

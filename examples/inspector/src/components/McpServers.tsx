@@ -2,15 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useMcp, type Tool } from 'use-mcp/react'
 import { Info, X, ChevronRight, ChevronDown } from 'lucide-react'
 
-
 // MCP Connection wrapper that only renders when active
-function McpConnection({
-  serverUrl,
-  onConnectionUpdate,
-}: {
-  serverUrl: string
-  onConnectionUpdate: (data: any) => void
-}) {
+function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; onConnectionUpdate: (data: any) => void }) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
     url: serverUrl,
@@ -22,23 +15,13 @@ function McpConnection({
   // Update parent component with connection data
   useEffect(() => {
     onConnectionUpdate(connection)
-  }, [
-    connection.state,
-    connection.tools,
-    connection.error,
-    connection.log.length,
-    connection.authUrl,
-  ])
+  }, [connection.state, connection.tools, connection.error, connection.log.length, connection.authUrl])
 
   // Return null as this is just a hook wrapper
   return null
 }
 
-export function McpServers({
-  onToolsUpdate,
-}: {
-  onToolsUpdate?: (tools: Tool[]) => void
-}) {
+export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) => void }) {
   const [serverUrl, setServerUrl] = useState(() => {
     return sessionStorage.getItem('mcpServerUrl') || ''
   })
@@ -53,8 +36,7 @@ export function McpServers({
     retry: () => {},
     disconnect: () => {},
     authenticate: () => Promise.resolve(undefined),
-    callTool: (_name: string, _args?: Record<string, unknown>) =>
-      Promise.resolve(undefined),
+    callTool: (_name: string, _args?: Record<string, unknown>) => Promise.resolve(undefined),
     clearStorage: () => {},
   })
   const [toolForms, setToolForms] = useState<Record<string, Record<string, any>>>({})
@@ -64,8 +46,7 @@ export function McpServers({
   const executionLogRefs = useRef<Record<string, HTMLTextAreaElement | null>>({})
 
   // Extract connection properties
-  const { state, tools, log, authUrl, disconnect, authenticate } =
-    connectionData
+  const { state, tools, log, authUrl, disconnect, authenticate } = connectionData
 
   // Notify parent component when tools change
   useEffect(() => {
@@ -73,9 +54,8 @@ export function McpServers({
       onToolsUpdate(
         tools.map((t: Tool) => ({
           ...t,
-          callTool: (args: Record<string, unknown>) =>
-            connectionData.callTool(t.name, args),
-        })),
+          callTool: (args: Record<string, unknown>) => connectionData.callTool(t.name, args),
+        }))
       )
     }
   }, [tools, onToolsUpdate])
@@ -99,8 +79,7 @@ export function McpServers({
       retry: () => {},
       disconnect: () => {},
       authenticate: () => Promise.resolve(undefined),
-      callTool: (_name: string, _args?: Record<string, unknown>) =>
-        Promise.resolve(undefined),
+      callTool: (_name: string, _args?: Record<string, unknown>) => Promise.resolve(undefined),
       clearStorage: () => {},
     })
   }
@@ -127,48 +106,20 @@ export function McpServers({
 
     switch (state) {
       case 'discovering':
-        return (
-          <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
-            Discovering
-          </span>
-        )
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Discovering</span>
       case 'authenticating':
-        return (
-          <span className={`${baseClasses} bg-purple-100 text-purple-800`}>
-            Authenticating
-          </span>
-        )
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Authenticating</span>
       case 'connecting':
-        return (
-          <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
-            Connecting
-          </span>
-        )
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Connecting</span>
       case 'loading':
-        return (
-          <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
-            Loading
-          </span>
-        )
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>Loading</span>
       case 'ready':
-        return (
-          <span className={`${baseClasses} bg-green-100 text-green-800`}>
-            Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Connected</span>
       case 'failed':
-        return (
-          <span className={`${baseClasses} bg-red-100 text-red-800`}>
-            Failed
-          </span>
-        )
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Failed</span>
       case 'not-connected':
       default:
-        return (
-          <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-            Not Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Not Connected</span>
     }
   }
 
@@ -203,28 +154,28 @@ export function McpServers({
 
   // Handle form input changes
   const handleFormChange = (toolName: string, fieldName: string, value: any) => {
-    setToolForms(prev => ({
+    setToolForms((prev) => ({
       ...prev,
       [toolName]: {
         ...prev[toolName],
-        [fieldName]: value
-      }
+        [fieldName]: value,
+      },
     }))
   }
 
   // Helper function to clean and update execution log
   const updateExecutionLog = (toolName: string, newContent: string) => {
-    setToolExecutionLogs(prev => {
+    setToolExecutionLogs((prev) => {
       const currentLog = prev[toolName] || ''
       const updatedLog = currentLog + newContent
       // Remove blank lines and rejoin
       const cleanedLog = updatedLog
         .split('\n')
-        .filter(line => line.trim() !== '')
+        .filter((line) => line.trim() !== '')
         .join('\n')
       return {
         ...prev,
-        [toolName]: cleanedLog + '\n'
+        [toolName]: cleanedLog + '\n',
       }
     })
   }
@@ -233,11 +184,11 @@ export function McpServers({
   const handleRunTool = async (tool: Tool) => {
     const args = toolForms[tool.name] || {}
     const argsStr = JSON.stringify(args)
-    
+
     // Add execution start message
     const startMessage = `Calling ${tool.name}(${argsStr})\n`
     updateExecutionLog(tool.name, startMessage)
-    
+
     try {
       const result = await connectionData.callTool(tool.name, args)
       const resultStr = typeof result === 'string' ? result : JSON.stringify(result, null, 2)
@@ -249,7 +200,7 @@ export function McpServers({
 
   // Auto-scroll execution logs to bottom when they change
   useEffect(() => {
-    Object.keys(toolExecutionLogs).forEach(toolName => {
+    Object.keys(toolExecutionLogs).forEach((toolName) => {
       const textarea = executionLogRefs.current[toolName]
       if (textarea) {
         textarea.scrollTop = textarea.scrollHeight
@@ -259,24 +210,24 @@ export function McpServers({
 
   // Clear execution log for specific tool
   const clearExecutionLog = (toolName: string) => {
-    setToolExecutionLogs(prev => ({
+    setToolExecutionLogs((prev) => ({
       ...prev,
-      [toolName]: ''
+      [toolName]: '',
     }))
   }
 
   // Toggle tool expanded state
   const toggleTool = (toolName: string) => {
-    setExpandedTools(prev => ({
+    setExpandedTools((prev) => ({
       ...prev,
-      [toolName]: !prev[toolName]
+      [toolName]: !prev[toolName],
     }))
   }
 
   // Render form field based on schema
   const renderFormField = (toolName: string, fieldName: string, schema: any, isRequired: boolean) => {
     const value = toolForms[toolName]?.[fieldName] || ''
-    
+
     if (schema.type === 'number' || schema.type === 'integer') {
       return (
         <input
@@ -286,8 +237,8 @@ export function McpServers({
           step={schema.type === 'integer' ? 1 : 'any'}
           required={isRequired}
           onChange={(e) => {
-            const newValue = e.target.value === '' ? '' : 
-              (schema.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0)
+            const newValue =
+              e.target.value === '' ? '' : schema.type === 'integer' ? parseInt(e.target.value) || 0 : parseFloat(e.target.value) || 0
             handleFormChange(toolName, fieldName, newValue)
           }}
         />
@@ -324,8 +275,7 @@ export function McpServers({
       </div>
 
       <p className="text-gray-500 text-xs mt-1 mb-3">
-        Connect to Model Context Protocol (MCP) servers to access additional AI
-        capabilities.
+        Connect to Model Context Protocol (MCP) servers to access additional AI capabilities.
       </p>
 
       <div className="space-y-3">
@@ -342,9 +292,8 @@ export function McpServers({
             }}
             disabled={isActive && state !== 'failed'}
           />
-          
-          {state === 'ready' ||
-          (isActive && state !== 'not-connected' && state !== 'failed') ? (
+
+          {state === 'ready' || (isActive && state !== 'not-connected' && state !== 'failed') ? (
             <button
               className="px-4 py-2 bg-orange-100 hover:bg-orange-200 text-orange-900 rounded text-sm font-medium whitespace-nowrap"
               onClick={handleDisconnect}
@@ -365,9 +314,7 @@ export function McpServers({
         {/* Authentication Link if needed */}
         {authUrl && (
           <div className="p-3 bg-orange-50 border border-orange-200 rounded">
-            <p className="text-xs mb-2">
-              Authentication required. Please click the link below:
-            </p>
+            <p className="text-xs mb-2">Authentication required. Please click the link below:</p>
             <a
               href={authUrl}
               target="_blank"
@@ -382,10 +329,8 @@ export function McpServers({
 
         {/* Available Tools section - always present */}
         <div>
-          <h3 className="font-medium text-sm mb-3">
-            Available Tools ({tools.length})
-          </h3>
-          
+          <h3 className="font-medium text-sm mb-3">Available Tools ({tools.length})</h3>
+
           {tools.length === 0 ? (
             <div className="border border-gray-200 rounded p-4 bg-gray-50 text-center text-gray-500 text-sm">
               No tools available. Connect to an MCP server to see available tools.
@@ -394,11 +339,11 @@ export function McpServers({
             <div className="border border-gray-200 rounded p-4 bg-gray-50 space-y-2">
               {tools.map((tool: Tool, index: number) => {
                 const isExpanded = expandedTools[tool.name] || false
-                
+
                 return (
                   <div key={index} className="bg-white rounded border border-gray-100 shadow-sm">
                     {/* Tool header - always visible */}
-                    <div 
+                    <div
                       className="flex items-center gap-2 p-3 cursor-pointer hover:bg-gray-50 transition-colors"
                       onClick={() => toggleTool(tool.name)}
                     >
@@ -408,29 +353,19 @@ export function McpServers({
                       ) : (
                         <ChevronRight size={16} className="text-gray-500 flex-shrink-0" />
                       )}
-                      
+
                       {/* Tool name */}
-                      <h4 className="font-bold text-base text-black flex-shrink-0">
-                        {tool.name}
-                      </h4>
-                      
+                      <h4 className="font-bold text-base text-black flex-shrink-0">{tool.name}</h4>
+
                       {/* Tool description when collapsed */}
-                      {!isExpanded && tool.description && (
-                        <p className="text-gray-600 text-sm truncate ml-2">
-                          {tool.description}
-                        </p>
-                      )}
+                      {!isExpanded && tool.description && <p className="text-gray-600 text-sm truncate ml-2">{tool.description}</p>}
                     </div>
-                    
+
                     {/* Expanded content */}
                     {isExpanded && (
                       <div className="px-3 pb-3 border-t border-gray-100">
-                        {tool.description && (
-                          <p className="text-gray-600 mb-4 text-sm leading-relaxed mt-3">
-                            {tool.description}
-                          </p>
-                        )}
-                        
+                        {tool.description && <p className="text-gray-600 mb-4 text-sm leading-relaxed mt-3">{tool.description}</p>}
+
                         {/* Form for tool parameters */}
                         {tool.inputSchema && tool.inputSchema.properties && (
                           <div className="flex flex-wrap gap-3 mb-4">
@@ -440,9 +375,7 @@ export function McpServers({
                               return (
                                 <div key={fieldName} className={`space-y-1 ${isTextInput ? 'w-full' : ''}`}>
                                   <div className="flex items-center gap-2">
-                                    <label className="text-xs font-medium text-gray-700">
-                                      {fieldName}
-                                    </label>
+                                    <label className="text-xs font-medium text-gray-700">{fieldName}</label>
                                     {schema.description && (
                                       <div className="relative group">
                                         <Info size={12} className="text-gray-400 cursor-help" />
@@ -452,15 +385,13 @@ export function McpServers({
                                       </div>
                                     )}
                                   </div>
-                                  <div>
-                                    {renderFormField(tool.name, fieldName, schema, isRequired)}
-                                  </div>
+                                  <div>{renderFormField(tool.name, fieldName, schema, isRequired)}</div>
                                 </div>
                               )
                             })}
                           </div>
                         )}
-                        
+
                         {/* Run button */}
                         <button
                           onClick={() => handleRunTool(tool)}
@@ -469,7 +400,7 @@ export function McpServers({
                         >
                           Run
                         </button>
-                        
+
                         {/* Per-tool execution log - only show if there's content */}
                         {toolExecutionLogs[tool.name] && (
                           <div className="border-t border-gray-100 pt-4">
@@ -484,7 +415,9 @@ export function McpServers({
                               </button>
                             </div>
                             <textarea
-                              ref={(el) => { executionLogRefs.current[tool.name] = el }}
+                              ref={(el) => {
+                                executionLogRefs.current[tool.name] = el
+                              }}
                               value={toolExecutionLogs[tool.name]}
                               readOnly
                               className="w-full h-32 p-2 border border-gray-200 rounded text-[10px] font-mono bg-gray-50 resize-none placeholder-gray-300"
@@ -504,10 +437,7 @@ export function McpServers({
         {/* Debug Log */}
         <div>
           <label className="font-medium text-xs block mb-2">Debug Log</label>
-          <div
-            ref={logRef}
-            className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs"
-          >
+          <div ref={logRef} className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs">
             {log.length > 0 ? (
               log.map((entry: any, index: number) => (
                 <div
@@ -546,12 +476,7 @@ export function McpServers({
       </div>
 
       {/* Only render the actual MCP connection when active */}
-      {isActive && (
-        <McpConnection
-          serverUrl={serverUrl}
-          onConnectionUpdate={setConnectionData}
-        />
-      )}
+      {isActive && <McpConnection serverUrl={serverUrl} onConnectionUpdate={setConnectionData} />}
     </section>
   )
 }

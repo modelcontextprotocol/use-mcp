@@ -27,7 +27,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
 
   useEffect(() => {
     const statuses: Record<string, boolean> = {}
-    availableModels.forEach(model => {
+    availableModels.forEach((model) => {
       statuses[model.provider.id] = hasApiKey(model.provider.id)
     })
     setApiKeyStatuses(statuses)
@@ -39,7 +39,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
     } else {
       document.body.style.overflow = 'unset'
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -47,7 +47,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
 
   const handleModelSelect = (model: Model) => {
     const hasKey = hasApiKey(model.provider.id)
-    
+
     if (!hasKey) {
       setApiKeyModal({ isOpen: true, model })
     } else {
@@ -59,7 +59,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
   const handleApiKeySave = (apiKey: string) => {
     if (apiKeyModal.model) {
       setApiKey(apiKeyModal.model.provider.id, apiKey)
-      setApiKeyStatuses(prev => ({ ...prev, [apiKeyModal.model!.provider.id]: true }))
+      setApiKeyStatuses((prev) => ({ ...prev, [apiKeyModal.model!.provider.id]: true }))
       onModelChange(apiKeyModal.model)
       setApiKeyModal({ isOpen: false, model: null })
       onClose()
@@ -69,12 +69,12 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
   const handleClearApiKey = (providerId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     clearApiKey(providerId)
-    setApiKeyStatuses(prev => ({ ...prev, [providerId]: false }))
+    setApiKeyStatuses((prev) => ({ ...prev, [providerId]: false }))
   }
 
   const getStatusIcon = (providerId: string) => {
     const hasKey = apiKeyStatuses[providerId]
-    
+
     if (hasKey) {
       return <CheckCircle size={20} className="text-green-500" />
     } else {
@@ -86,38 +86,30 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
 
   return (
     <>
-      <div 
+      <div
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
         onClick={onClose}
       >
-        <div 
-          className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between p-6 border-b border-zinc-200">
             <h2 className="text-xl font-semibold text-zinc-900">Select Model</h2>
-            <button
-              onClick={onClose}
-              className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer"
-            >
+            <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer">
               <X size={24} />
             </button>
           </div>
-          
+
           <div className="p-6 overflow-y-auto">
             <div className="space-y-3">
               {availableModels.map((model) => {
                 const isSelected = model.id === selectedModel.id
                 const hasKey = apiKeyStatuses[model.provider.id]
-                
+
                 return (
                   <div
                     key={model.id}
                     className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                      isSelected 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                      isSelected ? 'border-blue-500 bg-blue-50' : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
                     }`}
                     onClick={() => handleModelSelect(model)}
                   >
@@ -129,7 +121,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
                           <div className="text-sm text-zinc-500">{model.provider.name}</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {getStatusIcon(model.provider.id)}
                         <span className={`text-sm ${hasKey ? 'text-green-600' : 'text-red-600'}`}>

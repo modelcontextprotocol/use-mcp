@@ -188,20 +188,20 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         const commonOptions: SSEClientTransportOptions = {
           authProvider: authProviderRef.current,
-          requestInit: { 
+          requestInit: {
             headers: {
-              'Accept': 'application/json, text/event-stream',
-              ...customHeaders 
-            }
+              Accept: 'application/json, text/event-stream',
+              ...customHeaders,
+            },
           },
         }
         const targetUrl = new URL(url)
 
         addLog('debug', `Creating ${transportType.toUpperCase()} transport for URL: ${targetUrl.toString()}`)
-        addLog('debug', `Transport options:`, { 
-          authProvider: !!authProviderRef.current, 
+        addLog('debug', `Transport options:`, {
+          authProvider: !!authProviderRef.current,
           headers: customHeaders,
-          url: targetUrl.toString()
+          url: targetUrl.toString(),
         })
 
         if (transportType === 'http') {
@@ -239,7 +239,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           message: err.message,
           stack: err.stack,
           name: err.name,
-          cause: err.cause
+          cause: err.cause,
         })
         // Use stable failConnection
         failConnection(`Transport error (${transportType.toUpperCase()}): ${err.message}`, err)
@@ -273,7 +273,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         addLog('info', `Connecting client via ${transportType.toUpperCase()}...`)
         addLog('debug', `About to call client.connect() with transport instance`)
         addLog('debug', `Transport instance type: ${transportInstance.constructor.name}`)
-        
+
         await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
@@ -301,7 +301,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           message: connectErr instanceof Error ? connectErr.message : String(connectErr),
           stack: connectErr instanceof Error ? connectErr.stack : 'N/A',
           name: connectErr instanceof Error ? connectErr.name : 'Unknown',
-          cause: connectErr instanceof Error ? connectErr.cause : undefined
+          cause: connectErr instanceof Error ? connectErr.cause : undefined,
         })
         const errorInstance = connectErr instanceof Error ? connectErr : new Error(String(connectErr))
 

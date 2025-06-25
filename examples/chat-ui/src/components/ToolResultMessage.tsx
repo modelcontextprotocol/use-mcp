@@ -20,12 +20,10 @@ const ToolResultMessage: React.FC<ToolResultMessageProps> = ({ message }) => {
       <div className="flex-grow min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-green-800 text-sm">Tool Result</span>
-          <span className="text-green-600 text-sm font-mono bg-green-100 px-2 py-0.5 rounded">
-            {message.toolName}
-          </span>
+          <span className="text-green-600 text-sm font-mono bg-green-100 px-2 py-0.5 rounded">{message.toolName}</span>
         </div>
-        
-        <div 
+
+        <div
           className={`text-sm text-green-700 font-mono bg-green-100 p-2 rounded ${shouldTruncate ? 'cursor-pointer hover:bg-green-200' : ''}`}
           onClick={() => shouldTruncate && setExpanded(!expanded)}
         >
@@ -34,9 +32,7 @@ const ToolResultMessage: React.FC<ToolResultMessageProps> = ({ message }) => {
               {expanded ? JSON.stringify(message.toolResult, null, 2) : `${resultPreview}${shouldTruncate ? '...' : ''}`}
             </span>
             {shouldTruncate && (
-              <button className="ml-2 flex-shrink-0">
-                {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-              </button>
+              <button className="ml-2 flex-shrink-0">{expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</button>
             )}
           </div>
           {expanded && shouldTruncate && (

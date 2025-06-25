@@ -1,15 +1,12 @@
-import React from "react";
-import { PanelLeftOpen } from "lucide-react";
+import React from 'react'
+import { PanelLeftOpen } from 'lucide-react'
 
 interface ChatNavbarProps {
-  sidebarVisible: boolean;
-  setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  sidebarVisible: boolean
+  setSidebarVisible: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const ChatNavbar: React.FC<ChatNavbarProps> = ({
-  sidebarVisible,
-  setSidebarVisible,
-}) => {
+const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisible }) => {
   return (
     <div className="sticky top-0 bg-white border-b border-zinc-200 z-10">
       <div className="my-3 mx-2 flex items-center justify-between">
@@ -27,13 +24,11 @@ const ChatNavbar: React.FC<ChatNavbarProps> = ({
               </button>
             </div>
           )}
-          <h1 className="text-base font-semibold text-zinc-600 ml-2">
-            AI Chat Template
-          </h1>
+          <h1 className="text-base font-semibold text-zinc-600 ml-2">AI Chat Template</h1>
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ChatNavbar;
+export default ChatNavbar

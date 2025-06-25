@@ -31,14 +31,7 @@ function McpConnection({
   // Update parent component with connection data
   useEffect(() => {
     onConnectionUpdate(server.id, connection)
-  }, [
-    server.id,
-    connection.state,
-    connection.tools,
-    connection.error,
-    connection.log.length,
-    connection.authUrl,
-  ])
+  }, [server.id, connection.state, connection.tools, connection.error, connection.log.length, connection.authUrl])
 
   // Return null as this is just a hook wrapper
   return null
@@ -50,11 +43,7 @@ interface McpServerModalProps {
   onToolsUpdate?: (tools: Tool[]) => void
 }
 
-const McpServerModal: React.FC<McpServerModalProps> = ({
-  isOpen,
-  onClose,
-  onToolsUpdate,
-}) => {
+const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onToolsUpdate }) => {
   const [servers, setServers] = useState<McpServer[]>(() => {
     const stored = localStorage.getItem('mcpServers')
     return stored ? JSON.parse(stored) : []
@@ -73,12 +62,16 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   // Helper to cycle through transport types
   const cycleTransportType = () => {
-    setTransportType(current => {
+    setTransportType((current) => {
       switch (current) {
-        case 'auto': return 'http'
-        case 'http': return 'sse'
-        case 'sse': return 'auto'
-        default: return 'auto'
+        case 'auto':
+          return 'http'
+        case 'http':
+          return 'sse'
+        case 'sse':
+          return 'auto'
+        default:
+          return 'auto'
       }
     })
   }
@@ -105,7 +98,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     } else {
       document.body.style.overflow = 'unset'
     }
-    
+
     return () => {
       document.body.style.overflow = 'unset'
     }
@@ -114,13 +107,12 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   // Aggregate all tools from enabled servers and notify parent
   useEffect(() => {
     const allTools: Tool[] = []
-    
-    servers.forEach(server => {
+
+    servers.forEach((server) => {
       if (server.enabled && connectionData[server.id]?.tools) {
         const serverTools = connectionData[server.id].tools.map((t: Tool) => ({
           ...t,
-          callTool: (args: Record<string, unknown>) =>
-            connectionData[server.id].callTool(t.name, args),
+          callTool: (args: Record<string, unknown>) => connectionData[server.id].callTool(t.name, args),
         }))
         allTools.push(...serverTools)
       }
@@ -134,15 +126,15 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   // Handle adding a new server
   const handleAddServer = () => {
     if (!newServerUrl.trim()) return
-    
+
     const newServer: McpServer = {
       id: Date.now().toString(),
       url: newServerUrl.trim(),
       enabled: true,
-      name: new URL(newServerUrl.trim()).hostname
+      name: new URL(newServerUrl.trim()).hostname,
     }
-    
-    setServers(prev => [...prev, newServer])
+
+    setServers((prev) => [...prev, newServer])
     setNewServerUrl('')
   }
 
@@ -153,14 +145,14 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     if (connection?.disconnect) {
       connection.disconnect()
     }
-    
-    setServers(prev => prev.filter(s => s.id !== serverId))
-    setConnectionData(prev => {
+
+    setServers((prev) => prev.filter((s) => s.id !== serverId))
+    setConnectionData((prev) => {
       const newData = { ...prev }
       delete newData[serverId]
       return newData
     })
-    setServerToolCounts(prev => {
+    setServerToolCounts((prev) => {
       const newCounts = { ...prev }
       delete newCounts[serverId]
       return newCounts
@@ -169,14 +161,10 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   // Handle toggling server enabled state
   const handleToggleServer = (serverId: string) => {
-    setServers(prev => prev.map(server => 
-      server.id === serverId 
-        ? { ...server, enabled: !server.enabled }
-        : server
-    ))
-    
+    setServers((prev) => prev.map((server) => (server.id === serverId ? { ...server, enabled: !server.enabled } : server)))
+
     // If disabling, disconnect
-    const server = servers.find(s => s.id === serverId)
+    const server = servers.find((s) => s.id === serverId)
     if (server?.enabled && connectionData[serverId]?.disconnect) {
       connectionData[serverId].disconnect()
     }
@@ -184,16 +172,16 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   // Handle connection update for a specific server
   const handleConnectionUpdate = (serverId: string, data: any) => {
-    setConnectionData(prev => ({
+    setConnectionData((prev) => ({
       ...prev,
-      [serverId]: data
+      [serverId]: data,
     }))
-    
+
     // Store tool count for this server (even if it gets disabled later)
     if (data.tools && Array.isArray(data.tools)) {
-      setServerToolCounts(prev => ({
+      setServerToolCounts((prev) => ({
         ...prev,
-        [serverId]: data.tools.length
+        [serverId]: data.tools.length,
       }))
     }
   }
@@ -216,80 +204,43 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
     switch (state) {
       case 'discovering':
-        return (
-          <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
-            Discovering
-          </span>
-        )
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Discovering</span>
       case 'authenticating':
-        return (
-          <span className={`${baseClasses} bg-purple-100 text-purple-800`}>
-            Authenticating
-          </span>
-        )
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Authenticating</span>
       case 'connecting':
-        return (
-          <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
-            Connecting
-          </span>
-        )
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Connecting</span>
       case 'loading':
-        return (
-          <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
-            Loading
-          </span>
-        )
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>Loading</span>
       case 'ready':
-        return (
-          <span className={`${baseClasses} bg-green-100 text-green-800`}>
-            Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Connected</span>
       case 'failed':
-        return (
-          <span className={`${baseClasses} bg-red-100 text-red-800`}>
-            Failed
-          </span>
-        )
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Failed</span>
       case 'not-connected':
       default:
-        return (
-          <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-            Not Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Not Connected</span>
     }
   }
 
   return (
     <>
-      <div 
+      <div
         className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${isOpen ? 'block' : 'hidden'}`}
         style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
         onClick={onClose}
       >
-        <div 
-          className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between p-6 border-b border-zinc-200">
             <h2 className="text-xl font-semibold text-zinc-900">MCP Servers</h2>
             <div className="flex items-center gap-2">
-              <button
-                className="rounded-md border border-gray-200 p-1 hover:bg-gray-50"
-                onClick={() => setShowSettings(!showSettings)}
-              >
+              <button className="rounded-md border border-gray-200 p-1 hover:bg-gray-50" onClick={() => setShowSettings(!showSettings)}>
                 <Settings size={16} className="text-gray-500" />
               </button>
-              <button
-                onClick={onClose}
-                className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer"
-              >
+              <button onClick={onClose} className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer">
                 <X size={24} />
               </button>
             </div>
           </div>
-          
+
           <div className="p-6 overflow-y-auto max-h-[60vh]">
             <div className="flex items-center mb-6">
               <Info size={16} className="text-gray-400 mr-2" />
@@ -303,7 +254,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
               {servers.map((server) => {
                 const connection = connectionData[server.id] || { state: 'not-connected', tools: [], error: undefined, authUrl: undefined }
                 const { state, tools, error, authUrl } = connection
-                
+
                 return (
                   <div
                     key={server.id}
@@ -316,7 +267,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                           <div className="text-sm text-zinc-500 break-all">{server.url}</div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center gap-2">
                         {getStatusBadge(server.enabled ? state : 'disabled')}
                         {server.enabled && state === 'ready' && (
@@ -344,16 +295,12 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                     {server.enabled && (
                       <>
                         {error && state === 'failed' && (
-                          <div className="text-sm text-red-600 p-3 bg-red-50 rounded border mb-3">
-                            {error}
-                          </div>
+                          <div className="text-sm text-red-600 p-3 bg-red-50 rounded border mb-3">{error}</div>
                         )}
 
                         {authUrl && (
                           <div className="p-3 bg-orange-50 border border-orange-200 rounded mb-3">
-                            <p className="text-sm mb-2">
-                              Authentication required. Please click the link below:
-                            </p>
+                            <p className="text-sm mb-2">Authentication required. Please click the link below:</p>
                             <a
                               href={authUrl}
                               target="_blank"
@@ -368,16 +315,12 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
                         {state === 'ready' && tools.length > 0 && (
                           <div>
-                            <h4 className="font-medium text-sm mb-2">
-                              Available Tools ({tools.length})
-                            </h4>
+                            <h4 className="font-medium text-sm mb-2">Available Tools ({tools.length})</h4>
                             <div className="border border-gray-200 rounded p-2 bg-gray-50 max-h-24 overflow-y-auto space-y-1">
                               {tools.map((tool: Tool, index: number) => (
                                 <div key={index} className="text-xs">
                                   <span className="font-medium">{tool.name}</span>
-                                  {tool.description && (
-                                    <span className="text-gray-600 ml-2">- {tool.description}</span>
-                                  )}
+                                  {tool.description && <span className="text-gray-600 ml-2">- {tool.description}</span>}
                                 </div>
                               ))}
                             </div>
@@ -441,7 +384,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                 <h3 className="font-medium text-sm mb-3">Debug Information</h3>
                 <div className="text-xs space-y-2">
                   <div>Total Servers: {servers.length}</div>
-                  <div>Enabled Servers: {servers.filter(s => s.enabled).length}</div>
+                  <div>Enabled Servers: {servers.filter((s) => s.enabled).length}</div>
                   <div>Connected Servers: {Object.values(connectionData).filter((c: any) => c.state === 'ready').length}</div>
                   <div>Total Tools: {Object.values(connectionData).reduce((sum: number, c: any) => sum + (c.tools?.length || 0), 0)}</div>
                 </div>
@@ -452,14 +395,11 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
       </div>
 
       {/* Render MCP connections for all enabled servers */}
-      {servers.filter(s => s.enabled).map(server => (
-        <McpConnection
-          key={server.id}
-          server={server}
-          onConnectionUpdate={handleConnectionUpdate}
-          transportType={transportType}
-        />
-      ))}
+      {servers
+        .filter((s) => s.enabled)
+        .map((server) => (
+          <McpConnection key={server.id} server={server} onConnectionUpdate={handleConnectionUpdate} transportType={transportType} />
+        ))}
     </>
   )
 }

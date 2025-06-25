@@ -8,7 +8,7 @@ export const getSelectedModel = (): Model => {
     try {
       const parsed = JSON.parse(saved)
       // Find the model by ID to ensure it still exists
-      const model = availableModels.find(m => m.id === parsed.id)
+      const model = availableModels.find((m) => m.id === parsed.id)
       if (model) {
         return model
       }

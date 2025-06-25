@@ -3,13 +3,7 @@ import { useMcp, type Tool } from 'use-mcp/react'
 import { Settings, Info } from 'lucide-react'
 
 // MCP Connection wrapper that only renders when active
-function McpConnection({
-  serverUrl,
-  onConnectionUpdate,
-}: {
-  serverUrl: string
-  onConnectionUpdate: (data: any) => void
-}) {
+function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; onConnectionUpdate: (data: any) => void }) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
     url: serverUrl,
@@ -21,23 +15,13 @@ function McpConnection({
   // Update parent component with connection data
   useEffect(() => {
     onConnectionUpdate(connection)
-  }, [
-    connection.state,
-    connection.tools,
-    connection.error,
-    connection.log.length,
-    connection.authUrl,
-  ])
+  }, [connection.state, connection.tools, connection.error, connection.log.length, connection.authUrl])
 
   // Return null as this is just a hook wrapper
   return null
 }
 
-export function McpServers({
-  onToolsUpdate,
-}: {
-  onToolsUpdate?: (tools: Tool[]) => void
-}) {
+export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) => void }) {
   const [serverUrl, setServerUrl] = useState(() => {
     return sessionStorage.getItem('mcpServerUrl') || ''
   })
@@ -52,15 +36,13 @@ export function McpServers({
     retry: () => {},
     disconnect: () => {},
     authenticate: () => Promise.resolve(undefined),
-    callTool: (_name: string, _args?: Record<string, unknown>) =>
-      Promise.resolve(undefined),
+    callTool: (_name: string, _args?: Record<string, unknown>) => Promise.resolve(undefined),
     clearStorage: () => {},
   })
   const logRef = useRef<HTMLDivElement>(null)
 
   // Extract connection properties
-  const { state, tools, error, log, authUrl, disconnect, authenticate } =
-    connectionData
+  const { state, tools, error, log, authUrl, disconnect, authenticate } = connectionData
 
   // Notify parent component when tools change
   useEffect(() => {
@@ -68,9 +50,8 @@ export function McpServers({
       onToolsUpdate(
         tools.map((t: Tool) => ({
           ...t,
-          callTool: (args: Record<string, unknown>) =>
-            connectionData.callTool(t.name, args),
-        })),
+          callTool: (args: Record<string, unknown>) => connectionData.callTool(t.name, args),
+        }))
       )
     }
   }, [tools, onToolsUpdate])
@@ -94,8 +75,7 @@ export function McpServers({
       retry: () => {},
       disconnect: () => {},
       authenticate: () => Promise.resolve(undefined),
-      callTool: (_name: string, _args?: Record<string, unknown>) =>
-        Promise.resolve(undefined),
+      callTool: (_name: string, _args?: Record<string, unknown>) => Promise.resolve(undefined),
       clearStorage: () => {},
     })
   }
@@ -122,48 +102,20 @@ export function McpServers({
 
     switch (state) {
       case 'discovering':
-        return (
-          <span className={`${baseClasses} bg-blue-100 text-blue-800`}>
-            Discovering
-          </span>
-        )
+        return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Discovering</span>
       case 'authenticating':
-        return (
-          <span className={`${baseClasses} bg-purple-100 text-purple-800`}>
-            Authenticating
-          </span>
-        )
+        return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Authenticating</span>
       case 'connecting':
-        return (
-          <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>
-            Connecting
-          </span>
-        )
+        return <span className={`${baseClasses} bg-yellow-100 text-yellow-800`}>Connecting</span>
       case 'loading':
-        return (
-          <span className={`${baseClasses} bg-orange-100 text-orange-800`}>
-            Loading
-          </span>
-        )
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>Loading</span>
       case 'ready':
-        return (
-          <span className={`${baseClasses} bg-green-100 text-green-800`}>
-            Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-green-100 text-green-800`}>Connected</span>
       case 'failed':
-        return (
-          <span className={`${baseClasses} bg-red-100 text-red-800`}>
-            Failed
-          </span>
-        )
+        return <span className={`${baseClasses} bg-red-100 text-red-800`}>Failed</span>
       case 'not-connected':
       default:
-        return (
-          <span className={`${baseClasses} bg-gray-100 text-gray-800`}>
-            Not Connected
-          </span>
-        )
+        return <span className={`${baseClasses} bg-gray-100 text-gray-800`}>Not Connected</span>
     }
   }
 
@@ -183,17 +135,13 @@ export function McpServers({
             <Info size={14} className="text-gray-400" />
           </div>
         </div>
-        <button
-          className="rounded-md border border-gray-200 p-1 hover:bg-gray-50"
-          onClick={() => setShowSettings(!showSettings)}
-        >
+        <button className="rounded-md border border-gray-200 p-1 hover:bg-gray-50" onClick={() => setShowSettings(!showSettings)}>
           <Settings size={16} className="text-gray-500" />
         </button>
       </div>
 
       <p className="text-gray-500 text-xs mt-1 mb-3">
-        Connect to Model Context Protocol (MCP) servers to access additional AI
-        capabilities.
+        Connect to Model Context Protocol (MCP) servers to access additional AI capabilities.
       </p>
 
       <div className="space-y-3">
@@ -202,11 +150,7 @@ export function McpServers({
           {getStatusBadge()}
         </div>
 
-        {error && state === 'failed' && (
-          <div className="text-xs text-red-600 p-2 bg-red-50 rounded border">
-            {error}
-          </div>
-        )}
+        {error && state === 'failed' && <div className="text-xs text-red-600 p-2 bg-red-50 rounded border">{error}</div>}
 
         <div className="space-y-2">
           <input
@@ -221,9 +165,8 @@ export function McpServers({
             }}
             disabled={isActive && state !== 'failed'}
           />
-          
-          {state === 'ready' ||
-          (isActive && state !== 'not-connected' && state !== 'failed') ? (
+
+          {state === 'ready' || (isActive && state !== 'not-connected' && state !== 'failed') ? (
             <button
               className="w-full px-3 py-2 bg-orange-100 hover:bg-orange-200 text-orange-900 rounded text-sm font-medium"
               onClick={handleDisconnect}
@@ -244,9 +187,7 @@ export function McpServers({
         {/* Authentication Link if needed */}
         {authUrl && (
           <div className="p-3 bg-orange-50 border border-orange-200 rounded">
-            <p className="text-xs mb-2">
-              Authentication required. Please click the link below:
-            </p>
+            <p className="text-xs mb-2">Authentication required. Please click the link below:</p>
             <a
               href={authUrl}
               target="_blank"
@@ -262,21 +203,12 @@ export function McpServers({
         {/* Tools display when connected */}
         {state === 'ready' && tools.length > 0 && (
           <div>
-            <h3 className="font-medium text-xs mb-2">
-              Available Tools ({tools.length})
-            </h3>
+            <h3 className="font-medium text-xs mb-2">Available Tools ({tools.length})</h3>
             <div className="border border-gray-200 rounded p-2 bg-gray-50 max-h-32 overflow-y-auto space-y-2">
               {tools.map((tool: Tool, index: number) => (
-                <div
-                  key={index}
-                  className="text-xs pb-2 border-b border-gray-100 last:border-b-0"
-                >
+                <div key={index} className="text-xs pb-2 border-b border-gray-100 last:border-b-0">
                   <span className="font-medium">{tool.name}</span>
-                  {tool.description && (
-                    <p className="text-gray-500 mt-1 text-xs">
-                      {tool.description}
-                    </p>
-                  )}
+                  {tool.description && <p className="text-gray-500 mt-1 text-xs">{tool.description}</p>}
                 </div>
               ))}
             </div>
@@ -287,10 +219,7 @@ export function McpServers({
         {showSettings && (
           <div>
             <label className="font-medium text-xs block mb-2">Debug Log</label>
-            <div
-              ref={logRef}
-              className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs"
-            >
+            <div ref={logRef} className="border border-gray-200 rounded p-2 bg-gray-50 h-32 overflow-y-auto font-mono text-xs">
               {log.length > 0 ? (
                 log.map((entry: any, index: number) => (
                   <div
@@ -330,12 +259,7 @@ export function McpServers({
       </div>
 
       {/* Only render the actual MCP connection when active */}
-      {isActive && (
-        <McpConnection
-          serverUrl={serverUrl}
-          onConnectionUpdate={setConnectionData}
-        />
-      )}
+      {isActive && <McpConnection serverUrl={serverUrl} onConnectionUpdate={setConnectionData} />}
     </section>
   )
 }

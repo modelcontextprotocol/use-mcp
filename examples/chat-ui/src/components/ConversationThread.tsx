@@ -205,12 +205,14 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
               {currentConversation.messages
                 .filter((message) => {
                   // Filter out empty assistant messages (no content and no reasoning)
-                  if (message.role === "assistant" && 
-                      (!message.content || !message.content.trim()) && 
-                      !("reasoning" in message && (message.reasoning || message.isReasoningStreaming))) {
-                    return false;
+                  if (
+                    message.role === 'assistant' &&
+                    (!message.content || !message.content.trim()) &&
+                    !('reasoning' in message && (message.reasoning || message.isReasoningStreaming))
+                  ) {
+                    return false
                   }
-                  return true;
+                  return true
                 })
                 .map((message, index) => (
                   <ChatMessage key={index} message={message} />
@@ -233,7 +235,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             controller={controller}
             messagesCount={currentConversation.messages.length}
           />
-          
+
           {/* Model selector and MCP server indicators */}
           <div className="flex items-center justify-between mt-2">
             <button
@@ -242,14 +244,12 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             >
               <span className="text-lg">🧠</span>
               <span className="text-sm text-zinc-500">
-                {hasApiKey(selectedModel.provider.id) ? (
-                  selectedModel.name.toLowerCase() + ' (' + selectedModel.provider.name.toLowerCase() + ')'
-                ) : (
-                  "none"
-                )}
+                {hasApiKey(selectedModel.provider.id)
+                  ? selectedModel.name.toLowerCase() + ' (' + selectedModel.provider.name.toLowerCase() + ')'
+                  : 'none'}
               </span>
             </button>
-            
+
             <button
               onClick={() => setMcpServerModal(true)}
               className="flex items-center gap-2 text-zinc-600 hover:text-zinc-900 transition-colors cursor-pointer"
@@ -259,23 +259,23 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
                   try {
                     const servers = JSON.parse(localStorage.getItem('mcpServers') || '[]')
                     const toolCounts = JSON.parse(localStorage.getItem('mcpServerToolCounts') || '{}')
-                    
+
                     const enabledServers = servers.filter((s: any) => s.enabled).length
                     const totalServers = servers.length
                     const enabledTools = mcpTools.length
-                    
+
                     // Calculate total tools across all servers (including disabled ones that were previously connected)
                     const totalTools = servers.reduce((sum: number, server: any) => {
                       return sum + (toolCounts[server.id] || 0)
                     }, 0)
-                    
+
                     if (totalServers === 0) {
-                      return "0/0 servers, 0/0 tools"
+                      return '0/0 servers, 0/0 tools'
                     }
-                    
+
                     return `${enabledServers}/${totalServers} servers, ${enabledTools}/${totalTools} tools`
                   } catch {
-                    return mcpTools.length > 0 ? `1/1 servers, ${mcpTools.length}/${mcpTools.length} tools` : "0/0 servers, 0/0 tools"
+                    return mcpTools.length > 0 ? `1/1 servers, ${mcpTools.length}/${mcpTools.length} tools` : '0/0 servers, 0/0 tools'
                   }
                 })()}
               </span>
@@ -300,11 +300,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         apiKeyUpdateTrigger={apiKeyUpdateTrigger}
       />
 
-      <McpServerModal
-        isOpen={mcpServerModal}
-        onClose={() => setMcpServerModal(false)}
-        onToolsUpdate={onMcpToolsUpdate}
-      />
+      <McpServerModal isOpen={mcpServerModal} onClose={() => setMcpServerModal(false)} onToolsUpdate={onMcpToolsUpdate} />
     </div>
   )
 }

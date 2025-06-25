@@ -10,11 +10,7 @@ interface ModelSelectorProps {
   apiKeyUpdateTrigger: number
 }
 
-const ModelSelector: React.FC<ModelSelectorProps> = ({
-  selectedModel,
-  onModelChange,
-  apiKeyUpdateTrigger,
-}) => {
+const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelChange, apiKeyUpdateTrigger }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [apiKeyModal, setApiKeyModal] = useState<{ isOpen: boolean; model: Model | null }>({
     isOpen: false,
@@ -25,7 +21,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   useEffect(() => {
     const statuses: Record<string, boolean> = {}
-    availableModels.forEach(model => {
+    availableModels.forEach((model) => {
       statuses[model.provider.id] = hasApiKey(model.provider.id)
     })
     setApiKeyStatuses(statuses)
@@ -46,7 +42,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const handleModelSelect = (model: Model) => {
     const hasKey = hasApiKey(model.provider.id)
-    
+
     if (!hasKey) {
       setApiKeyModal({ isOpen: true, model })
     } else {
@@ -58,7 +54,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const handleApiKeySave = (apiKey: string) => {
     if (apiKeyModal.model) {
       setApiKey(apiKeyModal.model.provider.id, apiKey)
-      setApiKeyStatuses(prev => ({ ...prev, [apiKeyModal.model!.provider.id]: true }))
+      setApiKeyStatuses((prev) => ({ ...prev, [apiKeyModal.model!.provider.id]: true }))
       onModelChange(apiKeyModal.model)
     }
   }
@@ -66,19 +62,15 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const handleClearApiKey = (providerId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     clearApiKey(providerId)
-    setApiKeyStatuses(prev => ({ ...prev, [providerId]: false }))
+    setApiKeyStatuses((prev) => ({ ...prev, [providerId]: false }))
   }
 
   const getApiKeyIcon = (providerId: string) => {
     const hasKey = apiKeyStatuses[providerId]
-    
+
     if (hasKey) {
       return (
-        <button
-          onClick={(e) => handleClearApiKey(providerId, e)}
-          className="text-zinc-400 hover:text-red-500 p-1"
-          title="Clear token"
-        >
+        <button onClick={(e) => handleClearApiKey(providerId, e)} className="text-zinc-400 hover:text-red-500 p-1" title="Clear token">
           <X size={14} />
         </button>
       )

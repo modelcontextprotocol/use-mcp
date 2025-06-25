@@ -1,2 +1,5 @@
 pnpm-lock.yaml
 *.md
+.wrangler
+.vscode
+test-results

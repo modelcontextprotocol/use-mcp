@@ -10,12 +10,7 @@ interface ApiKeyModalProps {
   onSave: (apiKey: string) => void
 }
 
-const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
-  isOpen,
-  onClose,
-  provider,
-  onSave,
-}) => {
+const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ isOpen, onClose, provider, onSave }) => {
   const [apiKey, setApiKey] = useState('')
   const [showApiKey, setShowApiKey] = useState(false)
 
@@ -36,22 +31,13 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
   }
 
   const modalContent = (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      onClick={handleClose}
-    >
-      <div 
-        className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={handleClose}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-zinc-900">
             {provider.logo} {provider.name} API Key
           </h2>
-          <button
-            onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 p-1"
-          >
+          <button onClick={handleClose} className="text-zinc-400 hover:text-zinc-600 p-1">
             <X size={20} />
           </button>
         </div>
@@ -95,11 +81,7 @@ const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               Get API key →
             </a>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800"
-              >
+              <button type="button" onClick={handleClose} className="px-4 py-2 text-sm text-zinc-600 hover:text-zinc-800">
                 Cancel
               </button>
               <button

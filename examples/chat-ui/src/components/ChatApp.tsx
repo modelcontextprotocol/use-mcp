@@ -1,74 +1,69 @@
-import React, { useState, useEffect } from "react";
-import ConversationThread from "./ConversationThread.tsx";
-import { storeName } from "../consts.ts";
-import { type Conversation } from "../types";
-import { useIndexedDB } from "../hooks/useIndexedDB";
-import { type Model } from "../types/models";
-import { getSelectedModel, setSelectedModel as saveSelectedModel } from "../utils/modelPreferences";
-import { type IDBPDatabase } from "idb";
-import { type Tool } from "use-mcp/react";
+import React, { useState, useEffect } from 'react'
+import ConversationThread from './ConversationThread.tsx'
+import { storeName } from '../consts.ts'
+import { type Conversation } from '../types'
+import { useIndexedDB } from '../hooks/useIndexedDB'
+import { type Model } from '../types/models'
+import { getSelectedModel, setSelectedModel as saveSelectedModel } from '../utils/modelPreferences'
+import { type IDBPDatabase } from 'idb'
+import { type Tool } from 'use-mcp/react'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ChatAppProps {}
 
 const ChatApp: React.FC<ChatAppProps> = () => {
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [conversationId, setConversationId] = useState<number | undefined>(
-    undefined
-  );
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversationId, setConversationId] = useState<number | undefined>(undefined)
 
-  const [selectedModel, setSelectedModel] = useState<Model>(getSelectedModel());
-  const [apiKeyUpdateTrigger, setApiKeyUpdateTrigger] = useState<number>(0);
-  const [mcpTools, setMcpTools] = useState<Tool[]>([]);
-  const [animationDelay] = useState<number>(() => -Math.random() * 60);
-  const db = useIndexedDB();
+  const [selectedModel, setSelectedModel] = useState<Model>(getSelectedModel())
+  const [apiKeyUpdateTrigger, setApiKeyUpdateTrigger] = useState<number>(0)
+  const [mcpTools, setMcpTools] = useState<Tool[]>([])
+  const [animationDelay] = useState<number>(() => -Math.random() * 60)
+  const db = useIndexedDB()
 
   const handleApiKeyUpdate = () => {
-    setApiKeyUpdateTrigger(prev => prev + 1);
-  };
+    setApiKeyUpdateTrigger((prev) => prev + 1)
+  }
 
   const handleModelChange = (model: Model) => {
-    setSelectedModel(model);
-    saveSelectedModel(model);
-  };
+    setSelectedModel(model)
+    saveSelectedModel(model)
+  }
 
   // set up conversations on app load
   useEffect(() => {
-    getConversations();
-    deleteUnusedConversations();
-    startNewConversation();
-  }, [db]);
+    getConversations()
+    deleteUnusedConversations()
+    startNewConversation()
+  }, [db])
 
   // Initialize sidebar visibility based on screen size
   useEffect(() => {
     // const isMobile = window.matchMedia("(max-width: 768px)").matches;
     // setSidebarVisible(!isMobile);
-  }, []);
+  }, [])
 
   const getConversations = async () => {
-    if (!db) return;
+    if (!db) return
 
-    const conversations = (await db.getAll(storeName)) as Conversation[];
-    const inverseConversations = conversations.reverse();
-    setConversations(inverseConversations);
-  };
+    const conversations = (await db.getAll(storeName)) as Conversation[]
+    const inverseConversations = conversations.reverse()
+    setConversations(inverseConversations)
+  }
 
   const deleteConversation = async (id: number, showPromptToUser = true) => {
     try {
-      if (
-        showPromptToUser &&
-        !window.confirm("Are you sure you want to delete this conversation?")
-      ) {
-        return;
+      if (showPromptToUser && !window.confirm('Are you sure you want to delete this conversation?')) {
+        return
       }
 
-      await db?.delete(storeName, id);
-      setConversations((prev) => prev.filter((conv) => conv.id !== id));
-      setConversationId(conversations[0]?.id);
+      await db?.delete(storeName, id)
+      setConversations((prev) => prev.filter((conv) => conv.id !== id))
+      setConversationId(conversations[0]?.id)
     } catch (error) {
-      console.error("Failed to delete conversation:", error);
+      console.error('Failed to delete conversation:', error)
     }
-  };
+  }
 
   // const editConversationTitle = async (id: number, newTitle: string) => {
   //   const conversation = (await db!.get(storeName, id)) as Conversation;
@@ -81,27 +76,25 @@ const ChatApp: React.FC<ChatAppProps> = () => {
 
   const startNewConversation = async () => {
     //create unique id for new conversation
-    setConversationId(Date.now() + Math.floor(Math.random() * 1000));
+    setConversationId(Date.now() + Math.floor(Math.random() * 1000))
     // if (window.matchMedia("(max-width: 768px)").matches) {
     //   setSidebarVisible(false);
     // }
-  };
+  }
 
   // delete conversations with no messages
   const deleteUnusedConversations = async () => {
-    if (!db) return;
-    const conversations = (await db.getAll(storeName)) as Conversation[];
-    const unusedConversations = conversations.filter(
-      (conversation) => conversation.messages.length === 0
-    );
+    if (!db) return
+    const conversations = (await db.getAll(storeName)) as Conversation[]
+    const unusedConversations = conversations.filter((conversation) => conversation.messages.length === 0)
 
     for (const conversation of unusedConversations) {
-      deleteConversation(conversation.id as number, false);
+      deleteConversation(conversation.id as number, false)
     }
-  };
+  }
 
   return (
-    <div 
+    <div
       className="flex min-h-screen w-screen animated-bg-container"
       style={{ '--random-delay': `${animationDelay}s` } as React.CSSProperties}
     >
@@ -146,7 +139,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ChatApp;
+export default ChatApp

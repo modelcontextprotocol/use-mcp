@@ -12,15 +12,14 @@ interface ExecError extends Error {
 test.describe('Build Tests', () => {
   test('should build without type errors', async () => {
     try {
-      const { stderr } = await execAsync('pnpm build', { 
+      const { stderr } = await execAsync('pnpm build', {
         cwd: process.cwd(),
-        timeout: 60000 
+        timeout: 60000,
       })
-      
+
       // Check for TypeScript compilation errors
       expect(stderr).not.toContain('error TS')
       expect(stderr).not.toContain('Type error')
-      
     } catch (error) {
       const execError = error as ExecError
       console.error('Build failed:', execError.stdout, execError.stderr)
@@ -30,14 +29,13 @@ test.describe('Build Tests', () => {
 
   test('should lint without errors', async () => {
     try {
-      const { stderr } = await execAsync('pnpm lint', { 
+      const { stderr } = await execAsync('pnpm lint', {
         cwd: process.cwd(),
-        timeout: 30000 
+        timeout: 30000,
       })
-      
+
       // ESLint should pass without errors
       expect(stderr).not.toContain('error')
-      
     } catch (error) {
       const execError = error as ExecError
       console.error('Lint failed:', execError.stdout, execError.stderr)

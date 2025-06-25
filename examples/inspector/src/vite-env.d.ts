@@ -2,8 +2,8 @@
 
 declare global {
   interface Window {
-    apiKeyModalResolve?: (value: boolean) => void;
+    apiKeyModalResolve?: (value: boolean) => void
   }
 }
 
-export {};
+export {}
