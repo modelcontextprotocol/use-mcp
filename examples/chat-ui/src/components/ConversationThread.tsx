@@ -202,9 +202,19 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             </div>
           ) : (
             <div className="py-4 px-4 space-y-4">
-              {currentConversation.messages.map((message, index) => (
-                <ChatMessage key={index} message={message} />
-              ))}
+              {currentConversation.messages
+                .filter((message) => {
+                  // Filter out empty assistant messages (no content and no reasoning)
+                  if (message.role === "assistant" && 
+                      (!message.content || !message.content.trim()) && 
+                      !("reasoning" in message && (message.reasoning || message.isReasoningStreaming))) {
+                    return false;
+                  }
+                  return true;
+                })
+                .map((message, index) => (
+                  <ChatMessage key={index} message={message} />
+                ))}
               {isLoading && !streamStarted && <div className="text-center text-sm text-zinc-600">Thinking...</div>}
               <div ref={messagesEndRef} />
             </div>
