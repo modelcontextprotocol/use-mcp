@@ -42,7 +42,7 @@ mcpServer.registerTool(
     inputSchema: {},
   },
   async () => {
-    await scheduler.wait(100)
+    await scheduler.wait(100 + Math.random() * 100)
     return {
       content: [
         {
