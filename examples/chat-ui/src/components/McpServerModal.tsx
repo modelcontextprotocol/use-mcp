@@ -57,7 +57,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
   })
   const [transportType, setTransportType] = useState<'auto' | 'http' | 'sse'>(() => {
     const stored = localStorage.getItem('mcpTransportType')
-    return (stored as 'auto' | 'http' | 'sse') || 'auto'
+    return (stored as 'auto' | 'http' | 'sse') || 'http'
   })
 
   // Helper to cycle through transport types
