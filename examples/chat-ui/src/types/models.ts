@@ -42,22 +42,22 @@ export const availableModels: Model[] = [
   },
   {
     id: 'qwen-3-32b',
-    name: 'Qwen 3 32B (Reasoning)',
+    name: 'Qwen3 32B',
     provider: providers.groq,
     modelId: 'qwen/qwen3-32b',
   },
-  {
-    id: 'qwen-qwq-32b',
-    name: 'Qwen QwQ 32B (Reasoning)',
-    provider: providers.groq,
-    modelId: 'qwen-qwq-32b',
-  },
-  {
-    id: 'deepseek-r1-distill-llama-70b',
-    name: 'DeepSeek R1 Distil Llama 70B (Reasoning)',
-    provider: providers.groq,
-    modelId: 'deepseek-r1-distill-llama-70b',
-  },
+  // {
+  //   id: 'qwen-qwq-32b',
+  //   name: 'Qwen QwQ 32B (Reasoning)',
+  //   provider: providers.groq,
+  //   modelId: 'qwen-qwq-32b',
+  // },
+  // {
+  //   id: 'deepseek-r1-distill-llama-70b',
+  //   name: 'DeepSeek R1 Distil Llama 70B (Reasoning)',
+  //   provider: providers.groq,
+  //   modelId: 'deepseek-r1-distill-llama-70b',
+  // },
   {
     id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 4 Sonnet',

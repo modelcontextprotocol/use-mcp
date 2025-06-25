@@ -244,9 +244,7 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
             >
               <span className="text-lg">🧠</span>
               <span className="text-sm text-zinc-500">
-                {hasApiKey(selectedModel.provider.id)
-                  ? selectedModel.name.toLowerCase() + ' (' + selectedModel.provider.name.toLowerCase() + ')'
-                  : 'none'}
+                {hasApiKey(selectedModel.provider.id) ? selectedModel.name + ' (' + selectedModel.provider.name + ')' : 'none'}
               </span>
             </button>
 
