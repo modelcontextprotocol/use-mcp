@@ -7,17 +7,16 @@ interface McpServer {
   url: string
   enabled: boolean
   name?: string
+  transportType: 'auto' | 'http' | 'sse'
 }
 
 // MCP Connection wrapper for a single server
 function McpConnection({
   server,
   onConnectionUpdate,
-  transportType,
 }: {
   server: McpServer
   onConnectionUpdate: (serverId: string, data: any) => void
-  transportType: 'auto' | 'http' | 'sse'
 }) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
@@ -25,7 +24,7 @@ function McpConnection({
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
-    transportType,
+    transportType: server.transportType,
   })
 
   // Update parent component with connection data
@@ -59,6 +58,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
     const stored = localStorage.getItem('mcpTransportType')
     return (stored as 'auto' | 'http' | 'sse') || 'http'
   })
+  const [newServerTransportType, setNewServerTransportType] = useState<'auto' | 'http' | 'sse'>('http')
 
   // Helper to cycle through transport types
   const cycleTransportType = () => {
@@ -72,6 +72,22 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
           return 'auto'
         default:
           return 'auto'
+      }
+    })
+  }
+
+  // Helper to cycle through new server transport types
+  const cycleNewServerTransportType = () => {
+    setNewServerTransportType((current) => {
+      switch (current) {
+        case 'auto':
+          return 'http'
+        case 'http':
+          return 'sse'
+        case 'sse':
+          return 'auto'
+        default:
+          return 'http'
       }
     })
   }
@@ -132,6 +148,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
       url: newServerUrl.trim(),
       enabled: true,
       name: new URL(newServerUrl.trim()).hostname,
+      transportType: newServerTransportType,
     }
 
     setServers((prev) => [...prev, newServer])
@@ -271,8 +288,8 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
                       <div className="flex items-center gap-2">
                         {getStatusBadge(server.enabled ? state : 'disabled')}
                         {server.enabled && state === 'ready' && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded font-mono">
-                            {transportType.toUpperCase()}
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md font-mono">
+                            {server.transportType.toUpperCase()}
                           </span>
                         )}
                         <button
@@ -343,14 +360,14 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
 
             {/* Add New Server */}
             <div className="border-t pt-4">
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3 mb-3">
                 <h3 className="font-medium text-sm">Add New Server</h3>
                 <button
-                  onClick={cycleTransportType}
-                  className="px-2 py-1 text-xs border border-gray-300 rounded bg-gray-50 hover:bg-gray-100 font-mono"
+                  onClick={cycleNewServerTransportType}
+                  className="px-3 py-1 text-xs border border-gray-300 rounded-full bg-gray-50 hover:bg-gray-100 font-mono"
                   title="Click to cycle through transport types"
                 >
-                  {transportType.toUpperCase()}
+                  {newServerTransportType.toUpperCase()}
                 </button>
               </div>
               <div className="flex gap-2">
@@ -398,7 +415,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
       {servers
         .filter((s) => s.enabled)
         .map((server) => (
-          <McpConnection key={server.id} server={server} onConnectionUpdate={handleConnectionUpdate} transportType={transportType} />
+          <McpConnection key={server.id} server={server} onConnectionUpdate={handleConnectionUpdate} />
         ))}
     </>
   )
