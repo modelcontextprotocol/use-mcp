@@ -185,14 +185,7 @@ export const useStreamResponse = ({
                                     })
                                     assistantMessageIndex = conv.messages.length - 1
                                     debugMessages('Added new reasoning assistant message at index', assistantMessageIndex)
-                                    debugMessages('Current messages:', conv.messages.map((msg, i) => ({ 
-                                        index: i, 
-                                        role: msg.role, 
-                                        hasContent: 'content' in msg && !!msg.content,
-                                        hasReasoning: 'reasoning' in msg && !!msg.reasoning,
-                                        isStreaming: 'isReasoningStreaming' in msg ? msg.isReasoningStreaming : false,
-                                        toolName: 'toolName' in msg ? msg.toolName : undefined
-                                    })))
+                                    debugMessages('Current messages:', JSON.stringify(conv.messages))
                                 }
                                 return updated
                             })
@@ -260,14 +253,7 @@ export const useStreamResponse = ({
                                             callId: event.toolCallId || 'unknown',
                                         })
                                         debugMessages('Added new tool-call message:', event.toolName, 'callId:', event.toolCallId)
-                                        debugMessages('Current messages:', conv.messages.map((msg, i) => ({ 
-                                            index: i, 
-                                            role: msg.role, 
-                                            hasContent: 'content' in msg && !!msg.content,
-                                            hasReasoning: 'reasoning' in msg && !!msg.reasoning,
-                                            isStreaming: 'isReasoningStreaming' in msg ? msg.isReasoningStreaming : false,
-                                            toolName: 'toolName' in msg ? msg.toolName : undefined
-                                        })))
+                                        debugMessages('Current messages:', JSON.stringify(conv.messages))
                                     }
                                 }
                                 return updated
@@ -297,14 +283,7 @@ export const useStreamResponse = ({
                                             callId: (event as any).toolCallId,
                                         })
                                         debugMessages('Added new tool-result message:', (event as any).toolName, 'callId:', (event as any).toolCallId)
-                                        debugMessages('Current messages:', conv.messages.map((msg, i) => ({ 
-                                            index: i, 
-                                            role: msg.role, 
-                                            hasContent: 'content' in msg && !!msg.content,
-                                            hasReasoning: 'reasoning' in msg && !!msg.reasoning,
-                                            isStreaming: 'isReasoningStreaming' in msg ? msg.isReasoningStreaming : false,
-                                            toolName: 'toolName' in msg ? msg.toolName : undefined
-                                        })))
+                                        debugMessages('Current messages:', JSON.stringify(conv.messages))
                                     } else {
                                     }
                                 }
@@ -352,14 +331,7 @@ export const useStreamResponse = ({
                                     conv.messages.push({ role: 'assistant', content: '' })
                                     assistantMessageIndex = conv.messages.length - 1
                                     debugMessages('Added new content assistant message at index', assistantMessageIndex, '(after reasoning:', needsNewAssistantMessage, ')')
-                                    debugMessages('Current messages:', conv.messages.map((msg, i) => ({ 
-                                        index: i, 
-                                        role: msg.role, 
-                                        hasContent: 'content' in msg && !!msg.content,
-                                        hasReasoning: 'reasoning' in msg && !!msg.reasoning,
-                                        isStreaming: 'isReasoningStreaming' in msg ? msg.isReasoningStreaming : false,
-                                        toolName: 'toolName' in msg ? msg.toolName : undefined
-                                    })))
+                                    debugMessages('Current messages:', JSON.stringify(conv.messages))
                                 }
                                 return updated
                             })
@@ -427,16 +399,7 @@ export const useStreamResponse = ({
             setConversations((prev) => {
                 const conv = prev.find((c) => c.id === conversationId)
                 if (conv) {
-                    debugMessages('Final conversation state:', conv.messages.map((msg, i) => ({ 
-                        index: i, 
-                        role: msg.role, 
-                        hasContent: 'content' in msg && !!msg.content,
-                        hasReasoning: 'reasoning' in msg && !!msg.reasoning,
-                        isStreaming: 'isReasoningStreaming' in msg ? msg.isReasoningStreaming : false,
-                        toolName: 'toolName' in msg ? msg.toolName : undefined,
-                        contentLength: 'content' in msg ? msg.content?.length || 0 : 0,
-                        reasoningLength: 'reasoning' in msg ? msg.reasoning?.length || 0 : 0
-                    })))
+                    debugMessages('Final conversation state:', JSON.stringify(conv.messages))
                 }
                 return prev
             })
