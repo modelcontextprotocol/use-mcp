@@ -327,7 +327,7 @@ export const useStreamResponse = ({
           if (updatedMessage || newMessage) {
             updated = prev.map((c) => {
               if (c.id !== conversationId) return c
-              const messages = c.messages
+              let messages = [...c.messages]
 
               if (updatedMessage) {
                 messages.splice(-1, 1, updatedMessage)

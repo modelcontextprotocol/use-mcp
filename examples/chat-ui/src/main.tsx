@@ -3,8 +3,14 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
+const ENABLE_STRICT_MODE = true
+
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  ENABLE_STRICT_MODE ? (
+    <StrictMode>
+      <App />
+    </StrictMode>
+  ) : (
     <App />
-  </StrictMode>
+  )
 )
