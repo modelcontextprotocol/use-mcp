@@ -288,7 +288,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
                       <div className="flex items-center gap-2">
                         {getStatusBadge(server.enabled ? state : 'disabled')}
                         {server.enabled && state === 'ready' && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-md font-mono">
+                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-lg font-mono">
                             {server.transportType.toUpperCase()}
                           </span>
                         )}
