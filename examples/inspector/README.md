@@ -6,6 +6,8 @@ A minimal demo showcasing the `use-mcp` React hook for connecting to Model Conte
 
 - Connect to any MCP server via URL
 - View available tools and their schemas
+- Browse and read server resources
+- Interact with server-provided prompts
 - Real-time connection status monitoring
 - Debug logging for troubleshooting
 - Clean, minimal UI focused on MCP functionality
@@ -31,7 +33,7 @@ pnpm dev
 
 3. Open your browser and navigate to the displayed local URL
 
-4. Enter an MCP server URL to test the connection and explore available tools
+4. Enter an MCP server URL to test the connection and explore available tools, resources, and prompts
 
 ## What This Demonstrates
 
@@ -46,7 +48,17 @@ const connection = useMcp({
   autoRetry: false
 })
 
-// Access connection.state, connection.tools, connection.error, etc.
+// Access connection.state, connection.tools, connection.resources, 
+// connection.prompts, connection.error, etc.
 ```
 
-The `McpServers` component wraps this hook to provide a complete UI for server management and tool inspection.
+The `McpServers` component wraps this hook to provide a complete UI for server management, tool inspection, resource browsing, and prompt interaction.
+
+## Supported MCP Features
+
+- **Tools**: Execute server-provided tools with custom arguments and view results
+- **Resources**: Browse available resources and read their contents (text or binary)
+- **Resource Templates**: View dynamic resource templates with URI patterns
+- **Prompts**: Interact with server prompts, provide arguments, and view generated messages
+
+Note: Not all MCP servers implement all features. The inspector will gracefully handle servers that only support a subset of the MCP specification.
