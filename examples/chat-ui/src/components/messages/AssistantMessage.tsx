@@ -12,7 +12,7 @@ const AssistantMessage: React.FC<AssistantMessageProps> = ({ message }) => {
   return (
     <div className={`flex justify-start`}>
       <div className={`text-zinc-900 w-full`}>
-        <div className="prose prose-zinc">
+        <div className="prose prose-zinc prose-tight">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight]}

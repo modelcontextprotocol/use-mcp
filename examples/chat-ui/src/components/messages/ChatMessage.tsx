@@ -34,7 +34,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
   return (
     <div className={`flex justify-end`}>
       <div className={`max-w-[80%] rounded-2xl px-5 py-3 shadow bg-white text-black mb-3`}>
-        <div className="prose prose-zinc">
+        <div className="prose prose-zinc prose-tight">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeHighlight]}
