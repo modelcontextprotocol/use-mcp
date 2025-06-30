@@ -1,10 +1,10 @@
 import { spawn, ChildProcess } from 'child_process'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { writeFileSync, mkdirSync } from 'fs'
-import express from 'express'
-import serveStatic from 'serve-static'
-import { Server } from 'http'
+import { writeFileSync, mkdirSync, readFileSync } from 'fs'
+import { createServer, Server } from 'http'
+import { parse } from 'url'
+import { extname } from 'path'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '../..')
@@ -17,6 +17,7 @@ interface GlobalState {
   staticServer?: Server
   staticPort?: number
   honoPort?: number
+  processGroupId?: number
 }
 
 declare global {
@@ -131,7 +132,8 @@ function runCommand(command: string, args: string[], cwd: string): Promise<void>
 
 function findAvailablePort(startPort = 8000): Promise<number> {
   return new Promise((resolve) => {
-    const server = express().listen(startPort, () => {
+    const server = createServer()
+    server.listen(startPort, () => {
       const port = (server.address() as any)?.port
       server.close(() => resolve(port))
     }).on('error', () => {
@@ -148,8 +150,20 @@ export default async function globalSetup() {
 
   // Set up signal handlers for cleanup
   const cleanup = () => {
-    if (state.honoServer && !state.honoServer.killed) {
-      state.honoServer.kill('SIGKILL')
+    if (state.processGroupId) {
+      try {
+        // Kill the entire process group
+        process.kill(-state.processGroupId, 'SIGTERM')
+        setTimeout(() => {
+          try {
+            process.kill(-state.processGroupId!, 'SIGKILL')
+          } catch (e) {
+            // Ignore errors
+          }
+        }, 1000)
+      } catch (e) {
+        console.warn('Error cleaning up process group:', e)
+      }
     }
     if (state.staticServer) {
       state.staticServer.close()
@@ -181,11 +195,14 @@ export default async function globalSetup() {
     const honoServer = spawn('pnpm', ['dev', `--port=${honoPort}`], { 
       cwd: honoDir,
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true
+      shell: true,
+      detached: false, // Keep in same process group initially
     })
     
-    // Store the actual port used
+    // Store the process group ID and port
+    state.processGroupId = honoServer.pid
     state.honoPort = honoPort
+    state.honoServer = honoServer
 
     honoServer.stdout?.on('data', (data) => {
       console.log(`[hono-mcp] ${data.toString()}`)
@@ -199,33 +216,57 @@ export default async function globalSetup() {
     await waitForOutput(honoServer, 'Ready on')
     state.honoServer = honoServer
 
-    // Step 4: Start static file server for inspector
+    // Step 4: Start simple static file server for inspector
     console.log('🌐 Starting static file server for inspector...')
     const inspectorDistDir = join(inspectorDir, 'dist')
     const staticPort = await findAvailablePort(8000)
     
-    const app = express()
-    
-    // Disable keep-alive to prevent hanging connections
-    app.use((req, res, next) => {
+    const staticServer = createServer((req, res) => {
+      const pathname = parse(req.url || '').pathname || '/'
+      let filePath = join(inspectorDistDir, pathname === '/' ? 'index.html' : pathname)
+      
+      // Always disable keep-alive
       res.setHeader('Connection', 'close')
-      next()
+      
+      try {
+        const data = readFileSync(filePath)
+        const ext = extname(filePath)
+        const contentType = {
+          '.html': 'text/html',
+          '.js': 'application/javascript',
+          '.css': 'text/css',
+          '.json': 'application/json',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.gif': 'image/gif',
+          '.svg': 'image/svg+xml',
+        }[ext] || 'text/plain'
+        
+        res.writeHead(200, { 'Content-Type': contentType })
+        res.end(data)
+      } catch (e) {
+        // Fallback to index.html for SPA routing
+        try {
+          const indexData = readFileSync(join(inspectorDistDir, 'index.html'))
+          res.writeHead(200, { 'Content-Type': 'text/html' })
+          res.end(indexData)
+        } catch (e2) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' })
+          res.end('Not Found')
+        }
+      }
     })
     
-    app.use(serveStatic(inspectorDistDir))
-    
-    // Serve index.html for all routes (SPA routing)
-    app.get('*', (req, res) => {
-      res.sendFile(join(inspectorDistDir, 'index.html'))
-    })
-
-    const staticServer = app.listen(staticPort, () => {
-      console.log(`📁 Static server running on http://localhost:${staticPort}`)
-    })
-    
-    // Configure server for quick shutdown
+    // Configure for immediate shutdown
     staticServer.keepAliveTimeout = 0
     staticServer.headersTimeout = 1
+    
+    await new Promise<void>((resolve) => {
+      staticServer.listen(staticPort, () => {
+        console.log(`📁 Static server running on http://localhost:${staticPort}`)
+        resolve()
+      })
+    })
 
     state.staticServer = staticServer
     state.staticPort = staticPort

@@ -149,6 +149,17 @@ describe('MCP Connection Integration Tests', () => {
     if (browser) {
       await browser.close()
     }
+    
+    // Force cleanup before Vitest exits
+    const state = globalThis.__INTEGRATION_TEST_STATE__
+    if (state?.honoServer && !state.honoServer.killed) {
+      console.log('🔥 Force cleanup before test exit...')
+      state.honoServer.kill('SIGKILL')
+    }
+    if (state?.staticServer) {
+      state.staticServer.close()
+      state.staticServer.closeAllConnections?.()
+    }
   })
 
   beforeEach(async () => {

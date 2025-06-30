@@ -3,43 +3,42 @@ export default async function globalTeardown() {
   
   const state = globalThis.__INTEGRATION_TEST_STATE__
   
-  if (state?.honoServer) {
-    console.log('🛑 Stopping hono-mcp server...')
-    
-    // Store the PID for cleanup
-    const honoServerPid = state.honoServer.pid
-    
-    // Send SIGTERM first for graceful shutdown
-    if (!state.honoServer.killed) {
+  // First try to stop the hono server directly
+  if (state?.honoServer && !state.honoServer.killed) {
+    console.log('🛑 Stopping hono server directly...')
+    try {
       state.honoServer.kill('SIGTERM')
       
       // Wait for graceful shutdown
-      await new Promise(resolve => {
-        const timeout = setTimeout(() => {
-          // Force kill if still running after 2 seconds
-          if (!state.honoServer?.killed) {
-            console.log('⚡ Force stopping hono-mcp server...')
-            state.honoServer?.kill('SIGKILL')
-          }
-          resolve(void 0)
-        }, 2000)
-        
-        state.honoServer?.on('exit', () => {
-          clearTimeout(timeout)
-          resolve(void 0)
-        })
-      })
-    }
-    
-    // Also kill any remaining wrangler/workerd child processes
-    if (honoServerPid) {
-      try {
-        // Kill any child processes that might still be running
-        const { spawn } = require('child_process')
-        spawn('pkill', ['-P', honoServerPid.toString()], { stdio: 'ignore' })
-      } catch (e) {
-        // Ignore errors
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      if (!state.honoServer.killed) {
+        console.log('⚡ Force killing hono server...')
+        state.honoServer.kill('SIGKILL')
       }
+    } catch (e) {
+      console.warn('Error stopping hono server:', e)
+    }
+  }
+  
+  // Also try process group cleanup as backup
+  if (state?.processGroupId) {
+    console.log('🛑 Cleaning up process group as backup...')
+    
+    try {
+      // Send SIGTERM to the entire process group first
+      console.log(`💀 Sending SIGTERM to process group ${state.processGroupId}`)
+      process.kill(-state.processGroupId, 'SIGTERM')
+      
+      // Wait a bit for graceful shutdown
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Then send SIGKILL to ensure everything is terminated
+      console.log(`⚡ Sending SIGKILL to process group ${state.processGroupId}`)
+      process.kill(-state.processGroupId, 'SIGKILL')
+      
+    } catch (e) {
+      console.warn('Error terminating process group:', e)
     }
   }
   
@@ -62,6 +61,7 @@ export default async function globalTeardown() {
   if (state) {
     state.honoServer = undefined
     state.staticServer = undefined
+    state.processGroupId = undefined
   }
   
   // Force garbage collection if available
