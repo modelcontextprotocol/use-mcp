@@ -13,8 +13,5 @@
     "noEmit": true,
     "types": ["vitest/globals", "node"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.js"
-  ]
+  "include": ["**/*.ts", "**/*.js"]
 }

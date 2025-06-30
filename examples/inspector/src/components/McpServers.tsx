@@ -10,7 +10,7 @@ function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; o
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
-    transportType: 'auto'
+    transportType: 'auto',
   })
 
   // Update parent component with connection data
