@@ -1,0 +1,22 @@
+{
+  "name": "use-mcp-integration-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "test:ui": "vitest --ui"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "serve-static": "^1.16.2",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8",
+    "@vitest/ui": "^2.1.8",
+    "typescript": "^5.8.2",
+    "@types/node": "^20.17.10",
+    "@types/express": "^5.0.0",
+    "@types/serve-static": "^1.15.7"
+  }
+}
