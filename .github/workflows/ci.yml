@@ -39,9 +39,9 @@ jobs:
         working-directory: examples/servers/hono-mcp
 
       - name: Install dependencies - test
-        run: pnpm install
+        run: pnpm install && pnpm exec playwright install
         working-directory: test
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:headless
         working-directory: test
