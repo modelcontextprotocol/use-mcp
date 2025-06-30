@@ -14,9 +14,11 @@ const testStateFile = join(cacheDir, 'test-state.json')
 
 interface GlobalState {
   honoServer?: ChildProcess
+  cfAgentsServer?: ChildProcess
   staticServer?: Server
   staticPort?: number
   honoPort?: number
+  cfAgentsPort?: number
   processGroupId?: number
   allChildProcesses?: Set<number>
 }
@@ -252,7 +254,48 @@ export default async function globalSetup() {
     await waitForOutput(honoServer, 'Ready on')
     state.honoServer = honoServer
 
-    // Step 4: Start simple static file server for inspector
+    // Step 4: Find available port and start cf-agents server
+    console.log('🔍 Finding available port starting from 9902...')
+    const cfAgentsPort = await findAvailablePortFromBase(9902)
+    console.log(`📍 Using port ${cfAgentsPort} for cf-agents server`)
+
+    console.log('🚀 Starting cf-agents server...')
+    const cfAgentsDir = join(rootDir, 'examples/servers/cf-agents')
+    const cfAgentsServer = spawn('pnpm', ['dev', `--port=${cfAgentsPort}`], {
+      cwd: cfAgentsDir,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
+      detached: false,
+    })
+
+    // Track all child processes
+    if (cfAgentsServer.pid) {
+      state.allChildProcesses!.add(cfAgentsServer.pid)
+    }
+
+    state.cfAgentsPort = cfAgentsPort
+    state.cfAgentsServer = cfAgentsServer
+
+    cfAgentsServer.stdout?.on('data', (data) => {
+      console.log(`[cf-agents] ${data.toString()}`)
+    })
+
+    cfAgentsServer.stderr?.on('data', (data) => {
+      console.log(`[cf-agents] ${data.toString()}`)
+    })
+
+    // Track when the process exits to remove it from our tracking
+    cfAgentsServer.on('exit', () => {
+      if (cfAgentsServer.pid) {
+        state.allChildProcesses!.delete(cfAgentsServer.pid)
+      }
+    })
+
+    // Wait for cf-agents server to be ready
+    await waitForOutput(cfAgentsServer, 'Ready on')
+    state.cfAgentsServer = cfAgentsServer
+
+    // Step 5: Start simple static file server for inspector
     console.log('🌐 Starting static file server for inspector...')
     const inspectorDistDir = join(inspectorDir, 'dist')
     const staticPort = await findAvailablePort(8000)
@@ -315,6 +358,7 @@ export default async function globalSetup() {
       JSON.stringify(
         {
           honoPort: state.honoPort,
+          cfAgentsPort: state.cfAgentsPort,
           staticPort: state.staticPort,
         },
         null,
@@ -329,6 +373,9 @@ export default async function globalSetup() {
     // Cleanup on failure
     if (state.honoServer) {
       state.honoServer.kill()
+    }
+    if (state.cfAgentsServer) {
+      state.cfAgentsServer.kill()
     }
     if (state.staticServer) {
       state.staticServer.close()

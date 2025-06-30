@@ -18,18 +18,21 @@ function getMCPServers() {
       throw new Error('hono-mcp port not found in test state')
     }
 
+    if (!state.cfAgentsPort) {
+      throw new Error('cf-agents port not found in test state')
+    }
+
     return [
       {
         name: 'hono-mcp',
         url: `http://localhost:${state.honoPort}/mcp`,
         expectedTools: 1, // Minimum expected tools count
       },
-      // Add more servers here as they become available
-      // {
-      //   name: 'another-server',
-      //   url: 'http://localhost:9902/mcp',
-      //   expectedTools: 1,
-      // },
+      {
+        name: 'cf-agents',
+        url: `http://localhost:${state.cfAgentsPort}/mcp`,
+        expectedTools: 1, // Minimum expected tools count
+      },
     ]
   } catch (error) {
     throw new Error(`Test environment not properly initialized: ${error}`)
@@ -156,6 +159,15 @@ describe('MCP Connection Integration Tests', () => {
       if (state?.honoServer && !state.honoServer.killed) {
         console.log('🔥 Force cleanup before test exit...')
         state.honoServer.kill('SIGKILL')
+      }
+    } catch (e) {
+      // Ignore errors - process might already be dead
+    }
+
+    try {
+      if (state?.cfAgentsServer && !state.cfAgentsServer.killed) {
+        console.log('🔥 Force cleanup cf-agents server...')
+        state.cfAgentsServer.kill('SIGKILL')
       }
     } catch (e) {
       // Ignore errors - process might already be dead
