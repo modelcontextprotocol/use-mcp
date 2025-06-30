@@ -10,5 +10,6 @@
     "types": ["react"],
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true
-  }
+  },
+  "exclude": ["examples", "test"]
 }
