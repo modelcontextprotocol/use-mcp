@@ -30,11 +30,11 @@
     "deploy:site": "npx wrangler deploy"
   },
   "dependencies": {
-    "strict-url-sanitise": "^0.0.1",
-    "@modelcontextprotocol/sdk": "^1.13.1"
+    "strict-url-sanitise": "^0.0.1"
   },
   "devDependencies": {
     "@axodotdev/oranda": "^0.6.5",
+    "@modelcontextprotocol/sdk": "^1.13.1",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
@@ -55,8 +55,7 @@
     "clean": true,
     "outDir": "dist",
     "external": [
-      "react",
-      "@modelcontextprotocol/sdk"
+      "react"
     ]
   },
   "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
