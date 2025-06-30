@@ -18,14 +18,28 @@ pnpm install
 
 ## Running Tests
 
-Run all integration tests:
+Run all integration tests (shows browser window):
 
 ```bash
 cd test
 pnpm test
 ```
 
-Run tests with UI:
+Run tests headlessly (no browser window):
+
+```bash
+cd test
+pnpm test:headless
+```
+
+Run tests in watch mode (re-runs on file changes):
+
+```bash
+cd test
+pnpm test:watch
+```
+
+Run tests with interactive UI:
 
 ```bash
 cd test  

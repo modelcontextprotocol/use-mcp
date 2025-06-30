@@ -139,7 +139,9 @@ describe('MCP Connection Integration Tests', () => {
   let page: Page
 
   beforeAll(async () => {
-    browser = await chromium.launch({ headless: true })
+    const headless = process.env.HEADLESS === 'true'
+    console.log(`🌐 Launching browser in ${headless ? 'headless' : 'headed'} mode`)
+    browser = await chromium.launch({ headless })
   }, 30000)
 
   afterAll(async () => {
