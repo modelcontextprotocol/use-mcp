@@ -17,8 +17,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.6.2",
-    "tailwindcss": "^4.0.14",
-    "use-mcp": "link:../.."
+    "tailwindcss": "^4.0.14"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.5.0",
@@ -34,6 +33,7 @@
     "prettier": "^3.5.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
+    "use-mcp": "link:../..",
     "vite": "^6.2.0",
     "wrangler": "^4.19.1"
   },

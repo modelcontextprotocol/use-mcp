@@ -5,6 +5,12 @@
 - `pnpm build`: Build the project
 - `pnpm check`: Run prettier checks and TypeScript type checking
 
+### Integration Tests (in /test directory)
+- `cd test && pnpm test`: Run integration tests with visible browser
+- `cd test && pnpm test:headless`: Run integration tests headlessly 
+- `cd test && pnpm test:watch`: Run integration tests in watch mode
+- `cd test && pnpm test:ui`: Run integration tests with interactive UI
+
 ## Code Style Guidelines
 
 ### Imports
