@@ -6,7 +6,8 @@
     "test": "vitest --run",
     "test:headless": "HEADLESS=true vitest --run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:debug": "VITEST_REPORTER=hanging-process vitest --run"
   },
   "dependencies": {
     "playwright": "^1.49.0",

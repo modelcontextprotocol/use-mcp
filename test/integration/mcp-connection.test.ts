@@ -5,7 +5,8 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const testStateFile = join(__dirname, '../test-state.json')
+const testDir = join(__dirname, '..')
+const testStateFile = join(testDir, 'node_modules/.cache/use-mcp-tests/test-state.json')
 
 // Get MCP servers to test (ports determined at runtime)
 function getMCPServers() {
@@ -145,7 +146,9 @@ describe('MCP Connection Integration Tests', () => {
   }, 30000)
 
   afterAll(async () => {
-    await browser?.close()
+    if (browser) {
+      await browser.close()
+    }
   })
 
   beforeEach(async () => {
@@ -161,7 +164,10 @@ describe('MCP Connection Integration Tests', () => {
   })
 
   afterEach(async () => {
-    await page?.context().close()
+    if (page) {
+      await page.close()
+      await page.context().close()
+    }
   })
 
   test('should connect to all MCP servers and retrieve tools', async () => {

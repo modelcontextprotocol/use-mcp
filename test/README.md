@@ -46,6 +46,13 @@ cd test
 pnpm test:ui
 ```
 
+Debug hanging processes:
+
+```bash
+cd test
+pnpm test:debug
+```
+
 ## Test Architecture
 
 - **Global Setup** (`setup/global-setup.ts`): 

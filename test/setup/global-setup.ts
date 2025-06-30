@@ -1,14 +1,16 @@
 import { spawn, ChildProcess } from 'child_process'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { writeFileSync } from 'fs'
+import { writeFileSync, mkdirSync } from 'fs'
 import express from 'express'
 import serveStatic from 'serve-static'
 import { Server } from 'http'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '../..')
-const testStateFile = join(__dirname, '../test-state.json')
+const testDir = join(__dirname, '..')
+const cacheDir = join(testDir, 'node_modules/.cache/use-mcp-tests')
+const testStateFile = join(cacheDir, 'test-state.json')
 
 interface GlobalState {
   honoServer?: ChildProcess
@@ -144,6 +146,21 @@ export default async function globalSetup() {
   const state: GlobalState = {}
   globalThis.__INTEGRATION_TEST_STATE__ = state
 
+  // Set up signal handlers for cleanup
+  const cleanup = () => {
+    if (state.honoServer && !state.honoServer.killed) {
+      state.honoServer.kill('SIGKILL')
+    }
+    if (state.staticServer) {
+      state.staticServer.close()
+      state.staticServer.closeAllConnections?.()
+    }
+  }
+  
+  process.on('SIGINT', cleanup)
+  process.on('SIGTERM', cleanup)
+  process.on('exit', cleanup)
+
   try {
     // Step 1: Build use-mcp library
     console.log('📦 Building use-mcp library...')
@@ -188,6 +205,13 @@ export default async function globalSetup() {
     const staticPort = await findAvailablePort(8000)
     
     const app = express()
+    
+    // Disable keep-alive to prevent hanging connections
+    app.use((req, res, next) => {
+      res.setHeader('Connection', 'close')
+      next()
+    })
+    
     app.use(serveStatic(inspectorDistDir))
     
     // Serve index.html for all routes (SPA routing)
@@ -198,11 +222,16 @@ export default async function globalSetup() {
     const staticServer = app.listen(staticPort, () => {
       console.log(`📁 Static server running on http://localhost:${staticPort}`)
     })
+    
+    // Configure server for quick shutdown
+    staticServer.keepAliveTimeout = 0
+    staticServer.headersTimeout = 1
 
     state.staticServer = staticServer
     state.staticPort = staticPort
 
     // Write state to file for tests to read
+    mkdirSync(cacheDir, { recursive: true })
     writeFileSync(testStateFile, JSON.stringify({
       honoPort: state.honoPort,
       staticPort: state.staticPort

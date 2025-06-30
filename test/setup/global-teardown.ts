@@ -5,22 +5,68 @@ export default async function globalTeardown() {
   
   if (state?.honoServer) {
     console.log('🛑 Stopping hono-mcp server...')
-    state.honoServer.kill('SIGTERM')
     
-    // Give it time to shut down gracefully
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Store the PID for cleanup
+    const honoServerPid = state.honoServer.pid
     
-    // Force kill if still running
-    try {
-      state.honoServer.kill('SIGKILL')
-    } catch (e) {
-      // Process might already be dead
+    // Send SIGTERM first for graceful shutdown
+    if (!state.honoServer.killed) {
+      state.honoServer.kill('SIGTERM')
+      
+      // Wait for graceful shutdown
+      await new Promise(resolve => {
+        const timeout = setTimeout(() => {
+          // Force kill if still running after 2 seconds
+          if (!state.honoServer?.killed) {
+            console.log('⚡ Force stopping hono-mcp server...')
+            state.honoServer?.kill('SIGKILL')
+          }
+          resolve(void 0)
+        }, 2000)
+        
+        state.honoServer?.on('exit', () => {
+          clearTimeout(timeout)
+          resolve(void 0)
+        })
+      })
+    }
+    
+    // Also kill any remaining wrangler/workerd child processes
+    if (honoServerPid) {
+      try {
+        // Kill any child processes that might still be running
+        const { spawn } = require('child_process')
+        spawn('pkill', ['-P', honoServerPid.toString()], { stdio: 'ignore' })
+      } catch (e) {
+        // Ignore errors
+      }
     }
   }
   
   if (state?.staticServer) {
     console.log('🛑 Stopping static file server...')
-    state.staticServer.close()
+    await new Promise<void>((resolve) => {
+      state.staticServer?.close((err) => {
+        if (err) {
+          console.warn('Warning closing static server:', err.message)
+        }
+        resolve()
+      })
+    })
+    
+    // Force close all keep-alive connections
+    state.staticServer?.closeAllConnections?.()
+  }
+  
+  // Clear references 
+  if (state) {
+    state.honoServer = undefined
+    state.staticServer = undefined
+  }
+  
+  // Force garbage collection if available
+  if (global.gc) {
+    global.gc()
   }
   
   console.log('✅ Cleanup complete!')
