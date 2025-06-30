@@ -30,9 +30,9 @@ jobs:
         run: pnpm install
         working-directory: examples/inspector
 
-      - name: Install dependencies - cf-agents example
-        run: pnpm install
-        working-directory: examples/servers/cf-agents
+      #      - name: Install dependencies - cf-agents example
+      #        run: pnpm install
+      #        working-directory: examples/servers/cf-agents
 
       - name: Install dependencies - hono-mcp example
         run: pnpm install
