@@ -1,28 +1,123 @@
+function isProcessRunning(pid: number): boolean {
+  try {
+    // Sending signal 0 checks if process exists without actually sending a signal
+    process.kill(pid, 0)
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+async function findChildProcesses(parentPid: number): Promise<number[]> {
+  return new Promise((resolve) => {
+    const { spawn } = require('child_process')
+    // Use ps to find all child processes
+    const ps = spawn('ps', ['-o', 'pid,ppid', '-ax'])
+    
+    let output = ''
+    ps.stdout?.on('data', (data: Buffer) => {
+      output += data.toString()
+    })
+    
+    ps.on('close', () => {
+      const lines = output.split('\n')
+      const children: number[] = []
+      
+      for (const line of lines) {
+        const match = line.trim().match(/^(\d+)\s+(\d+)/)
+        if (match) {
+          const pid = parseInt(match[1])
+          const ppid = parseInt(match[2])
+          if (ppid === parentPid) {
+            children.push(pid)
+          }
+        }
+      }
+      
+      resolve(children)
+    })
+    
+    ps.on('error', () => {
+      resolve([])
+    })
+  })
+}
+
+async function killProcessSafely(pid: number, name: string = 'process'): Promise<void> {
+  if (!isProcessRunning(pid)) {
+    console.log(`✅ ${name} (${pid}) already stopped`)
+    return
+  }
+
+  try {
+    console.log(`🛑 Sending SIGTERM to ${name} (${pid})`)
+    process.kill(pid, 'SIGTERM')
+    
+    // Wait up to 3 seconds for graceful shutdown
+    for (let i = 0; i < 30; i++) {
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (!isProcessRunning(pid)) {
+        console.log(`✅ ${name} (${pid}) gracefully stopped`)
+        return
+      }
+    }
+    
+    // Force kill if still running
+    if (isProcessRunning(pid)) {
+      console.log(`⚡ Force killing ${name} (${pid})`)
+      process.kill(pid, 'SIGKILL')
+      
+      // Give it a moment to die
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      if (isProcessRunning(pid)) {
+        console.warn(`⚠️ ${name} (${pid}) still running after SIGKILL`)
+      } else {
+        console.log(`✅ ${name} (${pid}) force killed`)
+      }
+    }
+  } catch (e: any) {
+    if (e.code === 'ESRCH') {
+      console.log(`✅ ${name} (${pid}) already stopped`)
+    } else {
+      console.warn(`Error killing ${name} (${pid}):`, e.message)
+    }
+  }
+}
+
 export default async function globalTeardown() {
   console.log('🧹 Cleaning up integration test environment...')
   
   const state = globalThis.__INTEGRATION_TEST_STATE__
   
-  // First try to stop the hono server directly
-  if (state?.honoServer && !state.honoServer.killed) {
-    console.log('🛑 Stopping hono server directly...')
-    try {
-      state.honoServer.kill('SIGTERM')
+  // Kill all tracked child processes first
+  if (state?.allChildProcesses && state.allChildProcesses.size > 0) {
+    console.log(`🛑 Cleaning up ${state.allChildProcesses.size} tracked child processes...`)
+    
+    // Find all child processes of our tracked processes too
+    const allPidsToKill = new Set<number>()
+    
+    for (const pid of state.allChildProcesses) {
+      allPidsToKill.add(pid)
       
-      // Wait for graceful shutdown
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      if (!state.honoServer.killed) {
-        console.log('⚡ Force killing hono server...')
-        state.honoServer.kill('SIGKILL')
+      // Find children of this process
+      const children = await findChildProcesses(pid)
+      for (const childPid of children) {
+        allPidsToKill.add(childPid)
       }
-    } catch (e) {
-      console.warn('Error stopping hono server:', e)
     }
+    
+    console.log(`🛑 Found ${allPidsToKill.size} total processes to clean up (including children)`)
+    
+    const killPromises = Array.from(allPidsToKill).map(pid => 
+      killProcessSafely(pid, 'process')
+    )
+    
+    await Promise.all(killPromises)
   }
   
-  // Also try process group cleanup as backup
-  if (state?.processGroupId) {
+  // Also clean up by process group as backup
+  if (state?.processGroupId && isProcessRunning(state.processGroupId)) {
     console.log('🛑 Cleaning up process group as backup...')
     
     try {
@@ -33,12 +128,21 @@ export default async function globalTeardown() {
       // Wait a bit for graceful shutdown
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Then send SIGKILL to ensure everything is terminated
-      console.log(`⚡ Sending SIGKILL to process group ${state.processGroupId}`)
-      process.kill(-state.processGroupId, 'SIGKILL')
+      // Check if any processes in the group are still running and force kill if needed
+      try {
+        process.kill(-state.processGroupId, 0) // Check if group exists
+        console.log(`⚡ Sending SIGKILL to process group ${state.processGroupId}`)
+        process.kill(-state.processGroupId, 'SIGKILL')
+      } catch (e: any) {
+        if (e.code !== 'ESRCH') {
+          console.warn('Error force-killing process group:', e.message)
+        }
+      }
       
-    } catch (e) {
-      console.warn('Error terminating process group:', e)
+    } catch (e: any) {
+      if (e.code !== 'ESRCH') {
+        console.warn('Error terminating process group:', e.message)
+      }
     }
   }
   

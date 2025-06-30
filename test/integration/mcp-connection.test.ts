@@ -150,15 +150,24 @@ describe('MCP Connection Integration Tests', () => {
       await browser.close()
     }
     
-    // Force cleanup before Vitest exits
+    // Force cleanup before Vitest exits - don't throw errors
     const state = globalThis.__INTEGRATION_TEST_STATE__
-    if (state?.honoServer && !state.honoServer.killed) {
-      console.log('🔥 Force cleanup before test exit...')
-      state.honoServer.kill('SIGKILL')
+    try {
+      if (state?.honoServer && !state.honoServer.killed) {
+        console.log('🔥 Force cleanup before test exit...')
+        state.honoServer.kill('SIGKILL')
+      }
+    } catch (e) {
+      // Ignore errors - process might already be dead
     }
-    if (state?.staticServer) {
-      state.staticServer.close()
-      state.staticServer.closeAllConnections?.()
+    
+    try {
+      if (state?.staticServer) {
+        state.staticServer.close()
+        state.staticServer.closeAllConnections?.()
+      }
+    } catch (e) {
+      // Ignore errors
     }
   })
 

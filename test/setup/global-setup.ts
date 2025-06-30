@@ -18,6 +18,7 @@ interface GlobalState {
   staticPort?: number
   honoPort?: number
   processGroupId?: number
+  allChildProcesses?: Set<number>
 }
 
 declare global {
@@ -145,14 +146,34 @@ function findAvailablePort(startPort = 8000): Promise<number> {
 export default async function globalSetup() {
   console.log('🔧 Setting up integration test environment...')
   
-  const state: GlobalState = {}
+  const state: GlobalState = {
+    allChildProcesses: new Set<number>()
+  }
   globalThis.__INTEGRATION_TEST_STATE__ = state
 
   // Set up signal handlers for cleanup
   const cleanup = () => {
+    // Kill all tracked child processes
+    if (state.allChildProcesses) {
+      for (const pid of state.allChildProcesses) {
+        try {
+          process.kill(pid, 'SIGTERM')
+          setTimeout(() => {
+            try {
+              process.kill(pid, 'SIGKILL')
+            } catch (e) {
+              // Process already dead, ignore
+            }
+          }, 1000)
+        } catch (e) {
+          // Process already dead, ignore
+        }
+      }
+    }
+    
+    // Also try process group cleanup as backup
     if (state.processGroupId) {
       try {
-        // Kill the entire process group
         process.kill(-state.processGroupId, 'SIGTERM')
         setTimeout(() => {
           try {
@@ -162,9 +183,10 @@ export default async function globalSetup() {
           }
         }, 1000)
       } catch (e) {
-        console.warn('Error cleaning up process group:', e)
+        // Ignore errors - process group may not exist
       }
     }
+    
     if (state.staticServer) {
       state.staticServer.close()
       state.staticServer.closeAllConnections?.()
@@ -199,6 +221,11 @@ export default async function globalSetup() {
       detached: false, // Keep in same process group initially
     })
     
+    // Track all child processes
+    if (honoServer.pid) {
+      state.allChildProcesses!.add(honoServer.pid)
+    }
+    
     // Store the process group ID and port
     state.processGroupId = honoServer.pid
     state.honoPort = honoPort
@@ -210,6 +237,13 @@ export default async function globalSetup() {
     
     honoServer.stderr?.on('data', (data) => {
       console.log(`[hono-mcp] ${data.toString()}`)
+    })
+
+    // Track when the process exits to remove it from our tracking
+    honoServer.on('exit', () => {
+      if (honoServer.pid) {
+        state.allChildProcesses!.delete(honoServer.pid)
+      }
     })
 
     // Wait for hono server to be ready
