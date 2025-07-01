@@ -210,7 +210,7 @@ export default async function globalSetup() {
     // Step 2: Build inspector example
     console.log('📦 Building inspector example...')
     const inspectorDir = join(rootDir, 'examples/inspector')
-    await runCommand('pnpm', ['build'], inspectorDir, {NO_MINIFY: "true"})
+    await runCommand('pnpm', ['build'], inspectorDir, { NO_MINIFY: 'true' })
 
     // Step 3: Find available port and start hono-mcp server
     console.log('🔍 Finding available port starting from 9901...')

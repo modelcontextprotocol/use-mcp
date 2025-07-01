@@ -369,9 +369,10 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         }
 
         // Handle other connection errors
-        // Use stable failConnection
+        // For HTTP transport, consider fallback only for specific error types
+        // "Not connected" errors should still be treated as failures, not fallback triggers
         failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
-        return 'fallback' // If our logic above is wrong, we'd prevent HTTPs servers from ever working. So always fall back as a last resort.
+        return 'failed'
       }
     } // End of tryConnectWithTransport helper
 
@@ -392,10 +393,18 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // Auto mode - try HTTP first, fallback to SSE
       addLog('debug', 'Using auto transport mode (HTTP with SSE fallback)')
       const httpResult = await tryConnectWithTransport('http')
-      // 2. Try SSE only if HTTP requested fallback and we haven't failed/redirected
-      if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'failed' && stateRef.current !== 'authenticating') {
+
+      // Try SSE only if HTTP requested fallback and we haven't redirected for auth
+      // Allow fallback even if state is 'failed' from a previous HTTP attempt in auto mode
+      if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
+        addLog('info', 'HTTP failed, attempting SSE fallback...')
         const sseResult = await tryConnectWithTransport('sse')
         finalStatus = sseResult // Use SSE result as final status
+
+        // If SSE also failed, we need to properly fail the connection since HTTP didn't call failConnection
+        if (sseResult === 'failed' && isMountedRef.current) {
+          // SSE failure already called failConnection, so we don't need to do anything else
+        }
       } else {
         finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
       }
