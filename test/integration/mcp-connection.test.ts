@@ -30,12 +30,12 @@ function getMCPServers() {
       },
       {
         name: 'cf-agents',
-        url: `http://localhost:${state.cfAgentsPort}/mcp`,
+        url: `http://localhost:${state.cfAgentsPort}/public/mcp`,
         expectedTools: 1, // Minimum expected tools count
       },
       {
         name: 'cf-agents-sse',
-        url: `http://localhost:${state.cfAgentsPort}/sse`,
+        url: `http://localhost:${state.cfAgentsPort}/public/sse`,
         expectedTools: 1, // Minimum expected tools count
       },
     ]

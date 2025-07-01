@@ -27,7 +27,8 @@
     "prettier:fix": "prettier --write .",
     "fix:oranda": "sed -i 's/```tsx/```ts/g' README.md",
     "build:site": "npx @axodotdev/oranda build",
-    "deploy:site": "npx wrangler deploy"
+    "deploy:site": "npx wrangler deploy",
+    "postinstall": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit"
   },
   "dependencies": {
     "strict-url-sanitise": "^0.0.1"

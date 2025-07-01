@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Pre-commit hook to run prettier on staged files
+# This hook is called by "git commit" and formats only the files being committed.
+
+echo "Running prettier on staged files..."
+
+# Get list of staged files that prettier can handle
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(js|jsx|ts|tsx|json|css|scss|md)$' | tr '\n' ' ')
+
+if [ -z "$STAGED_FILES" ]; then
+    echo "No staged files need formatting."
+    exit 0
+fi
+
+echo "Formatting files: $STAGED_FILES"
+
+# Run prettier on staged files
+pnpm prettier --write $STAGED_FILES
+
+# Add the formatted files back to staging
+git add $STAGED_FILES
+
+echo "Prettier formatting completed."
