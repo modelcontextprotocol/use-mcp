@@ -234,8 +234,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       transportInstance.onmessage = (message: JSONRPCMessage) => {
         // Use stable addLog
         addLog('debug', `[Transport] Received: ${JSON.stringify(message)}`)
-        // @ts-ignore
-        clientRef.current?.handleMessage(message) // Forward to current client
       }
       transportInstance.onerror = (err: Error) => {
         // Transport errors usually mean connection is lost/failed definitively for this transport
