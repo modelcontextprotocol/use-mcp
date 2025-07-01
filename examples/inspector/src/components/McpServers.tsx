@@ -3,14 +3,22 @@ import { useMcp, type Tool } from 'use-mcp/react'
 import { Info, X, ChevronRight, ChevronDown } from 'lucide-react'
 
 // MCP Connection wrapper that only renders when active
-function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; onConnectionUpdate: (data: any) => void }) {
+function McpConnection({
+  serverUrl,
+  transportType,
+  onConnectionUpdate,
+}: {
+  serverUrl: string
+  transportType: 'auto' | 'http' | 'sse'
+  onConnectionUpdate: (data: any) => void
+}) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
     url: serverUrl,
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
-    transportType: 'auto',
+    transportType,
   })
 
   // Update parent component with connection data
@@ -25,6 +33,9 @@ function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; o
 export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) => void }) {
   const [serverUrl, setServerUrl] = useState(() => {
     return sessionStorage.getItem('mcpServerUrl') || ''
+  })
+  const [transportType, setTransportType] = useState<'auto' | 'http' | 'sse'>(() => {
+    return (sessionStorage.getItem('mcpTransportType') as 'auto' | 'http' | 'sse') || 'auto'
   })
   const [isActive, setIsActive] = useState(false)
 
@@ -293,6 +304,20 @@ export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) 
             }}
             disabled={isActive && state !== 'failed'}
           />
+          <select
+            className="p-2 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-300"
+            value={transportType}
+            onChange={(e) => {
+              const newValue = e.target.value as 'auto' | 'http' | 'sse'
+              setTransportType(newValue)
+              sessionStorage.setItem('mcpTransportType', newValue)
+            }}
+            disabled={isActive && state !== 'failed'}
+          >
+            <option value="auto">Auto</option>
+            <option value="http">HTTP</option>
+            <option value="sse">SSE</option>
+          </select>
 
           {state === 'ready' || (isActive && state !== 'not-connected' && state !== 'failed') ? (
             <button
@@ -477,7 +502,7 @@ export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) 
       </div>
 
       {/* Only render the actual MCP connection when active */}
-      {isActive && <McpConnection serverUrl={serverUrl} onConnectionUpdate={setConnectionData} />}
+      {isActive && <McpConnection serverUrl={serverUrl} transportType={transportType} onConnectionUpdate={setConnectionData} />}
     </section>
   )
 }
