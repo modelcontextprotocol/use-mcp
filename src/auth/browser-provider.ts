@@ -33,7 +33,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     this.clientUri = options.clientUri || (typeof window !== 'undefined' ? window.location.origin : '')
     this.scopes = options.scopes && options.scopes.length > 0 
       ? options.scopes
-      : ['openid', 'profile', 'email', 'mcp'] // default scopes
+      : ['openid'] // default scope(s)
     this.callbackUrl =
       options.callbackUrl ||
       (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback')
@@ -56,7 +56,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       scope: this.scopes.join(' '),
       // NOTE: If using dynamic registration, ensure the scopes are appropriate for your server.
       // If your server requires specific scopes, you can adjust this accordingly.
-      // Default scopes: 'openid profile email mcp', 
+      // Default generic scopes: 'openid', 
     }
   }
 
