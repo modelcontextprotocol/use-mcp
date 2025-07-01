@@ -18,12 +18,18 @@ importers:
       '@biomejs/biome':
         specifier: ^2.0.4
         version: 2.0.6
+      '@cloudflare/workers-oauth-provider':
+        specifier: ^0.0.5
+        version: 0.0.5
       '@types/node':
         specifier: ^24.0.7
         version: 24.0.7
       agents:
         specifier: ^0.0.100
         version: 0.0.100(@cloudflare/workers-types@4.20250628.0)(react@19.1.0)
+      hono:
+        specifier: ^4.8.3
+        version: 4.8.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -154,6 +160,9 @@ packages:
     engines: {node: '>=16'}
     cpu: [x64]
     os: [win32]
+
+  '@cloudflare/workers-oauth-provider@0.0.5':
+    resolution: {integrity: sha512-t1x5KAzsubCvb4APnJ93z407X1x7SGj/ga5ziRnwIb/iLy4PMkT/hgd1y5z7Bbsdy5Fy6mywhCP4lym24bX66w==}
 
   '@cloudflare/workers-types@4.20250628.0':
     resolution: {integrity: sha512-V4HthfhtQU2vTpwLeUic8FTLgGSjglsGZMJc9jKBNYEU/k0A1rE55UgQoTb5blKQdGtpQKfVKs3FROeY/lXmbw==}
@@ -692,6 +701,10 @@ packages:
     resolution: {integrity: sha512-0hJU9SCPvmMzIBdZFqNPXWa6dqh7WdH0cII9y+CyS8rG3nL48Bclra9HmKhVVUHyPWNH5Y7xDwAB7bfgSjkUMQ==}
     engines: {node: '>= 0.4'}
 
+  hono@4.8.3:
+    resolution: {integrity: sha512-jYZ6ZtfWjzBdh8H/0CIFfCBHaFL75k+KMzaM177hrWWm2TWL39YMYaJgB74uK/niRc866NMlH9B8uCvIo284WQ==}
+    engines: {node: '>=16.9.0'}
+
   http-errors@2.0.0:
     resolution: {integrity: sha512-FtwrG/euBzaEjYeRqOgly7G0qviiXoJWnvEH2Z1plBdXgbyjv34pHTSb9zoeHMyDy33+DWy5Wt9Wo+TURtOYSQ==}
     engines: {node: '>= 0.8'}
@@ -1124,6 +1137,10 @@ snapshots:
 
   '@cloudflare/workerd-windows-64@1.20250617.0':
     optional: true
+
+  '@cloudflare/workers-oauth-provider@0.0.5':
+    dependencies:
+      '@cloudflare/workers-types': 4.20250628.0
 
   '@cloudflare/workers-types@4.20250628.0': {}
 
@@ -1606,6 +1623,8 @@ snapshots:
   hasown@2.0.2:
     dependencies:
       function-bind: 1.1.2
+
+  hono@4.8.3: {}
 
   http-errors@2.0.0:
     dependencies:

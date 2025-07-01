@@ -38,6 +38,16 @@ function getMCPServers() {
         url: `http://localhost:${state.cfAgentsPort}/public/sse`,
         expectedTools: 1, // Minimum expected tools count
       },
+      {
+        name: 'cf-agents-auth',
+        url: `http://localhost:${state.cfAgentsPort}/mcp`,
+        expectedTools: 1, // Minimum expected tools count
+      },
+      {
+        name: 'cf-agents-auth-sse',
+        url: `http://localhost:${state.cfAgentsPort}/sse`,
+        expectedTools: 1, // Minimum expected tools count
+      },
     ]
   } catch (error) {
     throw new Error(`Test environment not properly initialized: ${error}`)
@@ -216,23 +226,25 @@ describe('MCP Connection Integration Tests', () => {
   })
 
   const testScenarios = [
-    // Working examples with auto transport (should pass)
+    // Hono examples (MCP only)
     { serverName: 'hono-mcp', transportType: 'auto' as const },
-    { serverName: 'cf-agents', transportType: 'auto' as const },
-
-    // SSE endpoint with SSE transport (should pass)
-    { serverName: 'cf-agents-sse', transportType: 'sse' as const },
-
-    // Additional test cases for HTTP transport
     { serverName: 'hono-mcp', transportType: 'http' as const },
-    { serverName: 'cf-agents', transportType: 'http' as const },
 
-    // Failing case: SSE endpoint with auto transport (should fail)
+    // Agents, no auth
+    { serverName: 'cf-agents', transportType: 'auto' as const },
+    { serverName: 'cf-agents', transportType: 'http' as const },
+    { serverName: 'cf-agents-sse', transportType: 'sse' as const },
     { serverName: 'cf-agents-sse', transportType: 'auto' as const },
+
+    // Agents, with auth
+    { serverName: 'cf-agents-auth', transportType: 'auto' as const },
+    { serverName: 'cf-agents-auth', transportType: 'http' as const },
+    { serverName: 'cf-agents-auth-sse', transportType: 'sse' as const },
+    { serverName: 'cf-agents-auth-sse', transportType: 'auto' as const },
   ]
 
   test.each(testScenarios)(
-    'should connect to $serverName with $transportType transport (expect: $shouldPass)',
+    'should connect to $serverName with $transportType transport',
     async ({ serverName, transportType }) => {
       const servers = getMCPServers()
       const server = servers.find((s) => s.name === serverName)

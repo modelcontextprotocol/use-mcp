@@ -17,8 +17,10 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.0.4",
+    "@cloudflare/workers-oauth-provider": "^0.0.5",
     "@types/node": "^24.0.7",
     "agents": "^0.0.100",
+    "hono": "^4.8.3",
     "typescript": "^5.8.3",
     "wrangler": "^4.22.0"
   }
