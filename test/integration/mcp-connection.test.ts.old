@@ -93,7 +93,8 @@ describe('MCP Connection Integration Tests', () => {
               }
 
               // Check if this is an expected failure case
-              const isExpectedFailure = endpoint.path.endsWith('/sse') && transportType === 'auto'
+              const isExpectedFailure =
+                endpoint.path.endsWith('/sse') && transportType === 'auto'
 
               if (isExpectedFailure) {
                 console.log(`ℹ️  Expected failure: SSE endpoint with auto transport`)
@@ -101,7 +102,7 @@ describe('MCP Connection Integration Tests', () => {
               } else {
                 // Fail the test with detailed information
                 throw new Error(
-                  `Expected to connect to ${serverConfig.name} with ${transportType} transport but failed. Debug log: ${result.debugLog}`,
+                  `Expected to connect to ${serverConfig.name} with ${transportType} transport but failed. Debug log: ${result.debugLog}`
                 )
               }
             }

@@ -5,6 +5,8 @@ import { writeFileSync, mkdirSync, readFileSync } from 'fs'
 import { createServer, Server } from 'http'
 import { parse } from 'url'
 import { extname } from 'path'
+import { SERVER_CONFIGS } from '../integration/server-configs.js'
+import { findAvailablePortFromBase, spawnDevServer, waitForOutput, TestState, cleanupProcess } from '../integration/test-utils.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const rootDir = join(__dirname, '../..')
@@ -12,105 +14,16 @@ const testDir = join(__dirname, '..')
 const cacheDir = join(testDir, 'node_modules/.cache/use-mcp-tests')
 const testStateFile = join(cacheDir, 'test-state.json')
 
-interface GlobalState {
+interface GlobalState extends TestState {
   honoServer?: ChildProcess
   cfAgentsServer?: ChildProcess
   staticServer?: Server
-  staticPort?: number
-  honoPort?: number
-  cfAgentsPort?: number
   processGroupId?: number
   allChildProcesses?: Set<number>
 }
 
 declare global {
   var __INTEGRATION_TEST_STATE__: GlobalState
-}
-
-function waitForOutput(process: ChildProcess, targetOutput: string, timeout = 30000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Timeout waiting for: ${targetOutput}`))
-    }, timeout)
-
-    const onData = (data: Buffer) => {
-      const output = data.toString()
-      console.log(`[server output] ${output}`)
-      if (output.includes(targetOutput)) {
-        clearTimeout(timer)
-        process.stdout?.off('data', onData)
-        process.stderr?.off('data', onData)
-        resolve()
-      }
-    }
-
-    process.stdout?.on('data', onData)
-    process.stderr?.on('data', onData)
-  })
-}
-
-async function checkPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const server = require('net').createServer()
-
-    server.listen(port, () => {
-      server.close(() => {
-        // Wait a bit for the port to fully close
-        setTimeout(() => resolve(true), 100)
-      })
-    })
-
-    server.on('error', (err: any) => {
-      console.log(`Port ${port} check failed: ${err.message}`)
-      resolve(false)
-    })
-  })
-}
-
-async function checkPortNotUsedByWrangler(port: number): Promise<boolean> {
-  // First check if port is available at network level
-  const networkAvailable = await checkPortAvailable(port)
-  if (!networkAvailable) {
-    return false
-  }
-
-  // Then check if there are wrangler processes using this port
-  return new Promise((resolve) => {
-    const { spawn } = require('child_process')
-    const lsof = spawn('lsof', ['-ti', `:${port}`])
-
-    let output = ''
-    lsof.stdout?.on('data', (data: Buffer) => {
-      output += data.toString()
-    })
-
-    lsof.on('close', () => {
-      if (output.trim()) {
-        // Port is in use
-        resolve(false)
-      } else {
-        // Port is free
-        resolve(true)
-      }
-    })
-
-    lsof.on('error', () => {
-      // lsof failed, assume port is available
-      resolve(true)
-    })
-  })
-}
-
-function findAvailablePortFromBase(basePort: number): Promise<number> {
-  return new Promise(async (resolve, reject) => {
-    for (let port = basePort; port < basePort + 20; port++) {
-      if (await checkPortNotUsedByWrangler(port)) {
-        resolve(port)
-        return
-      }
-    }
-    reject(new Error(`No available ports found starting from ${basePort}. Please stop any existing wrangler/workerd processes.`))
-  })
 }
 
 function runCommand(command: string, args: string[], cwd: string, env?: Record<string, string>): Promise<void> {
@@ -212,89 +125,43 @@ export default async function globalSetup() {
     const inspectorDir = join(rootDir, 'examples/inspector')
     await runCommand('pnpm', ['build'], inspectorDir, { NO_MINIFY: 'true' })
 
-    // Step 3: Find available port and start hono-mcp server
-    console.log('🔍 Finding available port starting from 9901...')
-    const honoPort = await findAvailablePortFromBase(9901)
-    console.log(`📍 Using port ${honoPort} for hono-mcp server`)
+    // Step 3: Start all configured MCP servers
+    let basePort = 9901
 
-    console.log('🚀 Starting hono-mcp server...')
-    const honoDir = join(rootDir, 'examples/servers/hono-mcp')
-    const honoServer = spawn('pnpm', ['dev', `--port=${honoPort}`], {
-      cwd: honoDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
-      detached: false, // Keep in same process group initially
-    })
+    for (const serverConfig of SERVER_CONFIGS) {
+      console.log(`🔍 Finding available port starting from ${basePort} for ${serverConfig.name}...`)
+      const port = await findAvailablePortFromBase(basePort)
+      console.log(`📍 Using port ${port} for ${serverConfig.name} server`)
 
-    // Track all child processes
-    if (honoServer.pid) {
-      state.allChildProcesses!.add(honoServer.pid)
-    }
+      console.log(`🚀 Starting ${serverConfig.name} server...`)
+      const server = spawnDevServer(serverConfig.name, serverConfig.directory, port)
 
-    // Store the process group ID and port
-    state.processGroupId = honoServer.pid
-    state.honoPort = honoPort
-    state.honoServer = honoServer
-
-    honoServer.stdout?.on('data', (data) => {
-      console.log(`[hono-mcp] ${data.toString()}`)
-    })
-
-    honoServer.stderr?.on('data', (data) => {
-      console.log(`[hono-mcp] ${data.toString()}`)
-    })
-
-    // Track when the process exits to remove it from our tracking
-    honoServer.on('exit', () => {
-      if (honoServer.pid) {
-        state.allChildProcesses!.delete(honoServer.pid)
+      // Track all child processes
+      if (server.pid) {
+        state.allChildProcesses!.add(server.pid)
       }
-    })
 
-    // Wait for hono server to be ready
-    await waitForOutput(honoServer, 'Ready on')
-    state.honoServer = honoServer
-
-    // Step 4: Find available port and start cf-agents server
-    console.log('🔍 Finding available port starting from 9902...')
-    const cfAgentsPort = await findAvailablePortFromBase(9902)
-    console.log(`📍 Using port ${cfAgentsPort} for cf-agents server`)
-
-    console.log('🚀 Starting cf-agents server...')
-    const cfAgentsDir = join(rootDir, 'examples/servers/cf-agents')
-    const cfAgentsServer = spawn('pnpm', ['dev', `--port=${cfAgentsPort}`], {
-      cwd: cfAgentsDir,
-      stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
-      detached: false,
-    })
-
-    // Track all child processes
-    if (cfAgentsServer.pid) {
-      state.allChildProcesses!.add(cfAgentsServer.pid)
-    }
-
-    state.cfAgentsPort = cfAgentsPort
-    state.cfAgentsServer = cfAgentsServer
-
-    cfAgentsServer.stdout?.on('data', (data) => {
-      console.log(`[cf-agents] ${data.toString()}`)
-    })
-
-    cfAgentsServer.stderr?.on('data', (data) => {
-      console.log(`[cf-agents] ${data.toString()}`)
-    })
-
-    // Track when the process exits to remove it from our tracking
-    cfAgentsServer.on('exit', () => {
-      if (cfAgentsServer.pid) {
-        state.allChildProcesses!.delete(cfAgentsServer.pid)
+      // Store the port and server reference
+      state[serverConfig.portKey] = port
+      if (serverConfig.name === 'hono-mcp') {
+        state.honoServer = server
+        state.processGroupId = server.pid
+      } else if (serverConfig.name === 'cf-agents') {
+        state.cfAgentsServer = server
       }
-    })
 
-    // Wait for cf-agents server to be ready
-    await waitForOutput(cfAgentsServer, 'Ready on')
-    state.cfAgentsServer = cfAgentsServer
+      // Track when the process exits to remove it from our tracking
+      server.on('exit', () => {
+        if (server.pid) {
+          state.allChildProcesses!.delete(server.pid)
+        }
+      })
+
+      // Wait for server to be ready
+      await waitForOutput(server, 'Ready on')
+
+      basePort += 1 // Increment base port for next server
+    }
 
     // Step 5: Start simple static file server for inspector
     console.log('🌐 Starting static file server for inspector...')
@@ -354,18 +221,16 @@ export default async function globalSetup() {
 
     // Write state to file for tests to read
     mkdirSync(cacheDir, { recursive: true })
-    writeFileSync(
-      testStateFile,
-      JSON.stringify(
-        {
-          honoPort: state.honoPort,
-          cfAgentsPort: state.cfAgentsPort,
-          staticPort: state.staticPort,
-        },
-        null,
-        2,
-      ),
-    )
+    const testState: TestState = {
+      staticPort: state.staticPort,
+    }
+
+    // Add port information for each configured server
+    for (const serverConfig of SERVER_CONFIGS) {
+      testState[serverConfig.portKey] = state[serverConfig.portKey]
+    }
+
+    writeFileSync(testStateFile, JSON.stringify(testState, null, 2))
 
     console.log('✅ Integration test environment ready!')
   } catch (error) {
@@ -373,10 +238,10 @@ export default async function globalSetup() {
 
     // Cleanup on failure
     if (state.honoServer) {
-      state.honoServer.kill()
+      cleanupProcess(state.honoServer, 'hono-mcp')
     }
     if (state.cfAgentsServer) {
-      state.cfAgentsServer.kill()
+      cleanupProcess(state.cfAgentsServer, 'cf-agents')
     }
     if (state.staticServer) {
       state.staticServer.close()
