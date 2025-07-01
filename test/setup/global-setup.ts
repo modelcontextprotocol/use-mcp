@@ -113,12 +113,13 @@ function findAvailablePortFromBase(basePort: number): Promise<number> {
   })
 }
 
-function runCommand(command: string, args: string[], cwd: string): Promise<void> {
+function runCommand(command: string, args: string[], cwd: string, env?: Record<string, string>): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd,
       stdio: 'inherit',
       shell: true,
+      env: env ? { ...process.env, ...env } : process.env,
     })
 
     child.on('close', (code) => {
@@ -209,7 +210,7 @@ export default async function globalSetup() {
     // Step 2: Build inspector example
     console.log('📦 Building inspector example...')
     const inspectorDir = join(rootDir, 'examples/inspector')
-    await runCommand('pnpm', ['build'], inspectorDir)
+    await runCommand('pnpm', ['build'], inspectorDir, {NO_MINIFY: "true"})
 
     // Step 3: Find available port and start hono-mcp server
     console.log('🔍 Finding available port starting from 9901...')

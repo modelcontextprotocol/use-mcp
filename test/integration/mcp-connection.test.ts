@@ -217,23 +217,23 @@ describe('MCP Connection Integration Tests', () => {
 
   const testScenarios = [
     // Working examples with auto transport (should pass)
-    { serverName: 'hono-mcp', transportType: 'auto' as const, shouldPass: true },
-    { serverName: 'cf-agents', transportType: 'auto' as const, shouldPass: true },
+    { serverName: 'hono-mcp', transportType: 'auto' as const },
+    { serverName: 'cf-agents', transportType: 'auto' as const },
 
     // SSE endpoint with SSE transport (should pass)
-    { serverName: 'cf-agents-sse', transportType: 'sse' as const, shouldPass: true },
+    { serverName: 'cf-agents-sse', transportType: 'sse' as const },
 
     // Additional test cases for HTTP transport
-    { serverName: 'hono-mcp', transportType: 'http' as const, shouldPass: true },
-    { serverName: 'cf-agents', transportType: 'http' as const, shouldPass: true },
+    { serverName: 'hono-mcp', transportType: 'http' as const },
+    { serverName: 'cf-agents', transportType: 'http' as const },
 
     // Failing case: SSE endpoint with auto transport (should fail)
-    { serverName: 'cf-agents-sse', transportType: 'auto' as const, shouldPass: false },
+    { serverName: 'cf-agents-sse', transportType: 'auto' as const },
   ]
 
   test.each(testScenarios)(
     'should connect to $serverName with $transportType transport (expect: $shouldPass)',
-    async ({ serverName, transportType, shouldPass }) => {
+    async ({ serverName, transportType }) => {
       const servers = getMCPServers()
       const server = servers.find((s) => s.name === serverName)
 
@@ -245,38 +245,25 @@ describe('MCP Connection Integration Tests', () => {
 
       const result = await connectToMCPServer(page, server.url, transportType)
 
-      if (shouldPass) {
-        if (result.success) {
-          console.log(`✅ Successfully connected to ${server.name}`)
-          console.log(`📋 Available tools (${result.tools.length}):`)
-          result.tools.forEach((tool, index) => {
-            console.log(`   ${index + 1}. ${tool}`)
-          })
+      if (result.success) {
+        console.log(`✅ Successfully connected to ${server.name}`)
+        console.log(`📋 Available tools (${result.tools.length}):`)
+        result.tools.forEach((tool, index) => {
+          console.log(`   ${index + 1}. ${tool}`)
+        })
 
-          // Verify connection success
-          expect(result.success).toBe(true)
-          expect(result.tools.length).toBeGreaterThanOrEqual(server.expectedTools)
-        } else {
-          console.log(`❌ Failed to connect to ${server.name}`)
-          if (result.debugLog) {
-            console.log(`🐛 Debug log:`)
-            console.log(result.debugLog)
-          }
-
-          // Fail the test with detailed information
-          throw new Error(`Expected to connect to ${server.name} with ${transportType} transport but failed. Debug log: ${result.debugLog}`)
-        }
+        // Verify connection success
+        expect(result.success).toBe(true)
+        expect(result.tools.length).toBeGreaterThanOrEqual(server.expectedTools)
       } else {
-        // Expect failure
-        if (result.success) {
-          console.log(`❌ Unexpectedly connected to ${server.name}`)
-          throw new Error(`Expected connection to ${server.name} with ${transportType} transport to fail, but it succeeded`)
-        } else {
-          console.log(`✅ Connection to ${server.name} failed as expected`)
-          console.log(`🐛 Debug log: ${result.debugLog}`)
-          // Verify it's actually a failure
-          expect(result.success).toBe(false)
+        console.log(`❌ Failed to connect to ${server.name}`)
+        if (result.debugLog) {
+          console.log(`🐛 Debug log:`)
+          console.log(result.debugLog)
         }
+
+        // Fail the test with detailed information
+        throw new Error(`Expected to connect to ${server.name} with ${transportType} transport but failed. Debug log: ${result.debugLog}`)
       }
     },
     45000,

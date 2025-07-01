@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
-    // @ts-ignore
-    minify: !process.env.NO_MINIFY,
+    // @ts-expect-error I don't want to install @types/node for this one line
+    minify: process.env.NO_MINIFY !== "true",
   },
 })
