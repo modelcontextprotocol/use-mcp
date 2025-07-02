@@ -143,16 +143,19 @@ export const useStreamResponse = ({
             content: contentMsg.content,
           }
         })
-      // Prepare stream options
-      const streamOptions = {
+
+      const result = streamText({
         model: modelInstance,
         messages: messagesToSend,
         tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
         maxSteps: 5, // Allow up to 5 steps for tool calling
         abortSignal: controller.signal,
-      }
-
-      const result = await streamText(streamOptions)
+        providerOptions: {
+          groq: {
+            reasoningFormat: 'parsed',
+          },
+        },
+      })
 
       // Use fullStream to get all events including tool calls, results, and text
       for await (const event of result.fullStream) {
