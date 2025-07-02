@@ -117,11 +117,12 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   }
 
   /**
-   * Redirects the user agent to the authorization URL, storing necessary state.
-   * This now adheres to the SDK's void return type expectation for the interface.
+   * Generates and stores the authorization URL with state, without opening a popup.
+   * Used when preventAutoAuth is enabled to provide the URL for manual navigation.
    * @param authorizationUrl The fully constructed authorization URL from the SDK.
+   * @returns The full authorization URL with state parameter.
    */
-  async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+  async prepareAuthorizationUrl(authorizationUrl: URL): Promise<string> {
     // Generate a unique state parameter for this authorization request
     const state = crypto.randomUUID()
     const stateKey = `${this.storageKeyPrefix}:state_${state}`
@@ -150,6 +151,18 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
 
     // Persist the exact auth URL in case the popup fails and manual navigation is needed
     localStorage.setItem(this.getKey('last_auth_url'), sanitizedAuthUrl)
+
+    return sanitizedAuthUrl
+  }
+
+  /**
+   * Redirects the user agent to the authorization URL, storing necessary state.
+   * This now adheres to the SDK's void return type expectation for the interface.
+   * @param authorizationUrl The fully constructed authorization URL from the SDK.
+   */
+  async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    // Prepare the authorization URL with state
+    const sanitizedAuthUrl = await this.prepareAuthorizationUrl(authorizationUrl)
 
     // Attempt to open the popup
     const popupFeatures = 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes' // Make configurable if needed

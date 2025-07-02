@@ -11,13 +11,7 @@ interface McpServer {
 }
 
 // MCP Connection wrapper for a single server
-function McpConnection({
-  server,
-  onConnectionUpdate,
-}: {
-  server: McpServer
-  onConnectionUpdate: (serverId: string, data: any) => void
-}) {
+function McpConnection({ server, onConnectionUpdate }: { server: McpServer; onConnectionUpdate: (serverId: string, data: any) => void }) {
   // Use the MCP hook with the server URL
   const connection = useMcp({
     url: server.url,
@@ -25,6 +19,7 @@ function McpConnection({
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
     transportType: server.transportType,
+    preventAutoAuth: true, // Prevent automatic popups on page load
   })
 
   // Update parent component with connection data
@@ -206,6 +201,8 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
     switch (state) {
       case 'discovering':
         return <span className={`${baseClasses} bg-blue-100 text-blue-800`}>Discovering</span>
+      case 'pending_auth':
+        return <span className={`${baseClasses} bg-orange-100 text-orange-800`}>Authentication Required</span>
       case 'authenticating':
         return <span className={`${baseClasses} bg-purple-100 text-purple-800`}>Authenticating</span>
       case 'connecting':
@@ -299,18 +296,31 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
                           <div className="text-sm text-red-600 p-3 bg-red-50 rounded border mb-3">{error}</div>
                         )}
 
-                        {authUrl && (
-                          <div className="p-3 bg-orange-50 border border-orange-200 rounded mb-3">
-                            <p className="text-sm mb-2">Authentication required. Please click the link below:</p>
-                            <a
-                              href={authUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-sm text-orange-700 hover:text-orange-800 underline"
-                              onClick={() => handleManualAuth(server.id)}
-                            >
-                              Authenticate in new window
-                            </a>
+                        {(state === 'pending_auth' || authUrl) && (
+                          <div className="p-3 bg-blue-50 border border-blue-200 rounded mb-3">
+                            <p className="text-sm mb-2">
+                              {state === 'pending_auth'
+                                ? 'Authentication is required to connect to this server.'
+                                : 'Authentication popup was blocked. You can open the authentication page manually:'}
+                            </p>
+                            <div className="space-y-2">
+                              <button
+                                className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium"
+                                onClick={() => handleManualAuth(server.id)}
+                              >
+                                Open Authentication Popup
+                              </button>
+                              {authUrl && (
+                                <a
+                                  href={authUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block text-center text-sm text-blue-700 hover:text-blue-800 underline"
+                                >
+                                  Or open in new tab instead
+                                </a>
+                              )}
+                            </div>
                           </div>
                         )}
 

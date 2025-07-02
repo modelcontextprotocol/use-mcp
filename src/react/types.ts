@@ -28,6 +28,8 @@ export type UseMcpOptions = {
   popupFeatures?: string
   /** Transport type preference: 'auto' (HTTP with SSE fallback), 'http' (HTTP only), 'sse' (SSE only) */
   transportType?: 'auto' | 'http' | 'sse'
+  /** Prevent automatic authentication popup on initial connection (default: false) */
+  preventAutoAuth?: boolean
 }
 
 export type UseMcpResult = {
@@ -36,13 +38,14 @@ export type UseMcpResult = {
   /**
    * The current state of the MCP connection:
    * - 'discovering': Checking server existence and capabilities (including auth requirements).
+   * - 'pending_auth': Authentication is required but auto-popup was prevented. User action needed.
    * - 'authenticating': Authentication is required and the process (e.g., popup) has been initiated.
    * - 'connecting': Establishing the SSE connection to the server.
    * - 'loading': Connected; loading resources like the tool list.
    * - 'ready': Connected and ready for tool calls.
    * - 'failed': Connection or authentication failed. Check the `error` property.
    */
-  state: 'discovering' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
+  state: 'discovering' | 'pending_auth' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
   /** If the state is 'failed', this provides the error message */
   error?: string
   /**
