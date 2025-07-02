@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port=5001",
     "build": "tsc -b && pnpm run build:only",
     "build:only": "vite build",
     "lint": "eslint .",

@@ -152,7 +152,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     // Persist the exact auth URL in case the popup fails and manual navigation is needed
     localStorage.setItem(this.getKey('last_auth_url'), sanitizedAuthUrl)
 
-    return authUrlString
+    return sanitizedAuthUrl
   }
 
   /**
@@ -162,7 +162,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
    */
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
     // Prepare the authorization URL with state
-    const authUrlString = await this.prepareAuthorizationUrl(authorizationUrl)
+    const sanitizedAuthUrl = await this.prepareAuthorizationUrl(authorizationUrl)
 
     // Attempt to open the popup
     const popupFeatures = 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes' // Make configurable if needed
