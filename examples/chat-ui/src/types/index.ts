@@ -38,7 +38,13 @@ export interface ToolResultMessage {
   callId: string
 }
 
-export type Message = UserMessage | SystemMessage | AssistantMessage | ReasoningMessage | ToolCallMessage | ToolResultMessage
+export interface ErrorMessage {
+  role: 'error'
+  content: string
+  timestamp: number
+}
+
+export type Message = UserMessage | SystemMessage | AssistantMessage | ReasoningMessage | ToolCallMessage | ToolResultMessage | ErrorMessage
 
 export interface Conversation {
   id?: number

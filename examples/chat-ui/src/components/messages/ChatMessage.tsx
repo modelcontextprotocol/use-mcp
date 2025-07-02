@@ -7,6 +7,7 @@ import ToolCallMessage from './ToolCallMessage.tsx'
 import ToolResultMessage from './ToolResultMessage.tsx'
 import AssistantMessage from './AssistantMessage.tsx'
 import ReasoningMessage from './ReasoningMessage.tsx'
+import ErrorMessage from './ErrorMessage.tsx'
 
 interface ChatMessageProps {
   message: Message
@@ -20,6 +21,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message }) => {
 
   if (message.role === 'tool-result') {
     return <ToolResultMessage message={message} />
+  }
+
+  if (message.role === 'error') {
+    return <ErrorMessage error={message.content} />
   }
 
   if (message.role === 'assistant') {

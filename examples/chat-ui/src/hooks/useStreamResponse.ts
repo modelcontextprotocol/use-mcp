@@ -269,8 +269,23 @@ export const useStreamResponse = ({
       }
     } catch (error: unknown) {
       if (controller.signal.aborted) {
+        // Request was cancelled, don't show error
       } else {
         console.error('Error generating response:', error)
+        
+        // Add error message to the conversation
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        updateConversation((conv) => ({
+          ...conv,
+          messages: [
+            ...conv.messages,
+            {
+              role: 'error',
+              content: errorMessage,
+              timestamp: Date.now(),
+            },
+          ],
+        }))
       }
     } finally {
       setStreamStarted(false)
