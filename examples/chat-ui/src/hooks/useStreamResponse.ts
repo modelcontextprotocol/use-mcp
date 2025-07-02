@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { CoreMessage, jsonSchema, streamText, tool } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { type AssistantMessage, type Conversation, type Message, type SystemMessage, type UserMessage } from '../types'
 import { type Model } from '../types/models'
 import { getApiKey } from '../utils/apiKeys'
@@ -99,6 +100,18 @@ export const useStreamResponse = ({
           },
         })
         baseModel = anthropicProvider(model.modelId)
+        break
+      }
+      case 'workersAi': {
+        // Workers AI requires both API key and account ID
+        // Expected format: "ACCOUNT_ID:API_TOKEN" or just "API_TOKEN" (will use placeholder)
+        const [accountId, actualApiKey] = apiKey.includes(':') ? apiKey.split(':') : ['{accountId}', apiKey]
+
+        const workersAIProvider = createOpenAI({
+          apiKey: actualApiKey,
+          baseURL: `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/v1`,
+        })
+        baseModel = workersAIProvider(model.modelId)
         break
       }
       default:
@@ -272,7 +285,7 @@ export const useStreamResponse = ({
         // Request was cancelled, don't show error
       } else {
         console.error('Error generating response:', error)
-        
+
         // Add error message to the conversation
         const errorMessage = error instanceof Error ? error.message : String(error)
         updateConversation((conv) => ({

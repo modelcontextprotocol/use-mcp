@@ -31,37 +31,33 @@ export const providers: Record<string, ModelProvider> = {
     documentationUrl: 'https://docs.anthropic.com/',
     logo: '🤖',
   },
+  workersAi: {
+    id: 'workersAi',
+    name: 'Workers AI',
+    baseUrl: 'https://api.cloudflare.com/client/v4/accounts/{accountId}/ai/v1',
+    apiKeyHeader: 'Authorization',
+    documentationUrl: 'https://developers.cloudflare.com/workers-ai/',
+    logo: '☁️',
+  },
 }
 
 export const availableModels: Model[] = [
-  {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B Versatile',
-    provider: providers.groq,
-    modelId: 'llama-3.3-70b-versatile',
-  },
   {
     id: 'qwen-3-32b',
     name: 'Qwen3 32B',
     provider: providers.groq,
     modelId: 'qwen/qwen3-32b',
   },
-  // {
-  //   id: 'qwen-qwq-32b',
-  //   name: 'Qwen QwQ 32B (Reasoning)',
-  //   provider: providers.groq,
-  //   modelId: 'qwen-qwq-32b',
-  // },
-  // {
-  //   id: 'deepseek-r1-distill-llama-70b',
-  //   name: 'DeepSeek R1 Distil Llama 70B (Reasoning)',
-  //   provider: providers.groq,
-  //   modelId: 'deepseek-r1-distill-llama-70b',
-  // },
   {
     id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 4 Sonnet',
     provider: providers.anthropic,
     modelId: 'claude-3-5-sonnet-20241022',
+  },
+  {
+    id: 'llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B Versatile',
+    provider: providers.workersAi,
+    modelId: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
   },
 ]
