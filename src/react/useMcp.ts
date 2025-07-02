@@ -6,6 +6,7 @@ import { SSEClientTransport, SSEClientTransportOptions } from '@modelcontextprot
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js' // Added
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { auth, UnauthorizedError, OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js'
+import { sanitizeUrl } from 'strict-url-sanitise'
 import { BrowserOAuthClientProvider } from '../auth/browser-provider.js' // Adjust path
 import { assert } from '../utils/assert.js' // Adjust path
 import type { UseMcpOptions, UseMcpResult } from './types.js' // Adjust path
@@ -23,7 +24,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     url,
     clientName,
     clientUri,
-    callbackUrl = typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback',
+    callbackUrl = typeof window !== 'undefined'
+      ? sanitizeUrl(new URL('/oauth/callback', window.location.origin).toString())
+      : '/oauth/callback',
     storageKeyPrefix = 'mcp:auth',
     clientConfig = {},
     customHeaders = {},
@@ -195,7 +198,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
             },
           },
         }
-        const targetUrl = new URL(url)
+        // Sanitize the URL to prevent XSS attacks from malicious server URLs
+        const sanitizedUrl = sanitizeUrl(url)
+        const targetUrl = new URL(sanitizedUrl)
 
         addLog('debug', `Creating ${transportType.toUpperCase()} transport for URL: ${targetUrl.toString()}`)
         addLog('debug', `Transport options:`, {
@@ -230,7 +235,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         // Use stable addLog
         addLog('debug', `[Transport] Received: ${JSON.stringify(message)}`)
         // @ts-ignore
-        clientRef.current?.handleMessage(message) // Forward to current client
+        clientRef.current?.handleMessage?.(message) // Forward to current client
       }
       transportInstance.onerror = (err: Error) => {
         // Transport errors usually mean connection is lost/failed definitively for this transport
@@ -354,36 +359,27 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           } catch (sdkAuthError) {
             if (!isMountedRef.current) return 'failed'
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
-            addLog('error', 'Auth flow failed:', sdkAuthError)
-            // Auth failed, but still allow fallback to SSE
-            if (transportType === 'http') {
-              return 'fallback' // Try SSE even after auth failure
-            } else {
-              failConnection(
-                `Failed to initiate authentication: ${sdkAuthError instanceof Error ? sdkAuthError.message : String(sdkAuthError)}`,
-                sdkAuthError instanceof Error ? sdkAuthError : undefined,
-              )
-              return 'failed' // Auth initiation failed for SSE
-            }
+            // Use stable failConnection
+            failConnection(
+              `Failed to initiate authentication: ${sdkAuthError instanceof Error ? sdkAuthError.message : String(sdkAuthError)}`,
+              sdkAuthError instanceof Error ? sdkAuthError : undefined,
+            )
+            return 'failed' // Auth initiation failed
           }
         }
 
         // Handle other connection errors
-        // Don't call failConnection here for HTTP transport - let orchestration handle it
-        // so that SSE fallback can still be attempted
-        if (transportType === 'http') {
-          addLog('warn', `HTTP transport failed: ${errorMessage}.`)
-          return 'fallback'
-        } else {
-          // For SSE transport, we can fail immediately since there's no further fallback
-          failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
-          return 'failed'
-        }
+        // For HTTP transport, consider fallback only for specific error types
+        // "Not connected" errors should still be treated as failures, not fallback triggers
+        failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
+        return 'failed'
       }
     } // End of tryConnectWithTransport helper
 
     // --- Orchestrate Connection Attempts ---
     let finalStatus: 'success' | 'auth_redirect' | 'failed' | 'fallback' = 'failed' // Default to failed
+
+    console.log({ transportType })
 
     if (transportType === 'sse') {
       // SSE only - skip HTTP entirely
@@ -398,19 +394,20 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       addLog('debug', 'Using auto transport mode (HTTP with SSE fallback)')
       const httpResult = await tryConnectWithTransport('http')
 
-      // Try SSE only if HTTP requested fallback and we haven't redirected
+      // Try SSE only if HTTP requested fallback and we haven't redirected for auth
+      // Allow fallback even if state is 'failed' from a previous HTTP attempt in auto mode
       if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
+        addLog('info', 'HTTP failed, attempting SSE fallback...')
         const sseResult = await tryConnectWithTransport('sse')
         finalStatus = sseResult // Use SSE result as final status
+
+        // If SSE also failed, we need to properly fail the connection since HTTP didn't call failConnection
+        if (sseResult === 'failed' && isMountedRef.current) {
+          // SSE failure already called failConnection, so we don't need to do anything else
+        }
       } else {
         finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
       }
-    }
-
-    // If we still have 'fallback' status, convert to 'failed' since no more transports to try
-    if (finalStatus === 'fallback') {
-      finalStatus = 'failed'
-      failConnection('All transport methods failed')
     }
 
     // --- Finalize Connection State ---

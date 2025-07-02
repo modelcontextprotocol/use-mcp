@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies - root
+        run: pnpm install
+
+      - name: Install dependencies - inspector example
+        run: pnpm install
+        working-directory: examples/inspector
+
+      - name: Install dependencies - cf-agents example
+        run: pnpm install
+        working-directory: examples/servers/cf-agents
+
+      - name: Install dependencies - hono-mcp example
+        run: pnpm install
+        working-directory: examples/servers/hono-mcp
+
+      - name: Install dependencies - test
+        run: pnpm install && pnpm exec playwright install
+        working-directory: test
+
+      - name: Run tests
+        run: pnpm test:headless
+        working-directory: test

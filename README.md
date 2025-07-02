@@ -167,6 +167,7 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `debug` | `boolean` | Whether to enable verbose debug logging |
 | `autoRetry` | `boolean \| number` | Auto retry connection if initial connection fails, with delay in ms |
 | `autoReconnect` | `boolean \| number` | Auto reconnect if an established connection is lost, with delay in ms (default: 3000) |
+| `transportType` | `'auto' \| 'http' \| 'sse'` | Transport type preference: 'auto' (HTTP with SSE fallback), 'http' (HTTP only), 'sse' (SSE only) (default: 'auto') |
 
 #### Return Value
 

@@ -1,6 +1,7 @@
 // browser-provider.ts
 import { OAuthClientInformation, OAuthMetadata, OAuthTokens, OAuthClientMetadata } from '@modelcontextprotocol/sdk/shared/auth.js'
 import { OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js'
+import { sanitizeUrl } from 'strict-url-sanitise'
 // Assuming StoredState is defined in ./types.js and includes fields for provider options
 import { StoredState } from './types.js' // Adjust path if necessary
 
@@ -29,15 +30,16 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     this.serverUrlHash = this.hashString(serverUrl)
     this.clientName = options.clientName || 'MCP Browser Client'
     this.clientUri = options.clientUri || (typeof window !== 'undefined' ? window.location.origin : '')
-    this.callbackUrl =
+    this.callbackUrl = sanitizeUrl(
       options.callbackUrl ||
-      (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback')
+        (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback'),
+    )
   }
 
   // --- SDK Interface Methods ---
 
   get redirectUrl(): string {
-    return this.callbackUrl
+    return sanitizeUrl(this.callbackUrl)
   }
 
   get clientMetadata(): OAuthClientMetadata {
@@ -143,13 +145,16 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     authorizationUrl.searchParams.set('state', state)
     const authUrlString = authorizationUrl.toString()
 
+    // Sanitize the authorization URL to prevent XSS attacks
+    const sanitizedAuthUrl = sanitizeUrl(authUrlString)
+
     // Persist the exact auth URL in case the popup fails and manual navigation is needed
-    localStorage.setItem(this.getKey('last_auth_url'), authUrlString)
+    localStorage.setItem(this.getKey('last_auth_url'), sanitizedAuthUrl)
 
     // Attempt to open the popup
     const popupFeatures = 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes' // Make configurable if needed
     try {
-      const popup = window.open(authUrlString, `mcp_auth_${this.serverUrlHash}`, popupFeatures)
+      const popup = window.open(sanitizedAuthUrl, `mcp_auth_${this.serverUrlHash}`, popupFeatures)
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         console.warn(
@@ -175,7 +180,8 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
    * Retrieves the last URL passed to `redirectToAuthorization`. Useful for manual fallback.
    */
   getLastAttemptedAuthUrl(): string | null {
-    return localStorage.getItem(this.getKey('last_auth_url'))
+    const storedUrl = localStorage.getItem(this.getKey('last_auth_url'))
+    return storedUrl ? sanitizeUrl(storedUrl) : null
   }
 
   clearStorage(): number {

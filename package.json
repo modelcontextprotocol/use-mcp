@@ -1,7 +1,7 @@
 {
   "name": "use-mcp",
   "repository": "https://github.com/modelcontextprotocol/use-mcp",
-  "version": "0.0.9",
+  "version": "0.0.16",
   "type": "module",
   "files": [
     "dist",
@@ -27,11 +27,15 @@
     "prettier:fix": "prettier --write .",
     "fix:oranda": "sed -i 's/```tsx/```ts/g' README.md",
     "build:site": "npx @axodotdev/oranda build",
-    "deploy:site": "npx wrangler deploy"
+    "deploy:site": "npx wrangler deploy",
+    "postinstall": "ln -sf ../../scripts/pre-commit .git/hooks/pre-commit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.3",
+    "strict-url-sanitise": "^0.0.1"
   },
   "devDependencies": {
     "@axodotdev/oranda": "^0.6.5",
-    "@modelcontextprotocol/sdk": "^1.13.1",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
