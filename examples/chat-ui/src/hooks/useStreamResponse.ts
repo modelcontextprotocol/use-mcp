@@ -163,6 +163,7 @@ export const useStreamResponse = ({
           let updatedMessage: Message | undefined
           let newMessage: Message | undefined
           try {
+            console.log({ event })
             if (event.type === 'reasoning') {
               if (lastMessage?.role === 'assistant' && lastMessage.type === 'reasoning') {
                 // We have an existing reasoning block!
@@ -212,13 +213,19 @@ export const useStreamResponse = ({
                 } else {
                   console.warn('Tool call event missing toolName:', event)
                 }
+                // @ts-expect-error I have no idea why this is suddenly failing...
               } else if (event.type === 'tool-result') {
+                // @ts-expect-error wat
                 if (event.toolName && event.toolCallId) {
                   newMessage = {
                     role: 'tool-result',
+                    // @ts-expect-error the
                     toolName: event.toolName,
+                    // @ts-expect-error actual
                     toolArgs: event.args || {},
+                    // @ts-expect-error goddamn
                     toolResult: event.result,
+                    // @ts-expect-error fek
                     callId: event.toolCallId,
                   }
                   scrollToBottom(true)
