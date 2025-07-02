@@ -12,6 +12,7 @@ export interface Model {
   name: string
   provider: ModelProvider
   modelId: string
+  providerOptions?: any
 }
 
 export const providers: Record<string, ModelProvider> = {
@@ -35,16 +36,21 @@ export const providers: Record<string, ModelProvider> = {
 
 export const availableModels: Model[] = [
   {
-    id: 'llama-3.3-70b-versatile',
-    name: 'Llama 3.3 70B Versatile',
+    id: 'llama-4-maverick-17b-128e-instruct',
+    name: 'Llama 4 Maverick 17B',
     provider: providers.groq,
-    modelId: 'llama-3.3-70b-versatile',
+    modelId: 'meta-llama/llama-4-maverick-17b-128e-instruct',
   },
   {
     id: 'qwen-3-32b',
     name: 'Qwen3 32B',
     provider: providers.groq,
     modelId: 'qwen/qwen3-32b',
+    providerOptions: {
+      groq: {
+        reasoningFormat: 'parsed',
+      },
+    },
   },
   // {
   //   id: 'qwen-qwq-32b',
@@ -59,9 +65,9 @@ export const availableModels: Model[] = [
   //   modelId: 'deepseek-r1-distill-llama-70b',
   // },
   {
-    id: 'claude-3-5-sonnet-20241022',
+    id: 'claude-4-sonnet-20250514',
     name: 'Claude 4 Sonnet',
     provider: providers.anthropic,
-    modelId: 'claude-3-5-sonnet-20241022',
+    modelId: 'claude-4-sonnet-20250514',
   },
 ]

@@ -150,11 +150,7 @@ export const useStreamResponse = ({
         tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
         maxSteps: 5, // Allow up to 5 steps for tool calling
         abortSignal: controller.signal,
-        providerOptions: {
-          groq: {
-            reasoningFormat: 'parsed',
-          },
-        },
+        ...selectedModel.providerOptions,
       })
 
       // Use fullStream to get all events including tool calls, results, and text
@@ -272,7 +268,7 @@ export const useStreamResponse = ({
         // Request was cancelled, don't show error
       } else {
         console.error('Error generating response:', error)
-        
+
         // Add error message to the conversation
         const errorMessage = error instanceof Error ? error.message : String(error)
         updateConversation((conv) => ({
