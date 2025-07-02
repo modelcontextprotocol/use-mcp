@@ -126,7 +126,7 @@ export default async function globalSetup() {
     await runCommand('pnpm', ['build'], inspectorDir, { NO_MINIFY: 'true' })
 
     // Step 3: Start all configured MCP servers
-    let basePort = 9901
+    let basePort = Math.floor(10_000 + Math.random() * 500)
 
     for (const serverConfig of SERVER_CONFIGS) {
       console.log(`🔍 Finding available port starting from ${basePort} for ${serverConfig.name}...`)
