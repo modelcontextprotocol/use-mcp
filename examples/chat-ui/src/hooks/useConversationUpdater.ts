@@ -6,7 +6,6 @@ interface UseConversationUpdaterProps {
 }
 
 export const useConversationUpdater = ({ conversationId, setConversations }: UseConversationUpdaterProps) => {
-  
   const updateConversation = (updater: (conversation: Conversation) => Conversation) => {
     setConversations((prev) => {
       const conversation = prev.find((c) => c.id === conversationId)
@@ -14,12 +13,10 @@ export const useConversationUpdater = ({ conversationId, setConversations }: Use
         console.error(`Missing conversation for ID ${conversationId}`)
         return prev
       }
-      
+
       const updatedConversation = updater(conversation)
-      
-      return prev.map((c) => 
-        c.id === conversationId ? updatedConversation : c
-      )
+
+      return prev.map((c) => (c.id === conversationId ? updatedConversation : c))
     })
   }
 

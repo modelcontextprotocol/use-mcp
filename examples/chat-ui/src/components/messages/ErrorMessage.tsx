@@ -12,13 +12,11 @@ const ErrorMessage: React.FC<ErrorMessageProps> = ({ error }) => {
       <div className="flex items-start gap-2">
         <span className="text-red-500 text-sm font-medium">⚠️ Error:</span>
         <div className="flex-1 min-w-0">
-          <div 
-            className={`text-red-700 text-xs leading-relaxed ${
-              !isExpanded ? 'max-h-[120px] overflow-hidden' : ''
-            }`}
-            style={{ 
+          <div
+            className={`text-red-700 text-xs leading-relaxed ${!isExpanded ? 'max-h-[120px] overflow-hidden' : ''}`}
+            style={{
               wordBreak: 'break-word',
-              whiteSpace: 'pre-wrap'
+              whiteSpace: 'pre-wrap',
             }}
           >
             {error}
