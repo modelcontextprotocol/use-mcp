@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@axodotdev/oranda": "^0.6.5",
-    "@modelcontextprotocol/sdk": "link:../typescript-sdk",
+    "@modelcontextprotocol/sdk": "^1.13.3",
     "@types/react": "^19.0.12",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
