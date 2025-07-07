@@ -1,4 +1,4 @@
-import { Tool } from '@modelcontextprotocol/sdk/types.js'
+import { Tool, Resource, ResourceTemplate, Prompt } from '@modelcontextprotocol/sdk/types.js'
 
 export type UseMcpOptions = {
   /** The /sse URL of your remote MCP server */
@@ -28,21 +28,32 @@ export type UseMcpOptions = {
   autoReconnect?: boolean | number
   /** Popup window features string (dimensions and behavior) for OAuth */
   popupFeatures?: string
+  /** Transport type preference: 'auto' (HTTP with SSE fallback), 'http' (HTTP only), 'sse' (SSE only) */
+  transportType?: 'auto' | 'http' | 'sse'
+  /** Prevent automatic authentication popup on initial connection (default: false) */
+  preventAutoAuth?: boolean
 }
 
 export type UseMcpResult = {
   /** List of tools available from the connected MCP server */
   tools: Tool[]
+  /** List of resources available from the connected MCP server */
+  resources: Resource[]
+  /** List of resource templates available from the connected MCP server */
+  resourceTemplates: ResourceTemplate[]
+  /** List of prompts available from the connected MCP server */
+  prompts: Prompt[]
   /**
    * The current state of the MCP connection:
    * - 'discovering': Checking server existence and capabilities (including auth requirements).
+   * - 'pending_auth': Authentication is required but auto-popup was prevented. User action needed.
    * - 'authenticating': Authentication is required and the process (e.g., popup) has been initiated.
    * - 'connecting': Establishing the SSE connection to the server.
    * - 'loading': Connected; loading resources like the tool list.
    * - 'ready': Connected and ready for tool calls.
    * - 'failed': Connection or authentication failed. Check the `error` property.
    */
-  state: 'discovering' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
+  state: 'discovering' | 'pending_auth' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
   /** If the state is 'failed', this provides the error message */
   error?: string
   /**
@@ -60,6 +71,36 @@ export type UseMcpResult = {
    * @throws If the client is not in the 'ready' state or the call fails.
    */
   callTool: (name: string, args?: Record<string, unknown>) => Promise<any>
+  /**
+   * Function to list resources from the MCP server.
+   * @returns A promise that resolves when resources are refreshed.
+   * @throws If the client is not in the 'ready' state.
+   */
+  listResources: () => Promise<void>
+  /**
+   * Function to read a resource from the MCP server.
+   * @param uri The URI of the resource to read.
+   * @returns A promise that resolves with the resource contents.
+   * @throws If the client is not in the 'ready' state or the read fails.
+   */
+  readResource: (uri: string) => Promise<{ contents: Array<{ uri: string; mimeType?: string; text?: string; blob?: string }> }>
+  /**
+   * Function to list prompts from the MCP server.
+   * @returns A promise that resolves when prompts are refreshed.
+   * @throws If the client is not in the 'ready' state.
+   */
+  listPrompts: () => Promise<void>
+  /**
+   * Function to get a specific prompt from the MCP server.
+   * @param name The name of the prompt to get.
+   * @param args Optional arguments for the prompt.
+   * @returns A promise that resolves with the prompt messages.
+   * @throws If the client is not in the 'ready' state or the get fails.
+   */
+  getPrompt: (
+    name: string,
+    args?: Record<string, string>,
+  ) => Promise<{ messages: Array<{ role: 'user' | 'assistant'; content: { type: string; text?: string; [key: string]: any } }> }>
   /** Manually attempts to reconnect if the state is 'failed'. */
   retry: () => void
   /** Disconnects the client from the MCP server. */

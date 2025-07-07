@@ -26,9 +26,6 @@ importers:
       tailwindcss:
         specifier: ^4.0.14
         version: 4.1.6
-      use-mcp:
-        specifier: link:../..
-        version: link:../..
     devDependencies:
       '@cloudflare/vite-plugin':
         specifier: ^1.5.0
@@ -69,6 +66,9 @@ importers:
       typescript-eslint:
         specifier: ^8.24.1
         version: 8.32.0(eslint@9.26.0(jiti@2.4.2))(typescript@5.7.3)
+      use-mcp:
+        specifier: link:../..
+        version: link:../..
       vite:
         specifier: ^6.2.0
         version: 6.3.5(jiti@2.4.2)(lightningcss@1.29.2)

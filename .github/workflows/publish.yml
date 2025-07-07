@@ -1,12 +1,11 @@
 name: Publish Any Commit
 on:
-  # Temporarily disabled - uncomment to re-enable
-  # pull_request:
-  # push:
-  #   branches:
-  #     - '**'
-  #   tags:
-  #     - '!**'
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags:
+      - '!**'
 
 jobs:
   build:

@@ -8,7 +8,7 @@
 
 A lightweight React hook for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Simplifies authentication and tool calling for AI systems implementing the MCP standard.
 
-Try it out: [MCP Inspector](https://inspector.use-mcp.dev) | [Cloudflare Workers AI Playground](https://playground.ai.cloudflare.com/)
+Try it out: [Chat Demo](https://chat.use-mcp.dev) | [MCP Inspector](https://inspector.use-mcp.dev) | [Cloudflare Workers AI Playground](https://playground.ai.cloudflare.com/)
 
 ## Installation
 
@@ -20,11 +20,39 @@ pnpm add use-mcp
 yarn add use-mcp
 ```
 
+## Development
+
+To run the development environment with all examples and servers:
+
+```bash
+pnpm dev
+```
+
+This starts:
+- **Inspector**: http://localhost:5001 - MCP server debugging tool
+- **Chat UI**: http://localhost:5002 - Example chat interface
+- **Hono MCP Server**: http://localhost:5101 - Example MCP server
+- **CF Agents MCP Server**: http://localhost:5102 - Cloudflare Workers AI MCP server
+
+### Testing
+
+Integration tests are located in the `test/` directory and run headlessly by default:
+
+```bash
+cd test && pnpm test              # Run tests headlessly (default)
+cd test && pnpm test:headed       # Run tests with visible browser
+cd test && pnpm test:watch        # Run tests in watch mode
+cd test && pnpm test:ui           # Run tests with interactive UI
+```
+
 ## Features
 
 - 🔄 Automatic connection management with reconnection and retries
 - 🔐 OAuth authentication flow handling with popup and fallback support
 - 📦 Simple React hook interface for MCP integration
+- 🧰 Full support for MCP tools, resources, and prompts
+- 📄 Access server resources and read their contents
+- 💬 Use server-provided prompt templates
 - 🧰 TypeScript types for editor assistance and type checking
 - 📝 Comprehensive logging for debugging
 - 🌐 Works with both HTTP and SSE (Server-Sent Events) transports
@@ -36,10 +64,14 @@ import { useMcp } from 'use-mcp/react'
 
 function MyAIComponent() {
   const {
-    state,          // Connection state: 'discovering' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
+    state,          // Connection state: 'discovering' | 'pending_auth' | 'authenticating' | 'connecting' | 'loading' | 'ready' | 'failed'
     tools,          // Available tools from MCP server
+    resources,      // Available resources from MCP server
+    prompts,        // Available prompts from MCP server
     error,          // Error message if connection failed
     callTool,       // Function to call tools on the MCP server
+    readResource,   // Function to read resource contents
+    getPrompt,      // Function to get prompt messages
     retry,          // Retry connection manually
     authenticate,   // Manually trigger authentication
     clearStorage,   // Clear stored tokens and credentials
@@ -83,6 +115,32 @@ function MyAIComponent() {
         ))}
       </ul>
       <button onClick={handleSearch}>Search</button>
+      
+      {/* Example: Display and read resources */}
+      {resources.length > 0 && (
+        <div>
+          <h3>Resources: {resources.length}</h3>
+          <button onClick={async () => {
+            const content = await readResource(resources[0].uri)
+            console.log('Resource content:', content)
+          }}>
+            Read First Resource
+          </button>
+        </div>
+      )}
+      
+      {/* Example: Use prompts */}
+      {prompts.length > 0 && (
+        <div>
+          <h3>Prompts: {prompts.length}</h3>
+          <button onClick={async () => {
+            const result = await getPrompt(prompts[0].name)
+            console.log('Prompt messages:', result.messages)
+          }}>
+            Get First Prompt
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -168,17 +226,26 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `debug` | `boolean` | Whether to enable verbose debug logging |
 | `autoRetry` | `boolean \| number` | Auto retry connection if initial connection fails, with delay in ms |
 | `autoReconnect` | `boolean \| number` | Auto reconnect if an established connection is lost, with delay in ms (default: 3000) |
+| `transportType` | `'auto' \| 'http' \| 'sse'` | Transport type preference: 'auto' (HTTP with SSE fallback), 'http' (HTTP only), 'sse' (SSE only) (default: 'auto') |
+| `preventAutoAuth` | `boolean` | Prevent automatic authentication popup on initial connection (default: false) |
 
 #### Return Value
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `state` | `string` | Current connection state: 'discovering', 'authenticating', 'connecting', 'loading', 'ready', 'failed' |
+| `state` | `string` | Current connection state: 'discovering', 'pending_auth', 'authenticating', 'connecting', 'loading', 'ready', 'failed' |
 | `tools` | `Tool[]` | Available tools from the MCP server |
+| `resources` | `Resource[]` | Available resources from the MCP server |
+| `resourceTemplates` | `ResourceTemplate[]` | Available resource templates from the MCP server |
+| `prompts` | `Prompt[]` | Available prompts from the MCP server |
 | `error` | `string \| undefined` | Error message if connection failed |
 | `authUrl` | `string \| undefined` | Manual authentication URL if popup is blocked |
 | `log` | `{ level: 'debug' \| 'info' \| 'warn' \| 'error'; message: string; timestamp: number }[]` | Array of log messages |
 | `callTool` | `(name: string, args?: Record<string, unknown>) => Promise<any>` | Function to call a tool on the MCP server |
+| `listResources` | `() => Promise<void>` | Refresh the list of available resources |
+| `readResource` | `(uri: string) => Promise<{ contents: Array<...> }>` | Read the contents of a specific resource |
+| `listPrompts` | `() => Promise<void>` | Refresh the list of available prompts |
+| `getPrompt` | `(name: string, args?: Record<string, string>) => Promise<{ messages: Array<...> }>` | Get a specific prompt with optional arguments |
 | `retry` | `() => void` | Manually attempt to reconnect |
 | `disconnect` | `() => void` | Disconnect from the MCP server |
 | `authenticate` | `() => void` | Manually trigger authentication |

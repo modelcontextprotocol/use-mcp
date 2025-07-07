@@ -6,5 +6,5 @@
 export { useMcp } from './useMcp.js'
 export type { UseMcpOptions, UseMcpResult } from './types.js'
 
-// Re-export core Tool type for convenience when using hook result?
-export type { Tool } from '@modelcontextprotocol/sdk/types.js'
+// Re-export core types for convenience when using hook result
+export type { Tool, Resource, ResourceTemplate, Prompt } from '@modelcontextprotocol/sdk/types.js'

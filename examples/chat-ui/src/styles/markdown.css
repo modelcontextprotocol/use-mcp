@@ -1,0 +1,66 @@
+/* Tighter markdown spacing */
+.prose-tight {
+  line-height: 1.5;
+}
+
+.prose-tight h1,
+.prose-tight h2,
+.prose-tight h3,
+.prose-tight h4,
+.prose-tight h5,
+.prose-tight h6 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-tight h1:first-child,
+.prose-tight h2:first-child,
+.prose-tight h3:first-child,
+.prose-tight h4:first-child,
+.prose-tight h5:first-child,
+.prose-tight h6:first-child {
+  margin-top: 0;
+}
+
+.prose-tight p {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-tight p:first-child {
+  margin-top: 0;
+}
+
+.prose-tight p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-tight ul,
+.prose-tight ol {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-tight li {
+  margin-top: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.prose-tight ul > li,
+.prose-tight ol > li {
+  padding-left: 0.25rem;
+}
+
+.prose-tight blockquote {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.prose-tight code {
+  font-size: 0.875em;
+}
+
+.prose-tight pre {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}

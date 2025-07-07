@@ -1,0 +1,17 @@
+{
+  "name": "vengabus",
+  "scripts": {
+    "dev": "wrangler dev --port 5101",
+    "deploy": "wrangler deploy --minify",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+  },
+  "dependencies": {
+    "hono": "^4.8.2"
+  },
+  "devDependencies": {
+    "@hono/mcp": "^0.1.0",
+    "@modelcontextprotocol/sdk": "^1.13.3",
+    "wrangler": "^4.23.0",
+    "zod": "^3.25.67"
+  }
+}

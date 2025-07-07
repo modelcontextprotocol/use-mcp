@@ -23,7 +23,7 @@ The useMcp hook manages the connection to an MCP server, handles authentication 
 ```tsx
 import { useMcp } from 'use-mcp'
 // Optional: Import types if needed
-import type { UseMcpOptions, UseMcpResult, Tool } from 'use-mcp'
+import type { UseMcpOptions, UseMcpResult, Tool, Resource, ResourceTemplate, Prompt } from 'use-mcp'
 ```
 
 ## Usage
@@ -101,7 +101,12 @@ function MyChatComponent() {
         </div>
       )}
       {mcp.state === 'authenticating' && <p>Waiting for authentication...</p>}
-      {mcp.state === 'ready' && <p>Connected! Tools available: {mcp.tools.length}</p>}
+      {mcp.state === 'ready' && (
+        <p>
+          Connected! Tools: {mcp.tools.length}, Resources: {mcp.resources.length + mcp.resourceTemplates.length}, 
+          Prompts: {mcp.prompts.length}
+        </p>
+      )}
 
       {/* Your Chat UI */}
       <div>
@@ -140,6 +145,52 @@ function MyChatComponent() {
       <button onClick={mcp.clearStorage} style={{ marginTop: '10px' }}>
         Clear Stored Auth
       </button>
+
+      {/* Example: Working with Resources */}
+      {mcp.state === 'ready' && mcp.resources.length > 0 && (
+        <div>
+          <h3>Available Resources:</h3>
+          {mcp.resources.map((resource) => (
+            <div key={resource.uri}>
+              <span>{resource.name}</span>
+              <button onClick={async () => {
+                try {
+                  const content = await mcp.readResource(resource.uri)
+                  console.log('Resource content:', content)
+                } catch (error) {
+                  console.error('Failed to read resource:', error)
+                }
+              }}>
+                Read
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Example: Working with Prompts */}
+      {mcp.state === 'ready' && mcp.prompts.length > 0 && (
+        <div>
+          <h3>Available Prompts:</h3>
+          {mcp.prompts.map((prompt) => (
+            <div key={prompt.name}>
+              <span>{prompt.name}</span>
+              <button onClick={async () => {
+                try {
+                  const result = await mcp.getPrompt(prompt.name, {
+                    // Add any required arguments here
+                  })
+                  console.log('Prompt result:', result)
+                } catch (error) {
+                  console.error('Failed to get prompt:', error)
+                }
+              }}>
+                Get Prompt
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -163,11 +214,18 @@ export default MyChatComponent
 ### Hook Return Value (UseMcpResult)
 
 - tools: An array of Tool objects provided by the server. Empty until state is 'ready'.
+- resources: An array of Resource objects representing data available from the server.
+- resourceTemplates: An array of ResourceTemplate objects representing dynamic resources available from the server.
+- prompts: An array of Prompt objects representing reusable prompt templates from the server.
 - state: The current connection state ('discovering', 'authenticating', 'connecting', 'loading', 'ready', 'failed'). Use this to conditionally render UI or enable/disable features.
 - error: An error message if state is 'failed'.
 - authUrl: If authentication is required and the popup was potentially blocked, this URL string can be used to let the user manually open the auth page (e.g., <a href={authUrl} target="_blank">...</a>).
 - log: An array of log messages { level, message, timestamp }. Useful for debugging when debug option is true.
 - callTool(name, args): An async function to execute a tool on the MCP server. Throws an error if the client isn't ready or the call fails.
+- listResources(): An async function to refresh the list of available resources. Returns void.
+- readResource(uri): An async function to read the contents of a specific resource. Returns an object with a 'contents' array containing the resource data.
+- listPrompts(): An async function to refresh the list of available prompts. Returns void.
+- getPrompt(name, args): An async function to get a specific prompt with optional arguments. Returns an object with a 'messages' array containing the prompt messages.
 - retry(): Manually triggers a reconnection attempt if the state is 'failed'.
 - disconnect(): Disconnects the client from the server.
 - authenticate(): Manually attempts to start the authentication flow. Useful for triggering the popup via a user click if it was initially blocked.

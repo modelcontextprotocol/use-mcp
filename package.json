@@ -1,7 +1,7 @@
 {
   "name": "use-mcp",
   "repository": "https://github.com/modelcontextprotocol/use-mcp",
-  "version": "0.0.9",
+  "version": "0.0.19",
   "type": "module",
   "files": [
     "dist",
@@ -21,19 +21,27 @@
     }
   },
   "scripts": {
-    "dev": "tsup --watch",
+    "install:all": "concurrently 'pnpm install' 'cd examples/chat-ui && pnpm install' 'cd examples/inspector && pnpm install' 'cd examples/servers/hono-mcp && pnpm install' 'cd examples/servers/cf-agents && pnpm install'",
+    "dev": "concurrently 'pnpm:build:watch' 'cd examples/chat-ui && pnpm dev' 'cd examples/inspector && pnpm dev' 'sleep 1 && cd examples/servers/hono-mcp && pnpm dev' 'sleep 2 && cd examples/servers/cf-agents && pnpm dev'",
+    "deploy:all": "concurrently 'pnpm build:site && pnpm deploy:site' 'cd examples/chat-ui && pnpm run deploy' 'cd examples/inspector && pnpm run deploy'",
+    "build:watch": "tsup --watch",
     "build": "tsup",
     "check": "prettier --check . && tsc",
+    "prettier:fix": "prettier --write .",
     "fix:oranda": "sed -i 's/```tsx/```ts/g' README.md",
     "build:site": "npx @axodotdev/oranda build",
-    "deploy:site": "npx wrangler deploy"
+    "deploy:site": "npx wrangler deploy",
+    "prepare": "husky"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.11.0"
+    "@modelcontextprotocol/sdk": "^1.13.3",
+    "strict-url-sanitise": "^0.0.1"
   },
   "devDependencies": {
     "@axodotdev/oranda": "^0.6.5",
     "@types/react": "^19.0.12",
+    "concurrently": "^9.2.0",
+    "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
     "tsup": "^8.4.0",

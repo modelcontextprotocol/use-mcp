@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+@plugin "@tailwindcss/typography";
+@config "../tailwind.config.js";
+
+@keyframes hue-rotate {
+  0% {
+    filter: hue-rotate(0deg);
+  }
+  100% {
+    filter: hue-rotate(360deg);
+  }
+}
+
+.animated-bg-container {
+  position: relative;
+  /*overflow: hidden;*/
+  /*height: 500vh;*/
+}
+
+.animated-bg-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(150deg, #fdf2f8, #faf5ff, #eef2ff, #faf5ff, #fdf2f8 200vmax);
+  animation: hue-rotate 60s linear infinite;
+  animation-delay: var(--random-delay, 0s);
+  z-index: -1;
+}

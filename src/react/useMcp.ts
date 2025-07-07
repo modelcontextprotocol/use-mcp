@@ -1,11 +1,24 @@
 // useMcp.ts
-import { CallToolResultSchema, JSONRPCMessage, ListToolsResultSchema, Tool } from '@modelcontextprotocol/sdk/types.js'
+import {
+  CallToolResultSchema,
+  JSONRPCMessage,
+  ListToolsResultSchema,
+  ListResourcesResultSchema,
+  ReadResourceResultSchema,
+  ListPromptsResultSchema,
+  GetPromptResultSchema,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
+} from '@modelcontextprotocol/sdk/types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Import both transport types
 import { SSEClientTransport, SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js'
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js' // Added
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { auth, UnauthorizedError, OAuthClientProvider } from '@modelcontextprotocol/sdk/client/auth.js'
+import { sanitizeUrl } from 'strict-url-sanitise'
 import { BrowserOAuthClientProvider } from '../auth/browser-provider.js' // Adjust path
 import { assert } from '../utils/assert.js' // Adjust path
 import type { UseMcpOptions, UseMcpResult } from './types.js' // Adjust path
@@ -24,17 +37,24 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     clientName,
     clientUri,
     scopes,
-    callbackUrl = typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback',
+    callbackUrl = typeof window !== 'undefined'
+      ? sanitizeUrl(new URL('/oauth/callback', window.location.origin).toString())
+      : '/oauth/callback',
     storageKeyPrefix = 'mcp:auth',
     clientConfig = {},
     customHeaders = {},
     debug = false,
     autoRetry = false,
     autoReconnect = DEFAULT_RECONNECT_DELAY,
+    transportType = 'auto',
+    preventAutoAuth = false,
   } = options
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
   const [tools, setTools] = useState<Tool[]>([])
+  const [resources, setResources] = useState<Resource[]>([])
+  const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([])
+  const [prompts, setPrompts] = useState<Prompt[]>([])
   const [error, setError] = useState<string | undefined>(undefined)
   const [log, setLog] = useState<UseMcpResult['log']>([])
   const [authUrl, setAuthUrl] = useState<string | undefined>(undefined)
@@ -91,6 +111,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       if (isMountedRef.current && !quiet) {
         setState('discovering')
         setTools([])
+        setResources([])
+        setResourceTemplates([])
+        setPrompts([])
         setError(undefined)
         setAuthUrl(undefined)
       }
@@ -189,18 +212,36 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
         const commonOptions: SSEClientTransportOptions = {
           authProvider: authProviderRef.current,
-          requestInit: { headers: customHeaders },
+          requestInit: {
+            headers: {
+              Accept: 'application/json, text/event-stream',
+              ...customHeaders,
+            },
+          },
         }
-        const targetUrl = new URL(url)
+        // Sanitize the URL to prevent XSS attacks from malicious server URLs
+        const sanitizedUrl = sanitizeUrl(url)
+        const targetUrl = new URL(sanitizedUrl)
+
+        addLog('debug', `Creating ${transportType.toUpperCase()} transport for URL: ${targetUrl.toString()}`)
+        addLog('debug', `Transport options:`, {
+          authProvider: !!authProviderRef.current,
+          headers: customHeaders,
+          url: targetUrl.toString(),
+        })
 
         if (transportType === 'http') {
+          addLog('debug', 'Creating StreamableHTTPClientTransport...')
           transportInstance = new StreamableHTTPClientTransport(targetUrl, commonOptions)
+          addLog('debug', 'StreamableHTTPClientTransport created successfully')
         } else {
           // sse
+          addLog('debug', 'Creating SSEClientTransport...')
           transportInstance = new SSEClientTransport(targetUrl, commonOptions)
+          addLog('debug', 'SSEClientTransport created successfully')
         }
         transportRef.current = transportInstance // Assign to ref immediately
-        addLog('debug', `${transportType.toUpperCase()} transport created.`)
+        addLog('debug', `${transportType.toUpperCase()} transport created and assigned to ref.`)
       } catch (err) {
         // Use stable failConnection
         failConnection(
@@ -215,10 +256,17 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         // Use stable addLog
         addLog('debug', `[Transport] Received: ${JSON.stringify(message)}`)
         // @ts-ignore
-        clientRef.current?.handleMessage(message) // Forward to current client
+        clientRef.current?.handleMessage?.(message) // Forward to current client
       }
       transportInstance.onerror = (err: Error) => {
         // Transport errors usually mean connection is lost/failed definitively for this transport
+        addLog('warn', `Transport error event (${transportType.toUpperCase()}):`, err)
+        addLog('debug', `Error details:`, {
+          message: err.message,
+          stack: err.stack,
+          name: err.name,
+          cause: err.cause,
+        })
         // Use stable failConnection
         failConnection(`Transport error (${transportType.toUpperCase()}): ${err.message}`, err)
         // Should we return 'failed' here? failConnection sets state, maybe that's enough.
@@ -249,19 +297,55 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // 3. Attempt client.connect()
       try {
         addLog('info', `Connecting client via ${transportType.toUpperCase()}...`)
+        addLog('debug', `About to call client.connect() with transport instance`)
+        addLog('debug', `Transport instance type: ${transportInstance.constructor.name}`)
+
         await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
-        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools...`)
+        addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools, resources, and prompts...`)
         successfulTransportRef.current = transportType // Store successful type
         setState('loading')
 
         const toolsResponse = await clientRef.current!.request({ method: 'tools/list' }, ListToolsResultSchema)
 
+        // Load resources after tools (optional - not all servers support resources)
+        let resourcesResponse: { resources: Resource[]; resourceTemplates?: ResourceTemplate[] } = { resources: [], resourceTemplates: [] }
+        try {
+          resourcesResponse = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
+        } catch (err) {
+          addLog('debug', 'Server does not support resources/list method', err)
+        }
+
+        // Load prompts after resources (optional - not all servers support prompts)
+        let promptsResponse: { prompts: Prompt[] } = { prompts: [] }
+        try {
+          promptsResponse = await clientRef.current!.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+        } catch (err) {
+          addLog('debug', 'Server does not support prompts/list method', err)
+        }
+
         if (isMountedRef.current) {
           // Check mount before final state updates
           setTools(toolsResponse.tools)
-          addLog('info', `Loaded ${toolsResponse.tools.length} tools.`)
+          setResources(resourcesResponse.resources)
+          setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
+          setPrompts(promptsResponse.prompts)
+          const summary = [`Loaded ${toolsResponse.tools.length} tools`]
+          if (
+            resourcesResponse.resources.length > 0 ||
+            (resourcesResponse.resourceTemplates && resourcesResponse.resourceTemplates.length > 0)
+          ) {
+            summary.push(`${resourcesResponse.resources.length} resources`)
+            if (Array.isArray(resourcesResponse.resourceTemplates) && resourcesResponse.resourceTemplates.length > 0) {
+              summary.push(`${resourcesResponse.resourceTemplates.length} resource templates`)
+            }
+          }
+          if (promptsResponse.prompts.length > 0) {
+            summary.push(`${promptsResponse.prompts.length} prompts`)
+          }
+
+          addLog('info', summary.join(', ') + '.')
           setState('ready') // Final success state
           // connectingRef will be set to false after orchestration logic
           connectAttemptRef.current = 0 // Reset on success
@@ -272,6 +356,12 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       } catch (connectErr) {
         // --- Error Handling Path ---
         addLog('debug', `Client connect error via ${transportType.toUpperCase()}:`, connectErr)
+        addLog('debug', `Connect error details:`, {
+          message: connectErr instanceof Error ? connectErr.message : String(connectErr),
+          stack: connectErr instanceof Error ? connectErr.stack : 'N/A',
+          name: connectErr instanceof Error ? connectErr.name : 'Unknown',
+          cause: connectErr instanceof Error ? connectErr.cause : undefined,
+        })
         const errorInstance = connectErr instanceof Error ? connectErr : new Error(String(connectErr))
 
         // Check for 404/405 specifically for HTTP transport
@@ -284,15 +374,28 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           errorMessage === 'Load failed' /* Safari */
 
         if (transportType === 'http' && (is404 || is405 || isLikelyCors)) {
-          addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}). Will attempt fallback to SSE.`)
+          addLog('warn', `HTTP transport failed (${isLikelyCors ? 'CORS' : is404 ? '404' : '405'}).`)
           return 'fallback' // Signal that fallback should be attempted
         }
 
         // Check for Auth error (Simplified - requires more thought for interaction with fallback)
         if (errorInstance instanceof UnauthorizedError || errorMessage.includes('Unauthorized') || errorMessage.includes('401')) {
-          addLog('info', 'Authentication required. Initiating SDK auth flow...')
+          addLog('info', 'Authentication required.')
+
+          // Check if we have existing tokens before triggering auth flow
+          assert(authProviderRef.current, 'Auth Provider not available for auth flow')
+          const existingTokens = await authProviderRef.current.tokens()
+
+          // If preventAutoAuth is enabled and no valid tokens exist, go to pending_auth state
+          if (preventAutoAuth && !existingTokens) {
+            addLog('info', 'Authentication required but auto-auth prevented. User action needed.')
+            setState('pending_auth')
+            // We'll set the auth URL when the user manually triggers auth
+            return 'auth_redirect' // Signal that we need user action
+          }
+
           // Ensure state is set only once if multiple attempts trigger auth
-          if (stateRef.current !== 'authenticating') {
+          if (stateRef.current !== 'authenticating' && stateRef.current !== 'pending_auth') {
             setState('authenticating')
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
             authTimeoutRef.current = setTimeout(() => {
@@ -301,7 +404,6 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           }
 
           try {
-            assert(authProviderRef.current, 'Auth Provider not available for auth flow')
             const authResult = await auth(authProviderRef.current, { serverUrl: url })
 
             if (!isMountedRef.current) return 'failed' // Unmounted during auth
@@ -323,52 +425,55 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           } catch (sdkAuthError) {
             if (!isMountedRef.current) return 'failed'
             if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
-            addLog('error', 'Auth flow failed:', sdkAuthError)
-            // Auth failed, but still allow fallback to SSE
-            if (transportType === 'http') {
-              return 'fallback' // Try SSE even after auth failure
-            } else {
-              failConnection(
-                `Failed to initiate authentication: ${sdkAuthError instanceof Error ? sdkAuthError.message : String(sdkAuthError)}`,
-                sdkAuthError instanceof Error ? sdkAuthError : undefined,
-              )
-              return 'failed' // Auth initiation failed for SSE
-            }
+            // Use stable failConnection
+            failConnection(
+              `Failed to initiate authentication: ${sdkAuthError instanceof Error ? sdkAuthError.message : String(sdkAuthError)}`,
+              sdkAuthError instanceof Error ? sdkAuthError : undefined,
+            )
+            return 'failed' // Auth initiation failed
           }
         }
 
         // Handle other connection errors
-        // Don't call failConnection here for HTTP transport - let orchestration handle it
-        // so that SSE fallback can still be attempted
-        if (transportType === 'http') {
-          addLog('warn', `HTTP transport failed: ${errorMessage}. Will attempt fallback to SSE.`)
-          return 'fallback'
-        } else {
-          // For SSE transport, we can fail immediately since there's no further fallback
-          failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
-          return 'failed'
-        }
+        // For HTTP transport, consider fallback only for specific error types
+        // "Not connected" errors should still be treated as failures, not fallback triggers
+        failConnection(`Failed to connect via ${transportType.toUpperCase()}: ${errorMessage}`, errorInstance)
+        return 'failed'
       }
     } // End of tryConnectWithTransport helper
 
     // --- Orchestrate Connection Attempts ---
     let finalStatus: 'success' | 'auth_redirect' | 'failed' | 'fallback' = 'failed' // Default to failed
 
-    // 1. Try HTTP
-    const httpResult = await tryConnectWithTransport('http')
+    console.log({ transportType })
 
-    // 2. Try SSE only if HTTP requested fallback and we haven't redirected
-    if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
-      const sseResult = await tryConnectWithTransport('sse')
-      finalStatus = sseResult // Use SSE result as final status
+    if (transportType === 'sse') {
+      // SSE only - skip HTTP entirely
+      addLog('debug', 'Using SSE-only transport mode')
+      finalStatus = await tryConnectWithTransport('sse')
+    } else if (transportType === 'http') {
+      // HTTP only - no fallback
+      addLog('debug', 'Using HTTP-only transport mode')
+      finalStatus = await tryConnectWithTransport('http')
     } else {
-      finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
-    }
+      // Auto mode - try HTTP first, fallback to SSE
+      addLog('debug', 'Using auto transport mode (HTTP with SSE fallback)')
+      const httpResult = await tryConnectWithTransport('http')
 
-    // If we still have 'fallback' status, convert to 'failed' since no more transports to try
-    if (finalStatus === 'fallback') {
-      finalStatus = 'failed'
-      failConnection('All transport methods failed')
+      // Try SSE only if HTTP requested fallback and we haven't redirected for auth
+      // Allow fallback even if state is 'failed' from a previous HTTP attempt in auto mode
+      if (httpResult === 'fallback' && isMountedRef.current && stateRef.current !== 'authenticating') {
+        addLog('info', 'HTTP failed, attempting SSE fallback...')
+        const sseResult = await tryConnectWithTransport('sse')
+        finalStatus = sseResult // Use SSE result as final status
+
+        // If SSE also failed, we need to properly fail the connection since HTTP didn't call failConnection
+        if (sseResult === 'failed' && isMountedRef.current) {
+          // SSE failure already called failConnection, so we don't need to do anything else
+        }
+      } else {
+        finalStatus = httpResult // Use HTTP result if no fallback was needed/possible
+      }
     }
 
     // --- Finalize Connection State ---
@@ -480,13 +585,44 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   }, [addLog, connect]) // Depends only on stable callbacks
 
   // authenticate is stable (depends on stable addLog, retry, connect)
-  const authenticate = useCallback(() => {
+  const authenticate = useCallback(async () => {
     addLog('info', 'Manual authentication requested...')
     const currentState = stateRef.current // Use ref
 
     if (currentState === 'failed') {
       addLog('info', 'Attempting to reconnect and authenticate via retry...')
       retry()
+    } else if (currentState === 'pending_auth') {
+      addLog('info', 'Proceeding with authentication from pending state...')
+      setState('authenticating')
+      if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+      authTimeoutRef.current = setTimeout(() => {
+        /* ... timeout logic ... */
+      }, AUTH_TIMEOUT)
+
+      try {
+        assert(authProviderRef.current, 'Auth Provider not available for manual auth')
+        const authResult = await auth(authProviderRef.current, { serverUrl: url })
+
+        if (!isMountedRef.current) return
+
+        if (authResult === 'AUTHORIZED') {
+          addLog('info', 'Manual authentication successful. Re-attempting connection...')
+          if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+          connectingRef.current = false
+          connect() // Restart full connection sequence
+        } else if (authResult === 'REDIRECT') {
+          addLog('info', 'Redirecting for manual authentication. Waiting for callback...')
+          // State is already authenticating, wait for callback
+        }
+      } catch (authError) {
+        if (!isMountedRef.current) return
+        if (authTimeoutRef.current) clearTimeout(authTimeoutRef.current)
+        failConnection(
+          `Manual authentication failed: ${authError instanceof Error ? authError.message : String(authError)}`,
+          authError instanceof Error ? authError : undefined,
+        )
+      }
     } else if (currentState === 'authenticating') {
       addLog('warn', 'Already attempting authentication. Check for blocked popups or wait for timeout.')
       const manualUrl = authProviderRef.current?.getLastAttemptedAuthUrl()
@@ -506,7 +642,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       // assert(authProviderRef.current, "Auth Provider not available");
       // auth(authProviderRef.current, { serverUrl: url }).catch(failConnection);
     }
-  }, [addLog, retry, authUrl]) // Depends on stable callbacks and authUrl state
+  }, [addLog, retry, authUrl, url, failConnection, connect]) // Depends on stable callbacks and authUrl state
 
   // clearStorage is stable (depends on stable addLog, disconnect)
   const clearStorage = useCallback(() => {
@@ -520,6 +656,88 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
       addLog('warn', 'Auth provider not initialized, cannot clear storage.')
     }
   }, [url, addLog, disconnect]) // Depends on url and stable callbacks
+
+  // listResources is stable (depends on stable addLog)
+  const listResources = useCallback(async () => {
+    // Use stateRef for check, state for throwing error message
+    if (stateRef.current !== 'ready' || !clientRef.current) {
+      throw new Error(`MCP client is not ready (current state: ${state}). Cannot list resources.`)
+    }
+    addLog('info', 'Listing resources...')
+    try {
+      const resourcesResponse = await clientRef.current.request({ method: 'resources/list' }, ListResourcesResultSchema)
+      if (isMountedRef.current) {
+        setResources(resourcesResponse.resources)
+        setResourceTemplates(Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates : [])
+        addLog(
+          'info',
+          `Listed ${resourcesResponse.resources.length} resources, ${Array.isArray(resourcesResponse.resourceTemplates) ? resourcesResponse.resourceTemplates.length : 0} resource templates.`,
+        )
+      }
+    } catch (err) {
+      addLog('error', `Error listing resources: ${err instanceof Error ? err.message : String(err)}`, err)
+      throw err
+    }
+  }, [state, addLog]) // Depends on state for error message and stable addLog
+
+  // readResource is stable (depends on stable addLog)
+  const readResource = useCallback(
+    async (uri: string) => {
+      // Use stateRef for check, state for throwing error message
+      if (stateRef.current !== 'ready' || !clientRef.current) {
+        throw new Error(`MCP client is not ready (current state: ${state}). Cannot read resource "${uri}".`)
+      }
+      addLog('info', `Reading resource: ${uri}`)
+      try {
+        const result = await clientRef.current.request({ method: 'resources/read', params: { uri } }, ReadResourceResultSchema)
+        addLog('info', `Resource "${uri}" read successfully`)
+        return result
+      } catch (err) {
+        addLog('error', `Error reading resource "${uri}": ${err instanceof Error ? err.message : String(err)}`, err)
+        throw err
+      }
+    },
+    [state, addLog],
+  ) // Depends on state for error message and stable addLog
+
+  // listPrompts is stable (depends on stable addLog)
+  const listPrompts = useCallback(async () => {
+    // Use stateRef for check, state for throwing error message
+    if (stateRef.current !== 'ready' || !clientRef.current) {
+      throw new Error(`MCP client is not ready (current state: ${state}). Cannot list prompts.`)
+    }
+    addLog('info', 'Listing prompts...')
+    try {
+      const promptsResponse = await clientRef.current.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+      if (isMountedRef.current) {
+        setPrompts(promptsResponse.prompts)
+        addLog('info', `Listed ${promptsResponse.prompts.length} prompts.`)
+      }
+    } catch (err) {
+      addLog('error', `Error listing prompts: ${err instanceof Error ? err.message : String(err)}`, err)
+      throw err
+    }
+  }, [state, addLog]) // Depends on state for error message and stable addLog
+
+  // getPrompt is stable (depends on stable addLog)
+  const getPrompt = useCallback(
+    async (name: string, args?: Record<string, string>) => {
+      // Use stateRef for check, state for throwing error message
+      if (stateRef.current !== 'ready' || !clientRef.current) {
+        throw new Error(`MCP client is not ready (current state: ${state}). Cannot get prompt "${name}".`)
+      }
+      addLog('info', `Getting prompt: ${name}`, args)
+      try {
+        const result = await clientRef.current.request({ method: 'prompts/get', params: { name, arguments: args } }, GetPromptResultSchema)
+        addLog('info', `Prompt "${name}" retrieved successfully`)
+        return result
+      } catch (err) {
+        addLog('error', `Error getting prompt "${name}": ${err instanceof Error ? err.message : String(err)}`, err)
+        throw err
+      }
+    },
+    [state, addLog],
+  ) // Depends on state for error message and stable addLog
 
   // ===== Effects =====
 
@@ -610,10 +828,17 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   return {
     state,
     tools,
+    resources,
+    resourceTemplates,
+    prompts,
     error,
     log,
     authUrl,
     callTool,
+    listResources,
+    readResource,
+    listPrompts,
+    getPrompt,
     retry,
     disconnect,
     authenticate,
