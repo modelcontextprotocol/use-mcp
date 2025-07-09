@@ -1,30 +1,36 @@
-# AI chat template
+# AI Chat with MCP
 
-An unofficial template for ⚛️ React ⨉ ⚡️ Vite ⨉ ⛅️ Cloudflare Workers AI.
+A React-based AI chat application demonstrating [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) integration with multiple AI providers.
 
-Full-stack AI chat application using Workers for the APIs (using the Cloudflare [vite-plugin](https://www.npmjs.com/package/@cloudflare/vite-plugin)) and Vite for the React application (hosted using [Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/)). Provides chat functionality with [Workers AI](https://developers.cloudflare.com/workers-ai/), stores conversations in the browser's [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API), and uses [ai-sdk](https://sdk.vercel.ai/docs/introduction), [tailwindcss](https://tailwindcss.com/) and [workers-ai-provider](https://github.com/cloudflare/workers-ai-provider).
+This static web application showcases how to use the [`use-mcp`](../../) library to connect to MCP servers, providing extensible AI capabilities through external tools and services. The app supports multiple AI models, stores conversations locally in IndexedDB, and includes OAuth authentication for MCP server connections.
+
+**Live demo**: [chat.use-mcp.dev](https://chat.use-mcp.dev)
+
+## Features
+
+- **MCP Integration**: Connect to MCP servers with OAuth authentication support
+- **Multi-model Support**: Anthropic (Claude) and Groq (Llama) models with API key authentication
+- **Local Storage**: Conversations stored in browser's IndexedDB
+- **Static Deployment**: Builds to static assets for deployment anywhere
+- **Modern Stack**: React 19, TypeScript, Tailwind CSS, Vite
 
 ## Get started
 
-Create the project using [create-cloudflare](https://www.npmjs.com/package/create-cloudflare):
+```sh
+pnpm install
+pnpm dev
+```
+
+Build and deploy:
 
 ```sh
-npm create cloudflare@latest -- --template thomasgauvin/ai-chat-template
+pnpm build
+pnpm run deploy  # deploys to Cloudflare Pages
 ```
 
-Run the project and deploy it:
+## Development
 
-```sh
-cd <project-name>
-npm install
-npm run dev
-```
-
-```
-npm run deploy
-```
-
-## What's next?
-
-- Change the name of the package (in `package.json`)
-- Change the name of the worker (in `wrangler.jsonc`)
+- **Dev server**: `pnpm dev` (runs on port 5002)
+- **Build**: `pnpm build`
+- **Lint**: `pnpm lint`
+- **Test**: `pnpm test` (Playwright E2E tests)
