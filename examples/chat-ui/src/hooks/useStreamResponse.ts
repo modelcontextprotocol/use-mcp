@@ -5,7 +5,7 @@ import { createAnthropic } from '@ai-sdk/anthropic'
 import { createOpenAI } from '@ai-sdk/openai'
 import { type AssistantMessage, type Conversation, type Message, type SystemMessage, type UserMessage } from '../types'
 import { type Model } from '../types/models'
-import { getApiKey, getAuthHeaders } from '../utils/auth'
+import { getAuthHeaders } from '../utils/auth'
 import { type Tool } from 'use-mcp/react'
 import { useConversationUpdater } from './useConversationUpdater'
 
