@@ -334,11 +334,18 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
                   {/* Models List */}
                   <div className="space-y-2">
                     {getFilteredModels().map((model) => (
-                      <div key={model.id} className="border rounded-lg p-4 hover:border-zinc-300 hover:bg-zinc-50 transition-colors">
+                      <div
+                        key={model.id}
+                        className="border rounded-lg p-4 hover:border-zinc-300 hover:bg-zinc-50 transition-colors cursor-pointer"
+                        onClick={() => handleModelSelect(model)}
+                      >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <button
-                              onClick={() => toggleFavorite(model.id)}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                toggleFavorite(model.id)
+                              }}
                               className={`p-1 rounded ${isFavorite(model.id) ? 'text-yellow-500' : 'text-zinc-300 hover:text-yellow-500'}`}
                               title={isFavorite(model.id) ? 'Remove from favorites' : 'Add to favorites'}
                             >
@@ -355,12 +362,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
                               </div>
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleModelSelect(model)}
-                            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-                          >
-                            Select
-                          </button>
+                          <div className="text-sm text-zinc-400">Click to select</div>
                         </div>
                       </div>
                     ))}
