@@ -7,6 +7,7 @@ import { type Conversation } from '../types'
 import { useIndexedDB } from '../hooks/useIndexedDB'
 import { type Model } from '../types/models'
 import { getSelectedModel, setSelectedModel as saveSelectedModel } from '../utils/modelPreferences'
+import { useModels } from '../hooks/useModels'
 import { type IDBPDatabase } from 'idb'
 import { type Tool } from 'use-mcp/react'
 
@@ -23,6 +24,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   const [mcpTools, setMcpTools] = useState<Tool[]>([])
   const [animationDelay] = useState<number>(() => -Math.random() * 60)
   const db = useIndexedDB()
+  const { models, addToFavorites, toggleFavorite, isFavorite, getFavoriteModels } = useModels()
 
   const handleApiKeyUpdate = () => {
     setApiKeyUpdateTrigger((prev) => prev + 1)
@@ -146,6 +148,11 @@ const ChatApp: React.FC<ChatAppProps> = () => {
             apiKeyUpdateTrigger={apiKeyUpdateTrigger}
             mcpTools={mcpTools}
             onMcpToolsUpdate={setMcpTools}
+            addToFavorites={addToFavorites}
+            models={models}
+            toggleFavorite={toggleFavorite}
+            isFavorite={isFavorite}
+            getFavoriteModels={getFavoriteModels}
           />
         </div>
       </div>

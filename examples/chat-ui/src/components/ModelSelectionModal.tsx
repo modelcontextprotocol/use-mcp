@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { X, AlertCircle, CheckCircle, Star } from 'lucide-react'
 import { type Model, type Provider, providers } from '../types/models'
-import { useModels } from '../hooks/useModels'
 import { hasApiKey, setApiKey, clearApiKey, beginOAuthFlow } from '../utils/auth'
 import ApiKeyModal from './ApiKeyModal'
 import ProviderModelsModal from './ProviderModelsModal'
@@ -12,6 +11,11 @@ interface ModelSelectionModalProps {
   selectedModel: Model
   onModelChange: (model: Model) => void
   apiKeyUpdateTrigger: number
+  addToFavorites: (modelId: string) => void
+  models: Model[]
+  toggleFavorite: (modelId: string) => void
+  isFavorite: (modelId: string) => boolean
+  getFavoriteModels: () => Model[]
 }
 
 const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
@@ -20,6 +24,11 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
   selectedModel,
   onModelChange,
   apiKeyUpdateTrigger,
+  addToFavorites,
+  models,
+  toggleFavorite,
+  isFavorite,
+  getFavoriteModels,
 }) => {
   const [apiKeyModal, setApiKeyModal] = useState<{ isOpen: boolean; model: Model | null }>({
     isOpen: false,
@@ -30,7 +39,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
     provider: null,
   })
   const [apiKeyStatuses, setApiKeyStatuses] = useState<Record<string, boolean>>({})
-  const { models, toggleFavorite, isFavorite, getFavoriteModels } = useModels()
+  // Remove the local useModels hook - we now get everything from props
 
   useEffect(() => {
     const statuses: Record<string, boolean> = {}
@@ -201,13 +210,23 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
                       <div
                         key={model.id}
                         className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                          isSelected ? 'border-blue-500 bg-blue-50' : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                            : 'border-zinc-200 hover:border-zinc-300 hover:bg-zinc-50'
                         } ${!isConfigured ? 'opacity-50' : ''}`}
-                        onClick={() => (isConfigured ? onModelChange(model) : handleProviderSelect(model.provider))}
+                        onClick={() => {
+                          if (isConfigured) {
+                            onModelChange(model)
+                            addToFavorites(model.id)
+                          } else {
+                            handleProviderSelect(model.provider)
+                          }
+                        }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <Star size={16} fill="currentColor" className="text-yellow-500" />
+                            {isSelected && <span className="text-blue-500">✓</span>}
                             <span className="text-lg">{model.provider.logo}</span>
                             <div>
                               <h4 className="font-medium text-zinc-900">{model.name}</h4>
@@ -276,6 +295,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
         isFavorite={isFavorite}
         onModelSelect={(model) => {
           onModelChange(model)
+          addToFavorites(model.id)
           setProviderModelsModal({ isOpen: false, provider: null })
           onClose()
         }}

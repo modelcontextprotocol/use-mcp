@@ -45,7 +45,8 @@ export function useModels() {
       try {
         const saved = localStorage.getItem(FAVORITES_KEY)
         if (saved) {
-          setFavorites(JSON.parse(saved))
+          const parsed = JSON.parse(saved)
+          setFavorites(parsed)
         }
       } catch (error) {
         console.error('Failed to load favorites from localStorage:', error)
@@ -75,6 +76,15 @@ export function useModels() {
     })
   }, [])
 
+  const addToFavorites = useCallback((modelId: string) => {
+    setFavorites((prev) => {
+      if (!prev.includes(modelId)) {
+        return [...prev, modelId]
+      }
+      return prev
+    })
+  }, [])
+
   const isFavorite = useCallback(
     (modelId: string) => {
       return favorites.includes(modelId)
@@ -95,6 +105,7 @@ export function useModels() {
     favorites,
     loading,
     toggleFavorite,
+    addToFavorites,
     isFavorite,
     getFavoriteModels,
     getToolSupportingModels,
