@@ -12,7 +12,8 @@
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
-    "test:html": "playwright test --reporter=html"
+    "test:html": "playwright test --reporter=html",
+    "update-models": "tsx scripts/update-models.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.2.12",
@@ -46,6 +47,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "prettier": "^3.5.3",
+    "tsx": "^4.20.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
     "use-mcp": "link:../..",
