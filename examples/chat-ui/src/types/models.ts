@@ -1,73 +1,105 @@
-export interface ModelProvider {
+// Types for models.dev API data
+export interface ModelData {
   id: string
   name: string
+  attachment: boolean
+  reasoning: boolean
+  temperature: boolean
+  tool_call: boolean
+  knowledge: string
+  release_date: string
+  last_updated: string
+  modalities: {
+    input: string[]
+    output: string[]
+  }
+  open_weights: boolean
+  limit: {
+    context: number
+    output: number
+  }
+  cost?: {
+    input: number
+    output: number
+    cache_read?: number
+    cache_write?: number
+  }
+}
+
+export type SupportedProvider = 'anthropic' | 'groq' | 'openrouter'
+
+export interface Provider {
+  id: SupportedProvider
+  name: string
   baseUrl: string
-  apiKeyHeader: string
+  logo: string
   documentationUrl: string
-  logo?: string
+  authType: 'apiKey' | 'oauth'
+  apiKeyHeader?: string
+  oauth?: {
+    authorizeUrl: string
+    tokenUrl: string
+    clientId: string
+    scopes: string[]
+  }
 }
 
 export interface Model {
   id: string
   name: string
-  provider: ModelProvider
+  provider: Provider
   modelId: string
+  supportsTools: boolean
+  reasoning: boolean
+  attachment: boolean
+  contextLimit: number
+  outputLimit: number
+  cost?: {
+    input: number
+    output: number
+    cache_read?: number
+    cache_write?: number
+  }
   providerOptions?: any
 }
 
-export const providers: Record<string, ModelProvider> = {
+export const providers: Record<SupportedProvider, Provider> = {
   groq: {
     id: 'groq',
     name: 'Groq',
     baseUrl: 'https://api.groq.com/openai/v1',
-    apiKeyHeader: 'Authorization',
-    documentationUrl: 'https://console.groq.com/docs',
     logo: '🚀',
+    documentationUrl: 'https://console.groq.com/docs',
+    authType: 'apiKey',
+    apiKeyHeader: 'Authorization',
   },
   anthropic: {
     id: 'anthropic',
     name: 'Anthropic',
     baseUrl: 'https://api.anthropic.com/v1',
-    apiKeyHeader: 'x-api-key',
-    documentationUrl: 'https://docs.anthropic.com/',
     logo: '🤖',
+    documentationUrl: 'https://docs.anthropic.com/',
+    authType: 'apiKey',
+    apiKeyHeader: 'x-api-key',
+  },
+  openrouter: {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    logo: '🌐',
+    documentationUrl: 'https://openrouter.ai/docs',
+    authType: 'oauth',
+    oauth: {
+      authorizeUrl: 'https://openrouter.ai/oauth/authorize',
+      tokenUrl: 'https://openrouter.ai/oauth/token',
+      clientId: import.meta.env.VITE_OPENROUTER_CLIENT_ID || '',
+      scopes: ['openid', 'model.read', 'model.request'],
+    },
   },
 }
 
-export const availableModels: Model[] = [
-  {
-    id: 'llama-4-maverick-17b-128e-instruct',
-    name: 'Llama 4 Maverick 17B',
-    provider: providers.groq,
-    modelId: 'meta-llama/llama-4-maverick-17b-128e-instruct',
-  },
-  {
-    id: 'qwen-3-32b',
-    name: 'Qwen3 32B',
-    provider: providers.groq,
-    modelId: 'qwen/qwen3-32b',
-    providerOptions: {
-      groq: {
-        reasoningFormat: 'parsed',
-      },
-    },
-  },
-  // {
-  //   id: 'qwen-qwq-32b',
-  //   name: 'Qwen QwQ 32B (Reasoning)',
-  //   provider: providers.groq,
-  //   modelId: 'qwen-qwq-32b',
-  // },
-  // {
-  //   id: 'deepseek-r1-distill-llama-70b',
-  //   name: 'DeepSeek R1 Distil Llama 70B (Reasoning)',
-  //   provider: providers.groq,
-  //   modelId: 'deepseek-r1-distill-llama-70b',
-  // },
-  {
-    id: 'claude-4-sonnet-20250514',
-    name: 'Claude 4 Sonnet',
-    provider: providers.anthropic,
-    modelId: 'claude-4-sonnet-20250514',
-  },
-]
+export const SUPPORTED_PROVIDERS: readonly SupportedProvider[] = ['anthropic', 'groq', 'openrouter']
+
+// Storage keys for user preferences
+export const FAVORITES_KEY = 'aiChatTemplate_favorites_v1'
+export const PROVIDER_TOKEN_KEY_PREFIX = 'aiChatTemplate_token_'
