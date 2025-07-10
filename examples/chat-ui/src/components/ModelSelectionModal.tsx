@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { X, AlertCircle, CheckCircle } from 'lucide-react'
-import { type Model, availableModels } from '../types/models'
-import { hasApiKey, setApiKey, clearApiKey } from '../utils/apiKeys'
+import { type Model } from '../types/models'
+import { useModels } from '../hooks/useModels'
+import { hasApiKey, setApiKey, clearApiKey } from '../utils/auth'
 import ApiKeyModal from './ApiKeyModal'
 
 interface ModelSelectionModalProps {
@@ -24,14 +25,15 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
     model: null,
   })
   const [apiKeyStatuses, setApiKeyStatuses] = useState<Record<string, boolean>>({})
+  const { models } = useModels()
 
   useEffect(() => {
     const statuses: Record<string, boolean> = {}
-    availableModels.forEach((model) => {
+    models.forEach((model) => {
       statuses[model.provider.id] = hasApiKey(model.provider.id)
     })
     setApiKeyStatuses(statuses)
-  }, [apiKeyUpdateTrigger])
+  }, [apiKeyUpdateTrigger, models])
 
   useEffect(() => {
     if (isOpen) {
@@ -68,7 +70,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
 
   const handleClearApiKey = (providerId: string, e: React.MouseEvent) => {
     e.stopPropagation()
-    clearApiKey(providerId)
+    clearApiKey(providerId as any)
     setApiKeyStatuses((prev) => ({ ...prev, [providerId]: false }))
   }
 
@@ -101,7 +103,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
 
           <div className="p-6 overflow-y-auto">
             <div className="space-y-3">
-              {availableModels.map((model) => {
+              {models.map((model: Model) => {
                 const isSelected = model.id === selectedModel.id
                 const hasKey = apiKeyStatuses[model.provider.id]
 
@@ -149,7 +151,17 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
       <ApiKeyModal
         isOpen={apiKeyModal.isOpen}
         onClose={() => setApiKeyModal({ isOpen: false, model: null })}
-        provider={apiKeyModal.model?.provider ?? { id: '', name: '', baseUrl: '', apiKeyHeader: '', documentationUrl: '' }}
+        provider={
+          apiKeyModal.model?.provider ?? {
+            id: 'unknown' as any,
+            name: 'Unknown',
+            baseUrl: '',
+            logo: '',
+            documentationUrl: '',
+            authType: 'apiKey',
+            apiKeyHeader: '',
+          }
+        }
         onSave={handleApiKeySave}
       />
     </>

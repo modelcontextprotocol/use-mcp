@@ -2,9 +2,10 @@ import { useRef, useState } from 'react'
 import { CoreMessage, jsonSchema, streamText, tool } from 'ai'
 import { createGroq } from '@ai-sdk/groq'
 import { createAnthropic } from '@ai-sdk/anthropic'
+import { createOpenAI } from '@ai-sdk/openai'
 import { type AssistantMessage, type Conversation, type Message, type SystemMessage, type UserMessage } from '../types'
 import { type Model } from '../types/models'
-import { getApiKey } from '../utils/apiKeys'
+import { getApiKey, getAuthHeaders } from '../utils/auth'
 import { type Tool } from 'use-mcp/react'
 import { useConversationUpdater } from './useConversationUpdater'
 
@@ -82,16 +83,18 @@ export const useStreamResponse = ({
   //   return reasoningModels.includes(model.modelId)
   // }
 
-  const getModelInstance = (model: Model, apiKey: string) => {
+  const getModelInstance = async (model: Model, authHeaders: Record<string, string>) => {
     let baseModel
 
     switch (model.provider.id) {
       case 'groq': {
+        const apiKey = authHeaders.Authorization?.replace('Bearer ', '')
         const groqProvider = createGroq({ apiKey })
         baseModel = groqProvider(model.modelId)
         break
       }
       case 'anthropic': {
+        const apiKey = authHeaders['x-api-key']
         const anthropicProvider = createAnthropic({
           apiKey,
           headers: {
@@ -99,6 +102,15 @@ export const useStreamResponse = ({
           },
         })
         baseModel = anthropicProvider(model.modelId)
+        break
+      }
+      case 'openrouter': {
+        const apiKey = authHeaders.Authorization?.replace('Bearer ', '')
+        const openrouterProvider = createOpenAI({
+          apiKey,
+          baseURL: 'https://openrouter.ai/api/v1',
+        })
+        baseModel = openrouterProvider(model.modelId)
         break
       }
       default:
@@ -112,21 +124,25 @@ export const useStreamResponse = ({
   }
 
   const streamResponse = async (messages: Message[]) => {
-    // Check if API key is available
-    let apiKey = getApiKey(selectedModel.provider.id)
-    if (!apiKey) {
+    // Check if authentication is available
+    let authHeaders: Record<string, string>
+    try {
+      authHeaders = await getAuthHeaders(selectedModel.provider.id)
+    } catch (error) {
+      // Authentication not available, prompt user
       const keyProvided = await onApiKeyRequired(selectedModel)
       if (!keyProvided) {
         return // User cancelled
       }
-      apiKey = getApiKey(selectedModel.provider.id)
-      if (!apiKey) {
-        throw new Error('No API key provided')
+      try {
+        authHeaders = await getAuthHeaders(selectedModel.provider.id)
+      } catch (error) {
+        throw new Error('No valid authentication found')
       }
     }
 
     try {
-      const modelInstance = getModelInstance(selectedModel, apiKey)
+      const modelInstance = await getModelInstance(selectedModel, authHeaders)
 
       setStreamStarted(true)
 

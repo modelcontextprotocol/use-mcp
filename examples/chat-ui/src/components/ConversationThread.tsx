@@ -258,7 +258,17 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
       <ApiKeyModal
         isOpen={apiKeyModal.isOpen}
         onClose={handleApiKeyCancel}
-        provider={apiKeyModal.model?.provider ?? { id: '', name: '', baseUrl: '', apiKeyHeader: '', documentationUrl: '' }}
+        provider={
+          apiKeyModal.model?.provider ?? {
+            id: 'unknown' as any,
+            name: 'Unknown',
+            baseUrl: '',
+            logo: '',
+            documentationUrl: '',
+            authType: 'apiKey',
+            apiKeyHeader: '',
+          }
+        }
         onSave={handleApiKeySave}
       />
 

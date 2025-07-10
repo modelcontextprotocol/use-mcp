@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Model, ModelData, providers, SupportedProvider, SUPPORTED_PROVIDERS, FAVORITES_KEY } from '../types/models'
+import { Model, providers, SupportedProvider, SUPPORTED_PROVIDERS, FAVORITES_KEY } from '../types/models'
 
 // Load models data from generated JSON
 import modelsData from '../data/models.json'

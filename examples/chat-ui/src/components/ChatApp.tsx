@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import ConversationThread from './ConversationThread.tsx'
+import ChatSidebar from './ChatSidebar'
+import ChatNavbar from './ChatNavbar'
 import { storeName } from '../consts.ts'
 import { type Conversation } from '../types'
 import { useIndexedDB } from '../hooks/useIndexedDB'
@@ -14,6 +16,7 @@ interface ChatAppProps {}
 const ChatApp: React.FC<ChatAppProps> = () => {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [conversationId, setConversationId] = useState<number | undefined>(undefined)
+  const [sidebarVisible, setSidebarVisible] = useState(false)
 
   const [selectedModel, setSelectedModel] = useState<Model>(getSelectedModel())
   const [apiKeyUpdateTrigger, setApiKeyUpdateTrigger] = useState<number>(0)
@@ -24,6 +27,18 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   const handleApiKeyUpdate = () => {
     setApiKeyUpdateTrigger((prev) => prev + 1)
   }
+
+  // Handle OAuth success messages from popups
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'oauth_success') {
+        handleApiKeyUpdate()
+      }
+    }
+
+    window.addEventListener('message', handleMessage)
+    return () => window.removeEventListener('message', handleMessage)
+  }, [])
 
   const handleModelChange = (model: Model) => {
     setSelectedModel(model)
@@ -65,14 +80,12 @@ const ChatApp: React.FC<ChatAppProps> = () => {
     }
   }
 
-  // const editConversationTitle = async (id: number, newTitle: string) => {
-  //   const conversation = (await db!.get(storeName, id)) as Conversation;
-  //   conversation.title = newTitle;
-  //   await db!.put(storeName, conversation);
-  //   setConversations((prev) =>
-  //     prev.map((conv) => (conv.id === id ? { ...conv, title: newTitle } : conv))
-  //   );
-  // };
+  const editConversationTitle = async (id: number, newTitle: string) => {
+    const conversation = (await db!.get(storeName, id)) as Conversation
+    conversation.title = newTitle
+    await db!.put(storeName, conversation)
+    setConversations((prev) => prev.map((conv) => (conv.id === id ? { ...conv, title: newTitle } : conv)))
+  }
 
   const startNewConversation = async () => {
     //create unique id for new conversation
@@ -99,29 +112,27 @@ const ChatApp: React.FC<ChatAppProps> = () => {
       style={{ '--random-delay': `${animationDelay}s` } as React.CSSProperties}
     >
       <div className="flex flex-row flex-grow flex-1 min-h-screen relative">
-        {/* Sidebar and Navbar components hidden but kept in codebase */}
-        {/*{false && (*/}
-        {/*  <>*/}
-        {/*    <ChatSidebar*/}
-        {/*      sidebarVisible={sidebarVisible}*/}
-        {/*      setSidebarVisible={setSidebarVisible}*/}
-        {/*      conversations={conversations}*/}
-        {/*      conversationId={conversationId}*/}
-        {/*      setConversationId={setConversationId}*/}
-        {/*      deleteConversation={deleteConversation}*/}
-        {/*      editConversationTitle={editConversationTitle}*/}
-        {/*      startNewConversation={startNewConversation}*/}
-        {/*      selectedModel={selectedModel}*/}
-        {/*      onModelChange={handleModelChange}*/}
-        {/*      apiKeyUpdateTrigger={apiKeyUpdateTrigger}*/}
-        {/*      onMcpToolsUpdate={setMcpTools}*/}
-        {/*    />*/}
-        {/*    <ChatNavbar*/}
-        {/*      sidebarVisible={sidebarVisible}*/}
-        {/*      setSidebarVisible={setSidebarVisible}*/}
-        {/*    />*/}
-        {/*  </>*/}
-        {/*)}*/}
+        {/* Sidebar and Navbar components */}
+        {false && (
+          <>
+            <ChatSidebar
+              sidebarVisible={sidebarVisible}
+              setSidebarVisible={setSidebarVisible}
+              conversations={conversations}
+              conversationId={conversationId}
+              setConversationId={setConversationId}
+              deleteConversation={deleteConversation}
+              editConversationTitle={editConversationTitle}
+              startNewConversation={startNewConversation}
+              selectedModel={selectedModel}
+              onModelChange={handleModelChange}
+              apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+              onMcpToolsUpdate={setMcpTools}
+              mcpTools={mcpTools}
+            />
+            <ChatNavbar sidebarVisible={sidebarVisible} setSidebarVisible={setSidebarVisible} />
+          </>
+        )}
         <div className="flex flex-col flex-grow h-full w-full">
           <ConversationThread
             conversations={conversations}

@@ -25,6 +25,7 @@ interface ChatSidebarProps {
   onModelChange: (model: Model) => void
   apiKeyUpdateTrigger: number
   onMcpToolsUpdate: (tools: Tool[]) => void
+  mcpTools: Tool[]
 }
 
 const ChatSidebar: React.FC<ChatSidebarProps> = ({
@@ -40,6 +41,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
   onModelChange,
   apiKeyUpdateTrigger,
   onMcpToolsUpdate,
+  mcpTools,
 }) => {
   const handleConversationClick = (id: number | undefined) => {
     setConversationId(id)
@@ -135,7 +137,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
           {/* Model Selector and MCP Servers at bottom */}
           <div className="p-2 border-t border-zinc-200 space-y-3">
-            <ModelSelector selectedModel={selectedModel} onModelChange={onModelChange} apiKeyUpdateTrigger={apiKeyUpdateTrigger} />
+            <ModelSelector
+              selectedModel={selectedModel}
+              onModelChange={onModelChange}
+              apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+              toolsAvailable={mcpTools.length > 0}
+            />
             <McpServers onToolsUpdate={onMcpToolsUpdate} />
           </div>
         </div>
