@@ -175,8 +175,11 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
         style={{ backgroundColor: 'rgba(0,0,0,0.8)' }}
         onClick={onClose}
       >
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-          <div className="flex items-center justify-between p-6 border-b border-zinc-200">
+        <div
+          className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between p-6 border-b border-zinc-200 flex-shrink-0">
             {currentView === 'provider' && selectedProvider ? (
               <div className="flex items-center gap-3">
                 <button onClick={handleBackToMain} className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer">
@@ -193,7 +196,7 @@ const ModelSelectionModal: React.FC<ModelSelectionModalProps> = ({
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto">
+          <div className="p-6 overflow-y-auto flex-1 min-h-0">
             {currentView === 'main' ? (
               <>
                 {/* Providers Section */}
