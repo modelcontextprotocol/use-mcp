@@ -115,17 +115,29 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
 
   // Store PKCE state in sessionStorage
   const pkceState: PKCEState = { code_verifier: codeVerifier, state }
-  sessionStorage.setItem(`pkce_${providerId}_${state}`, JSON.stringify(pkceState))
+  const storageKey = providerId === 'openrouter' ? `pkce_${providerId}_${Date.now()}` : `pkce_${providerId}_${state}`
+  sessionStorage.setItem(storageKey, JSON.stringify(pkceState))
 
-  // Construct authorization URL
-  const authUrl = new URL(provider.oauth.authorizeUrl)
-  authUrl.searchParams.set('client_id', provider.oauth.clientId)
-  authUrl.searchParams.set('redirect_uri', getRedirectUri(providerId))
-  authUrl.searchParams.set('response_type', 'code')
-  authUrl.searchParams.set('scope', provider.oauth.scopes.join(' '))
-  authUrl.searchParams.set('state', state)
-  authUrl.searchParams.set('code_challenge', codeChallenge)
-  authUrl.searchParams.set('code_challenge_method', 'S256')
+  // Construct authorization URL based on provider
+  let authUrl: URL
+
+  if (providerId === 'openrouter') {
+    // OpenRouter uses a different OAuth flow
+    authUrl = new URL(provider.oauth.authorizeUrl)
+    authUrl.searchParams.set('callback_url', getRedirectUri(providerId))
+    authUrl.searchParams.set('code_challenge', codeChallenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
+  } else {
+    // Standard OAuth2 flow for other providers
+    authUrl = new URL(provider.oauth.authorizeUrl)
+    authUrl.searchParams.set('client_id', provider.oauth.clientId)
+    authUrl.searchParams.set('redirect_uri', getRedirectUri(providerId))
+    authUrl.searchParams.set('response_type', 'code')
+    authUrl.searchParams.set('scope', provider.oauth.scopes.join(' '))
+    authUrl.searchParams.set('state', state)
+    authUrl.searchParams.set('code_challenge', codeChallenge)
+    authUrl.searchParams.set('code_challenge_method', 'S256')
+  }
 
   // Open popup or redirect
   const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700')
@@ -142,27 +154,63 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
   }
 
   // Retrieve PKCE state
-  const pkceStateJson = sessionStorage.getItem(`pkce_${providerId}_${state}`)
-  if (!pkceStateJson) {
-    throw new Error('PKCE state not found. Please try again.')
+  let pkceState: PKCEState
+
+  if (state === 'no-state' && providerId === 'openrouter') {
+    // OpenRouter doesn't use state, find the most recent PKCE state for this provider
+    const allKeys = Object.keys(sessionStorage)
+    const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
+
+    if (pkceKeys.length === 0) {
+      throw new Error('PKCE state not found. Please try again.')
+    }
+
+    // Use the most recent one (they should all be the same since we only allow one at a time)
+    const pkceStateJson = sessionStorage.getItem(pkceKeys[0])!
+    pkceState = JSON.parse(pkceStateJson)
+
+    // Clean up the state
+    sessionStorage.removeItem(pkceKeys[0])
+  } else {
+    const pkceStateJson = sessionStorage.getItem(`pkce_${providerId}_${state}`)
+    if (!pkceStateJson) {
+      throw new Error('PKCE state not found. Please try again.')
+    }
+    pkceState = JSON.parse(pkceStateJson)
   }
 
-  const pkceState: PKCEState = JSON.parse(pkceStateJson)
-
   // Exchange code for token
-  const tokenResponse = await fetch(provider.oauth.tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      client_id: provider.oauth.clientId,
-      code,
-      redirect_uri: getRedirectUri(providerId),
-      code_verifier: pkceState.code_verifier,
-    }),
-  })
+  let tokenResponse: Response
+
+  if (providerId === 'openrouter') {
+    // OpenRouter uses JSON body instead of form data
+    tokenResponse = await fetch(provider.oauth.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        code,
+        code_verifier: pkceState.code_verifier,
+        code_challenge_method: 'S256',
+      }),
+    })
+  } else {
+    // Standard OAuth2 flow for other providers
+    tokenResponse = await fetch(provider.oauth.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: provider.oauth.clientId,
+        code,
+        redirect_uri: getRedirectUri(providerId),
+        code_verifier: pkceState.code_verifier,
+      }),
+    })
+  }
 
   if (!tokenResponse.ok) {
     throw new Error(`Token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`)
@@ -171,17 +219,30 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
   const tokenData = await tokenResponse.json()
 
   // Store token with expiration
-  const token: OAuthToken = {
-    access_token: tokenData.access_token,
-    refresh_token: tokenData.refresh_token,
-    expires_at: tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : undefined,
-    token_type: 'Bearer',
+  let token: OAuthToken
+
+  if (providerId === 'openrouter') {
+    // OpenRouter returns { key: "..." }
+    token = {
+      access_token: tokenData.key,
+      token_type: 'Bearer',
+    }
+  } else {
+    // Standard OAuth2 response
+    token = {
+      access_token: tokenData.access_token,
+      refresh_token: tokenData.refresh_token,
+      expires_at: tokenData.expires_in ? Date.now() + tokenData.expires_in * 1000 : undefined,
+      token_type: 'Bearer',
+    }
   }
 
   setOAuthToken(providerId, token)
 
-  // Clean up PKCE state
-  sessionStorage.removeItem(`pkce_${providerId}_${state}`)
+  // Clean up PKCE state (already cleaned up above for OpenRouter)
+  if (state !== 'no-state') {
+    sessionStorage.removeItem(`pkce_${providerId}_${state}`)
+  }
 }
 
 // Get authentication headers for API calls

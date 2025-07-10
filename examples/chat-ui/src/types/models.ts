@@ -90,10 +90,10 @@ export const providers: Record<SupportedProvider, Provider> = {
     documentationUrl: 'https://openrouter.ai/docs',
     authType: 'oauth',
     oauth: {
-      authorizeUrl: 'https://openrouter.ai/oauth/authorize',
-      tokenUrl: 'https://openrouter.ai/oauth/token',
-      clientId: import.meta.env.VITE_OPENROUTER_CLIENT_ID || '',
-      scopes: ['openid', 'model.read', 'model.request'],
+      authorizeUrl: 'https://openrouter.ai/auth',
+      tokenUrl: 'https://openrouter.ai/api/v1/auth/keys',
+      clientId: '', // OpenRouter doesn't use client_id
+      scopes: [], // OpenRouter doesn't use scopes
     },
   },
 }
