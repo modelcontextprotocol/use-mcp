@@ -34,9 +34,9 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
           throw new Error('Missing authorization code')
         }
 
-        // OpenRouter doesn't use state parameter, but other providers might
-        const stateToUse = state || 'no-state'
-        await completeOAuthFlow(provider, code, stateToUse)
+        // TODO: Add state parameter handling back if needed later
+        // const stateToUse = state || 'no-state'
+        await completeOAuthFlow(provider, code)
         setStatus('success')
 
         // Close popup after successful authentication

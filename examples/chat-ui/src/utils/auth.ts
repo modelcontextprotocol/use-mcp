@@ -11,7 +11,8 @@ export interface OAuthToken {
 // Types for PKCE flow
 interface PKCEState {
   code_verifier: string
-  state: string
+  // TODO: Add state support back if needed later
+  // state: string
 }
 
 // Generate a random code verifier for PKCE
@@ -35,15 +36,15 @@ async function generateCodeChallenge(verifier: string): Promise<string> {
     .replace(/=/g, '')
 }
 
-// Generate random state parameter
-function generateState(): string {
-  const array = new Uint8Array(16)
-  crypto.getRandomValues(array)
-  return btoa(String.fromCharCode(...array))
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '')
-}
+// TODO: Add state generation back if needed later
+// function generateState(): string {
+//   const array = new Uint8Array(16)
+//   crypto.getRandomValues(array)
+//   return btoa(String.fromCharCode(...array))
+//     .replace(/\+/g, '-')
+//     .replace(/\//g, '_')
+//     .replace(/=/g, '')
+// }
 
 // API Key functions (existing functionality)
 export function hasApiKey(providerId: SupportedProvider): boolean {
@@ -111,11 +112,17 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
 
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
-  const state = generateState()
 
-  // Store PKCE state in sessionStorage
-  const pkceState: PKCEState = { code_verifier: codeVerifier, state }
-  const storageKey = providerId === 'openrouter' ? `pkce_${providerId}_${Date.now()}` : `pkce_${providerId}_${state}`
+  console.log('DEBUG: Generated PKCE values for', providerId, {
+    codeVerifier: codeVerifier,
+    codeChallenge: codeChallenge,
+    verifierLength: codeVerifier.length,
+    challengeLength: codeChallenge.length,
+  })
+
+  // Store PKCE state in sessionStorage (using timestamp for both providers since no state)
+  const pkceState: PKCEState = { code_verifier: codeVerifier }
+  const storageKey = `pkce_${providerId}_${Date.now()}`
   sessionStorage.setItem(storageKey, JSON.stringify(pkceState))
 
   // Construct authorization URL based on provider
@@ -132,6 +139,8 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
   }
   authUrl.searchParams.set('code_challenge', codeChallenge)
   authUrl.searchParams.set('code_challenge_method', 'S256')
+  // TODO: Add state parameter back if needed later
+  // authUrl.searchParams.set('state', state)
 
   // Open popup or redirect
   const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700')
@@ -141,50 +150,47 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
   }
 }
 
-export async function completeOAuthFlow(providerId: SupportedProvider, code: string, state: string): Promise<void> {
-  console.log('DEBUG: Starting OAuth completion for', providerId, 'with code:', code?.substring(0, 10) + '...', 'state:', state)
+export async function completeOAuthFlow(providerId: SupportedProvider, code: string): Promise<void> {
+  console.log('DEBUG: Starting OAuth completion for', providerId, 'with code:', code?.substring(0, 10) + '...')
+  console.log('DEBUG: Full code for debugging:', code)
+  console.log('DEBUG: Provider config:', providers[providerId])
 
   const provider = providers[providerId]
   if (!provider.oauth) {
     throw new Error(`Provider ${providerId} does not support OAuth`)
   }
 
-  // Retrieve PKCE state
-  let pkceState: PKCEState
+  // Retrieve PKCE state (find the most recent one since we don't use state parameter)
+  const allKeys = Object.keys(sessionStorage)
+  const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
 
-  if (state === 'no-state' && (providerId === 'openrouter' || providerId === 'groq')) {
-    // OpenRouter doesn't use state, find the most recent PKCE state for this provider
-    const allKeys = Object.keys(sessionStorage)
-    const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
+  console.log('DEBUG: Found PKCE keys:', pkceKeys)
 
-    console.log('DEBUG: Found PKCE keys:', pkceKeys)
-
-    if (pkceKeys.length === 0) {
-      throw new Error('PKCE state not found. Please try again.')
-    }
-
-    // Use the most recent one (sort by timestamp)
-    const sortedKeys = pkceKeys.sort((a, b) => {
-      const aTime = parseInt(a.split('_').pop() || '0')
-      const bTime = parseInt(b.split('_').pop() || '0')
-      return bTime - aTime // Most recent first
-    })
-
-    const pkceStateJson = sessionStorage.getItem(sortedKeys[0])!
-    pkceState = JSON.parse(pkceStateJson)
-
-    console.log('DEBUG: Using PKCE state:', { key: sortedKeys[0], state: pkceState })
-
-    // Clean up the state
-    sessionStorage.removeItem(sortedKeys[0])
-  } else {
-    const pkceStateJson = sessionStorage.getItem(`pkce_${providerId}_${state}`)
-    if (!pkceStateJson) {
-      throw new Error('PKCE state not found. Please try again.')
-    }
-    pkceState = JSON.parse(pkceStateJson)
-    console.log('DEBUG: Using PKCE state for state', state, ':', pkceState)
+  if (pkceKeys.length === 0) {
+    throw new Error('PKCE state not found. Please try again.')
   }
+
+  // Use the most recent one (sort by timestamp)
+  const sortedKeys = pkceKeys.sort((a, b) => {
+    const aTime = parseInt(a.split('_').pop() || '0')
+    const bTime = parseInt(b.split('_').pop() || '0')
+    return bTime - aTime // Most recent first
+  })
+
+  const pkceStateJson = sessionStorage.getItem(sortedKeys[0])!
+  const pkceState: PKCEState = JSON.parse(pkceStateJson)
+
+  console.log('DEBUG: Using PKCE state:', { key: sortedKeys[0], state: pkceState })
+  console.log('DEBUG: Code verifier length:', pkceState.code_verifier.length)
+  console.log('DEBUG: Code verifier sample:', pkceState.code_verifier.substring(0, 20) + '...')
+
+  // Test: regenerate challenge from verifier to verify it matches server expectation
+  const recomputedChallenge = await generateCodeChallenge(pkceState.code_verifier)
+  console.log('DEBUG: Recomputed challenge from verifier:', recomputedChallenge)
+  console.log('DEBUG: Server reported challenge was: dW2iEvNljlkhcRcryo3Z0GITcJM1liKcHlB5v8CDEu8')
+
+  // Clean up the state
+  sessionStorage.removeItem(sortedKeys[0])
 
   // Exchange code for token
   let tokenResponse: Response
@@ -218,19 +224,23 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
       duration: `${endTime - startTime}ms`,
     })
   } else {
-    // Standard OAuth2 flow for other providers
+    // Standard OAuth2 flow for other providers (Groq)
     const requestBody = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
-      // TODO: state??
       redirect_uri: getRedirectUri(providerId),
       code_verifier: pkceState.code_verifier,
     })
-    console.log('DEBUG: Standard OAuth token request:', {
+
+    console.log('DEBUG: Groq token request:', {
       url: provider.oauth.tokenUrl,
       body: Object.fromEntries(requestBody.entries()),
+      codeVerifierLength: pkceState.code_verifier.length,
+      codeVerifierSample: pkceState.code_verifier.substring(0, 20) + '...',
+      fullCodeVerifier: pkceState.code_verifier, // For debugging
     })
 
+    const startTime = performance.now()
     tokenResponse = await fetch(provider.oauth.tokenUrl, {
       method: 'POST',
       headers: {
@@ -238,11 +248,13 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
       },
       body: requestBody,
     })
+    const endTime = performance.now()
 
-    console.log('DEBUG: Standard OAuth token response:', {
+    console.log('DEBUG: Groq token response:', {
       status: tokenResponse.status,
       statusText: tokenResponse.statusText,
       headers: Object.fromEntries(tokenResponse.headers.entries()),
+      duration: `${endTime - startTime}ms`,
     })
   }
 
@@ -276,10 +288,7 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
 
   setOAuthToken(providerId, token)
 
-  // Clean up PKCE state (already cleaned up above for OpenRouter)
-  if (state !== 'no-state') {
-    sessionStorage.removeItem(`pkce_${providerId}_${state}`)
-  }
+  // PKCE state already cleaned up above
 }
 
 // Get authentication headers for API calls
@@ -318,4 +327,31 @@ export async function getAuthHeaders(providerId: SupportedProvider): Promise<Rec
 function getRedirectUri(providerId: SupportedProvider): string {
   const baseUrl = window.location.origin
   return `${baseUrl}/oauth/${providerId}/callback`
+}
+
+// Test function to verify PKCE implementation with known values
+export async function testPKCEImplementation(): Promise<void> {
+  console.log('=== TESTING PKCE IMPLEMENTATION ===')
+
+  // Test with a known code verifier (from RFC 7636 example)
+  const testVerifier = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk'
+  const expectedChallenge = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM'
+
+  const computedChallenge = await generateCodeChallenge(testVerifier)
+
+  console.log('DEBUG: Test verifier:', testVerifier)
+  console.log('DEBUG: Expected challenge:', expectedChallenge)
+  console.log('DEBUG: Computed challenge:', computedChallenge)
+  console.log('DEBUG: Challenges match:', computedChallenge === expectedChallenge)
+
+  // Test with current implementation
+  const currentVerifier = generateCodeVerifier()
+  const currentChallenge = await generateCodeChallenge(currentVerifier)
+
+  console.log('DEBUG: Current verifier:', currentVerifier)
+  console.log('DEBUG: Current challenge:', currentChallenge)
+  console.log('DEBUG: Verifier length:', currentVerifier.length)
+  console.log('DEBUG: Challenge length:', currentChallenge.length)
+
+  console.log('=== END PKCE TEST ===')
 }
