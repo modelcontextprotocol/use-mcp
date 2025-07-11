@@ -122,22 +122,16 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
   let authUrl: URL
 
   if (providerId === 'openrouter') {
-    // OpenRouter uses a different OAuth flow
+    // OpenRouter uses a different redirect name flow
     authUrl = new URL(provider.oauth.authorizeUrl)
     authUrl.searchParams.set('callback_url', getRedirectUri(providerId))
-    authUrl.searchParams.set('code_challenge', codeChallenge)
-    authUrl.searchParams.set('code_challenge_method', 'S256')
   } else {
-    // Standard OAuth2 flow for other providers
+    // Groq uses redirect_uri
     authUrl = new URL(provider.oauth.authorizeUrl)
-    authUrl.searchParams.set('client_id', provider.oauth.clientId)
     authUrl.searchParams.set('redirect_uri', getRedirectUri(providerId))
-    authUrl.searchParams.set('response_type', 'code')
-    authUrl.searchParams.set('scope', provider.oauth.scopes.join(' '))
-    authUrl.searchParams.set('state', state)
-    authUrl.searchParams.set('code_challenge', codeChallenge)
-    authUrl.searchParams.set('code_challenge_method', 'S256')
   }
+  authUrl.searchParams.set('code_challenge', codeChallenge)
+  authUrl.searchParams.set('code_challenge_method', 'S256')
 
   // Open popup or redirect
   const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700')
@@ -227,7 +221,6 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
     // Standard OAuth2 flow for other providers
     const requestBody = new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: provider.oauth.clientId,
       code,
       redirect_uri: getRedirectUri(providerId),
       code_verifier: pkceState.code_verifier,

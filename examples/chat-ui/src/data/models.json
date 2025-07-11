@@ -455,7 +455,7 @@
       "id": "qwen/qwen3-32b",
       "name": "Qwen3 32B",
       "attachment": false,
-      "reasoning": false,
+      "reasoning": true,
       "temperature": true,
       "tool_call": true,
       "knowledge": "2024-11-08",

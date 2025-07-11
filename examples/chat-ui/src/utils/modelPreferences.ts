@@ -1,31 +1,7 @@
-import { type Model, providers, type SupportedProvider } from '../types/models'
+import { type Model, providers } from '../types/models'
 
 // Import models data directly
 import modelsData from '../data/models.json'
-
-// Helper function to get provider-specific options
-function getProviderOptions(providerId: SupportedProvider, modelId: string) {
-  // Add any provider-specific options here
-  switch (providerId) {
-    case 'groq':
-      // Handle specific Groq model options
-      if (modelId === 'qwen/qwen3-32b') {
-        return {
-          groq: {
-            reasoningFormat: 'parsed',
-          },
-        }
-      }
-      break
-    case 'anthropic':
-      // Handle specific Anthropic model options
-      break
-    case 'openrouter':
-      // Handle specific OpenRouter model options
-      break
-  }
-  return undefined
-}
 
 const MODEL_PREFERENCE_KEY = 'aiChatTemplate_selectedModel'
 
@@ -47,7 +23,6 @@ function getAvailableModels(): Model[] {
         contextLimit: modelData.limit.context,
         outputLimit: modelData.limit.output,
         cost: modelData.cost,
-        providerOptions: getProviderOptions(providerId as any, modelId),
       }
       models.push(model)
     }

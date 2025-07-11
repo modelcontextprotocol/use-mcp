@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Model, providers, SupportedProvider, SUPPORTED_PROVIDERS, FAVORITES_KEY } from '../types/models'
+import { Model, providers, SUPPORTED_PROVIDERS, FAVORITES_KEY } from '../types/models'
 
 // Load models data from generated JSON
 import modelsData from '../data/models.json'
@@ -31,7 +31,6 @@ export function useModels() {
             contextLimit: modelData.limit.context,
             outputLimit: modelData.limit.output,
             cost: modelData.cost,
-            providerOptions: getProviderOptions(providerId, modelId),
           }
           allModels.push(model)
         }
@@ -113,28 +112,4 @@ export function useModels() {
     getFavoriteModels,
     getToolSupportingModels,
   }
-}
-
-// Helper function to get provider-specific options
-function getProviderOptions(providerId: SupportedProvider, modelId: string) {
-  // Add any provider-specific options here
-  switch (providerId) {
-    case 'groq':
-      // Handle specific Groq model options
-      if (modelId === 'qwen/qwen3-32b') {
-        return {
-          groq: {
-            reasoningFormat: 'parsed',
-          },
-        }
-      }
-      break
-    case 'anthropic':
-      // Handle specific Anthropic model options
-      break
-    case 'openrouter':
-      // Handle specific OpenRouter model options
-      break
-  }
-  return undefined
 }

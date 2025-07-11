@@ -8,6 +8,7 @@ import { type Model } from '../types/models'
 import { getAuthHeaders } from '../utils/auth'
 import { type Tool } from 'use-mcp/react'
 import { useConversationUpdater } from './useConversationUpdater'
+import { getProviderOptions } from '../utils/modelOptions.ts'
 
 // Type guard for messages with content
 const hasContent = (message: Message): message is UserMessage | AssistantMessage | SystemMessage => {
@@ -166,7 +167,7 @@ export const useStreamResponse = ({
         tools: Object.keys(aiTools).length > 0 ? aiTools : undefined,
         maxSteps: 5, // Allow up to 5 steps for tool calling
         abortSignal: controller.signal,
-        ...selectedModel.providerOptions,
+        providerOptions: getProviderOptions(selectedModel.provider.id, selectedModel.modelId),
       })
 
       // Use fullStream to get all events including tool calls, results, and text
@@ -229,19 +230,13 @@ export const useStreamResponse = ({
                 } else {
                   console.warn('Tool call event missing toolName:', event)
                 }
-                // @ts-expect-error I have no idea why this is suddenly failing...
               } else if (event.type === 'tool-result') {
-                // @ts-expect-error wat
                 if (event.toolName && event.toolCallId) {
                   newMessage = {
                     role: 'tool-result',
-                    // @ts-expect-error the
                     toolName: event.toolName,
-                    // @ts-expect-error actual
                     toolArgs: event.args || {},
-                    // @ts-expect-error goddamn
                     toolResult: event.result,
-                    // @ts-expect-error fek
                     callId: event.toolCallId,
                   }
                   scrollToBottom(true)

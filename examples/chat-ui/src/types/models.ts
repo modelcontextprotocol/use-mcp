@@ -39,8 +39,6 @@ export interface Provider {
   oauth?: {
     authorizeUrl: string
     tokenUrl: string
-    clientId: string
-    scopes: string[]
   }
 }
 
@@ -60,7 +58,6 @@ export interface Model {
     cache_read?: number
     cache_write?: number
   }
-  providerOptions?: any
 }
 
 export const providers: Record<SupportedProvider, Provider> = {
@@ -72,6 +69,10 @@ export const providers: Record<SupportedProvider, Provider> = {
     documentationUrl: 'https://console.groq.com/docs',
     authType: 'apiKey',
     apiKeyHeader: 'Authorization',
+    // oauth: {
+    //   authorizeUrl: 'http://localhost:3000/keys/request',
+    //   tokenUrl: 'https://openrouter.ai/api/v1/auth/keys'
+    // },
   },
   anthropic: {
     id: 'anthropic',
@@ -92,8 +93,6 @@ export const providers: Record<SupportedProvider, Provider> = {
     oauth: {
       authorizeUrl: 'https://openrouter.ai/auth',
       tokenUrl: 'https://openrouter.ai/api/v1/auth/keys',
-      clientId: '', // OpenRouter doesn't use client_id
-      scopes: [], // OpenRouter doesn't use scopes
     },
   },
 }
