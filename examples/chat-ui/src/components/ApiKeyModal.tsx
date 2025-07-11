@@ -1,12 +1,12 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Eye, EyeOff } from 'lucide-react'
-import { type ModelProvider } from '../types/models'
+import { type Provider } from '../types/models'
 
 interface ApiKeyModalProps {
   isOpen: boolean
   onClose: () => void
-  provider: ModelProvider
+  provider: Provider
   onSave: (apiKey: string) => void
 }
 

@@ -30,6 +30,11 @@ interface ConversationThreadProps {
   apiKeyUpdateTrigger: number
   mcpTools: Tool[]
   onMcpToolsUpdate: (tools: Tool[]) => void
+  addToFavorites: (modelId: string) => void
+  models: Model[]
+  toggleFavorite: (modelId: string) => void
+  isFavorite: (modelId: string) => boolean
+  getFavoriteModels: () => Model[]
 }
 
 const ConversationThread: React.FC<ConversationThreadProps> = ({
@@ -44,6 +49,11 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
   apiKeyUpdateTrigger,
   mcpTools,
   onMcpToolsUpdate,
+  addToFavorites,
+  models,
+  toggleFavorite,
+  isFavorite,
+  getFavoriteModels,
 }) => {
   const [input, setInput] = useState<string>('')
   const [apiKeyModal, setApiKeyModal] = useState<{ isOpen: boolean; model: Model | null }>({
@@ -258,7 +268,17 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
       <ApiKeyModal
         isOpen={apiKeyModal.isOpen}
         onClose={handleApiKeyCancel}
-        provider={apiKeyModal.model?.provider ?? { id: '', name: '', baseUrl: '', apiKeyHeader: '', documentationUrl: '' }}
+        provider={
+          apiKeyModal.model?.provider ?? {
+            id: 'unknown' as any,
+            name: 'Unknown',
+            baseUrl: '',
+            logo: '',
+            documentationUrl: '',
+            authType: 'apiKey',
+            apiKeyHeader: '',
+          }
+        }
         onSave={handleApiKeySave}
       />
 
@@ -268,6 +288,11 @@ const ConversationThread: React.FC<ConversationThreadProps> = ({
         selectedModel={selectedModel}
         onModelChange={onModelChange}
         apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+        addToFavorites={addToFavorites}
+        models={models}
+        toggleFavorite={toggleFavorite}
+        isFavorite={isFavorite}
+        getFavoriteModels={getFavoriteModels}
       />
 
       <McpServerModal isOpen={mcpServerModal} onClose={() => setMcpServerModal(false)} onToolsUpdate={onMcpToolsUpdate} />
