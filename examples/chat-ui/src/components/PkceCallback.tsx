@@ -7,7 +7,7 @@ interface OAuthCallbackProps {
   provider: SupportedProvider
 }
 
-const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
+const PkceCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
@@ -150,4 +150,4 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
   )
 }
 
-export default OAuthCallback
+export default PkceCallback
