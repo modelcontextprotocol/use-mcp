@@ -103,7 +103,7 @@ function MyChatComponent() {
       {mcp.state === 'authenticating' && <p>Waiting for authentication...</p>}
       {mcp.state === 'ready' && (
         <p>
-          Connected! Tools: {mcp.tools.length}, Resources: {mcp.resources.length + mcp.resourceTemplates.length}, 
+          Connected! Tools: {mcp.tools.length}, Resources: {mcp.resources.length + mcp.resourceTemplates.length},
           Prompts: {mcp.prompts.length}
         </p>
       )}
@@ -230,6 +230,7 @@ export default MyChatComponent
 - disconnect(): Disconnects the client from the server.
 - authenticate(): Manually attempts to start the authentication flow. Useful for triggering the popup via a user click if it was initially blocked.
 - clearStorage(): Removes all authentication-related data (tokens, client info, code verifier, state) for the configured server URL from localStorage. Useful for development or allowing users to "log out". Automatically disconnects the client.
+- authProvider: An internal class that manages OAuth authentication flows. This handles all OAuth-related operations behind the scenes and is automatically used by the hook (you typically won't need to interact with it directly).
 
 ### Setting up the OAuth Callback Route
 

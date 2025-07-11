@@ -75,6 +75,7 @@ function MyAIComponent() {
     retry,          // Retry connection manually
     authenticate,   // Manually trigger authentication
     clearStorage,   // Clear stored tokens and credentials
+    authProvider,   // Class for handling OAuth authentication and token management
   } = useMcp({
     url: 'https://your-mcp-server.com',
     clientName: 'My App',
@@ -115,7 +116,7 @@ function MyAIComponent() {
         ))}
       </ul>
       <button onClick={handleSearch}>Search</button>
-      
+
       {/* Example: Display and read resources */}
       {resources.length > 0 && (
         <div>
@@ -128,7 +129,7 @@ function MyAIComponent() {
           </button>
         </div>
       )}
-      
+
       {/* Example: Use prompts */}
       {prompts.length > 0 && (
         <div>
@@ -249,6 +250,7 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `disconnect` | `() => void` | Disconnect from the MCP server |
 | `authenticate` | `() => void` | Manually trigger authentication |
 | `clearStorage` | `() => void` | Clear all stored authentication data |
+| `authProvider` | `BrowserOAuthClientProvider` | Class for handling OAuth authentication and token management |
 
 ## License
 
