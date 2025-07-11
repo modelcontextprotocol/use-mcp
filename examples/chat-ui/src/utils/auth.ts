@@ -120,9 +120,9 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
     challengeLength: codeChallenge.length,
   })
 
-  // Store PKCE state in sessionStorage (using timestamp for both providers since no state)
+  // Store PKCE state in sessionStorage (one key per provider)
   const pkceState: PKCEState = { code_verifier: codeVerifier }
-  const storageKey = `pkce_${providerId}_${Date.now()}`
+  const storageKey = `pkce_${providerId}`
   sessionStorage.setItem(storageKey, JSON.stringify(pkceState))
 
   // Construct authorization URL based on provider
@@ -143,11 +143,15 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
   // authUrl.searchParams.set('state', state)
 
   // Open popup or redirect
+  console.log('DEBUG: Opening OAuth popup for', providerId, 'with URL:', authUrl.toString())
   const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700')
 
   if (!popup) {
     throw new Error('Failed to open OAuth popup. Please allow popups for this site.')
   }
+
+  console.log('DEBUG: Popup opened successfully:', popup)
+  console.log('DEBUG: Popup closed:', popup.closed)
 }
 
 export async function completeOAuthFlow(providerId: SupportedProvider, code: string): Promise<void> {
@@ -160,27 +164,19 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
     throw new Error(`Provider ${providerId} does not support OAuth`)
   }
 
-  // Retrieve PKCE state (find the most recent one since we don't use state parameter)
-  const allKeys = Object.keys(sessionStorage)
-  const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
+  // Retrieve PKCE state (single key per provider)
+  const storageKey = `pkce_${providerId}`
+  const pkceStateJson = sessionStorage.getItem(storageKey)
 
-  console.log('DEBUG: Found PKCE keys:', pkceKeys)
+  console.log('DEBUG: Looking for PKCE key:', storageKey)
 
-  if (pkceKeys.length === 0) {
+  if (!pkceStateJson) {
     throw new Error('PKCE state not found. Please try again.')
   }
 
-  // Use the most recent one (sort by timestamp)
-  const sortedKeys = pkceKeys.sort((a, b) => {
-    const aTime = parseInt(a.split('_').pop() || '0')
-    const bTime = parseInt(b.split('_').pop() || '0')
-    return bTime - aTime // Most recent first
-  })
-
-  const pkceStateJson = sessionStorage.getItem(sortedKeys[0])!
   const pkceState: PKCEState = JSON.parse(pkceStateJson)
 
-  console.log('DEBUG: Using PKCE state:', { key: sortedKeys[0], state: pkceState })
+  console.log('DEBUG: Using PKCE state:', { key: storageKey, state: pkceState })
   console.log('DEBUG: Code verifier length:', pkceState.code_verifier.length)
   console.log('DEBUG: Code verifier sample:', pkceState.code_verifier.substring(0, 20) + '...')
 
@@ -190,7 +186,7 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
   console.log('DEBUG: Server reported challenge was: dW2iEvNljlkhcRcryo3Z0GITcJM1liKcHlB5v8CDEu8')
 
   // Clean up the state
-  sessionStorage.removeItem(sortedKeys[0])
+  sessionStorage.removeItem(storageKey)
 
   // Exchange code for token
   let tokenResponse: Response

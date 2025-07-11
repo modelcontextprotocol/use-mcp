@@ -33,7 +33,9 @@ const ChatApp: React.FC<ChatAppProps> = () => {
   // Handle OAuth success messages from popups
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log('DEBUG: Received message in parent window:', event.data)
       if (event.data.type === 'oauth_success') {
+        console.log('DEBUG: OAuth success message received, triggering API key update')
         handleApiKeyUpdate()
       }
     }

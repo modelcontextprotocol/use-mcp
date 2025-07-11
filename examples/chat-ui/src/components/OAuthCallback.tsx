@@ -23,7 +23,6 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
 
       try {
         const code = searchParams.get('code')
-        const state = searchParams.get('state')
         const error = searchParams.get('error')
 
         if (error) {
@@ -39,17 +38,49 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
         await completeOAuthFlow(provider, code)
         setStatus('success')
 
-        // Close popup after successful authentication
-        // Give extra time for debugging in development
-        setTimeout(() => {
-          if (window.opener) {
-            window.opener.postMessage({ type: 'oauth_success', provider }, '*')
-            window.close()
-          } else {
-            // Redirect to main page if not in popup
-            window.location.href = '/'
+        console.log('DEBUG: OAuth flow completed successfully')
+        console.log('DEBUG: window.opener exists:', !!window.opener)
+        console.log('DEBUG: window.opener closed:', window.opener?.closed)
+        console.log('DEBUG: window.parent exists:', !!window.parent)
+        console.log('DEBUG: window.parent === window:', window.parent === window)
+
+        // Try multiple approaches to communicate with parent
+        const sendSuccessMessage = () => {
+          const message = { type: 'oauth_success', provider }
+
+          // Try window.opener first
+          if (window.opener && !window.opener.closed) {
+            console.log('DEBUG: Sending message via window.opener')
+            window.opener.postMessage(message, '*')
           }
-        }, 3000)
+
+          // Also try window.parent as fallback
+          if (window.parent && window.parent !== window) {
+            console.log('DEBUG: Sending message via window.parent')
+            window.parent.postMessage(message, '*')
+          }
+
+          // Also try top window
+          if (window.top && window.top !== window) {
+            console.log('DEBUG: Sending message via window.top')
+            window.top.postMessage(message, '*')
+          }
+        }
+
+        // Send success message immediately
+        sendSuccessMessage()
+
+        // Close popup after successful authentication
+        if (window.opener && !window.opener.closed) {
+          console.log('DEBUG: Closing popup in 100ms')
+          setTimeout(() => {
+            console.log('DEBUG: Attempting to close popup')
+            window.close()
+          }, 100)
+        } else {
+          console.log('DEBUG: No valid opener, showing success message and manual close')
+          // Don't redirect immediately, let user see success and close manually
+        }
       } catch (err) {
         console.error('OAuth callback error:', err)
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -86,7 +117,12 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Successful!</h2>
               <p className="text-gray-600 mb-4">Successfully connected to {provider}. You can now close this window.</p>
               <button
-                onClick={() => window.close()}
+                onClick={() => {
+                  if (window.opener) {
+                    window.opener.postMessage({ type: 'oauth_success', provider }, '*')
+                  }
+                  window.close()
+                }}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
               >
                 Close Window
