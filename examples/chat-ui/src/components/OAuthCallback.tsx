@@ -67,19 +67,13 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
 
         // Try to send success message
         const messageSent = sendSuccessMessage()
+        console.log({ messageSent })
 
-        // Close popup if we have a valid opener, otherwise redirect to main page
-        if (window.opener && !window.opener.closed) {
-          console.log('DEBUG: Closing popup in 100ms')
-          setTimeout(() => {
-            console.log('DEBUG: Attempting to close popup')
-            window.close()
-          }, 100)
-        } else {
-          console.log('DEBUG: No valid opener, showing success message')
-          // Just show success message, let user navigate back manually
-          // or provide a link to go back
-        }
+        console.log('DEBUG: Closing popup in 100ms')
+        setTimeout(() => {
+          console.log('DEBUG: Attempting to close popup')
+          window.close()
+        }, 100)
       } catch (err) {
         console.error('OAuth callback error:', err)
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -118,25 +112,13 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    if (window.opener) {
-                      window.opener.postMessage({ type: 'oauth_success', provider }, '*')
-                      window.close()
-                    } else {
-                      window.location.href = '/'
-                    }
+                    window.opener?.postMessage({ type: 'oauth_success', provider }, '*')
+                    window.close()
                   }}
                   className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                 >
-                  {window.opener ? 'Close Window' : 'Return to App'}
+                  Close Window
                 </button>
-                {window.opener && (
-                  <button
-                    onClick={() => window.close()}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
-                  >
-                    Close
-                  </button>
-                )}
               </div>
             </>
           )}
