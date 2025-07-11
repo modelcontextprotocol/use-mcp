@@ -152,7 +152,7 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
   // Retrieve PKCE state
   let pkceState: PKCEState
 
-  if (state === 'no-state' && providerId === 'openrouter') {
+  if (state === 'no-state' && (providerId === 'openrouter' || providerId === 'groq')) {
     // OpenRouter doesn't use state, find the most recent PKCE state for this provider
     const allKeys = Object.keys(sessionStorage)
     const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
@@ -222,6 +222,7 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
     const requestBody = new URLSearchParams({
       grant_type: 'authorization_code',
       code,
+      // TODO: state??
       redirect_uri: getRedirectUri(providerId),
       code_verifier: pkceState.code_verifier,
     })

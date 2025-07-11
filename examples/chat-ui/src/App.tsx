@@ -6,6 +6,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/oauth/groq/callback" element={<OAuthCallback provider="groq" />} />
         <Route path="/oauth/openrouter/callback" element={<OAuthCallback provider="openrouter" />} />
         <Route path="/oauth/callback" element={<OAuthCallback provider="openrouter" />} />
         <Route path="/" element={<ChatApp />} />
