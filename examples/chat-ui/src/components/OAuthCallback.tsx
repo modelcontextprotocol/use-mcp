@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { completeOAuthFlow } from '../utils/auth'
 import { SupportedProvider } from '../types/models'
@@ -11,9 +11,16 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
+  const executedRef = useRef(false)
 
   useEffect(() => {
     const handleCallback = async () => {
+      if (executedRef.current) {
+        console.log('DEBUG: Skipping duplicate OAuth callback execution')
+        return
+      }
+      executedRef.current = true
+
       try {
         const code = searchParams.get('code')
         const state = searchParams.get('state')
@@ -33,6 +40,7 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
         setStatus('success')
 
         // Close popup after successful authentication
+        // Give extra time for debugging in development
         setTimeout(() => {
           if (window.opener) {
             window.opener.postMessage({ type: 'oauth_success', provider }, '*')
@@ -41,7 +49,7 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
             // Redirect to main page if not in popup
             window.location.href = '/'
           }
-        }, 1000)
+        }, 3000)
       } catch (err) {
         console.error('OAuth callback error:', err)
         setError(err instanceof Error ? err.message : 'Unknown error')
@@ -76,7 +84,13 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Successful!</h2>
-              <p className="text-gray-600">Successfully connected to {provider}. This window will close automatically.</p>
+              <p className="text-gray-600 mb-4">Successfully connected to {provider}. You can now close this window.</p>
+              <button
+                onClick={() => window.close()}
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+              >
+                Close Window
+              </button>
             </>
           )}
 

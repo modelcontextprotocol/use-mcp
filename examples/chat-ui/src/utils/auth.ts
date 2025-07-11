@@ -148,6 +148,8 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
 }
 
 export async function completeOAuthFlow(providerId: SupportedProvider, code: string, state: string): Promise<void> {
+  console.log('DEBUG: Starting OAuth completion for', providerId, 'with code:', code?.substring(0, 10) + '...', 'state:', state)
+
   const provider = providers[providerId]
   if (!provider.oauth) {
     throw new Error(`Provider ${providerId} does not support OAuth`)
@@ -161,22 +163,33 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
     const allKeys = Object.keys(sessionStorage)
     const pkceKeys = allKeys.filter((key) => key.startsWith(`pkce_${providerId}_`))
 
+    console.log('DEBUG: Found PKCE keys:', pkceKeys)
+
     if (pkceKeys.length === 0) {
       throw new Error('PKCE state not found. Please try again.')
     }
 
-    // Use the most recent one (they should all be the same since we only allow one at a time)
-    const pkceStateJson = sessionStorage.getItem(pkceKeys[0])!
+    // Use the most recent one (sort by timestamp)
+    const sortedKeys = pkceKeys.sort((a, b) => {
+      const aTime = parseInt(a.split('_').pop() || '0')
+      const bTime = parseInt(b.split('_').pop() || '0')
+      return bTime - aTime // Most recent first
+    })
+
+    const pkceStateJson = sessionStorage.getItem(sortedKeys[0])!
     pkceState = JSON.parse(pkceStateJson)
 
+    console.log('DEBUG: Using PKCE state:', { key: sortedKeys[0], state: pkceState })
+
     // Clean up the state
-    sessionStorage.removeItem(pkceKeys[0])
+    sessionStorage.removeItem(sortedKeys[0])
   } else {
     const pkceStateJson = sessionStorage.getItem(`pkce_${providerId}_${state}`)
     if (!pkceStateJson) {
       throw new Error('PKCE state not found. Please try again.')
     }
     pkceState = JSON.parse(pkceStateJson)
+    console.log('DEBUG: Using PKCE state for state', state, ':', pkceState)
   }
 
   // Exchange code for token
@@ -184,39 +197,69 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
 
   if (providerId === 'openrouter') {
     // OpenRouter uses JSON body instead of form data
+    const requestBody = {
+      code,
+      code_verifier: pkceState.code_verifier,
+      code_challenge_method: 'S256',
+    }
+    console.log('DEBUG: OpenRouter token request:', {
+      url: provider.oauth.tokenUrl,
+      body: requestBody,
+    })
+
+    const startTime = performance.now()
     tokenResponse = await fetch(provider.oauth.tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        code,
-        code_verifier: pkceState.code_verifier,
-        code_challenge_method: 'S256',
-      }),
+      body: JSON.stringify(requestBody),
+    })
+    const endTime = performance.now()
+
+    console.log('DEBUG: OpenRouter token response:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      headers: Object.fromEntries(tokenResponse.headers.entries()),
+      duration: `${endTime - startTime}ms`,
     })
   } else {
     // Standard OAuth2 flow for other providers
+    const requestBody = new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: provider.oauth.clientId,
+      code,
+      redirect_uri: getRedirectUri(providerId),
+      code_verifier: pkceState.code_verifier,
+    })
+    console.log('DEBUG: Standard OAuth token request:', {
+      url: provider.oauth.tokenUrl,
+      body: Object.fromEntries(requestBody.entries()),
+    })
+
     tokenResponse = await fetch(provider.oauth.tokenUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
-      body: new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: provider.oauth.clientId,
-        code,
-        redirect_uri: getRedirectUri(providerId),
-        code_verifier: pkceState.code_verifier,
-      }),
+      body: requestBody,
+    })
+
+    console.log('DEBUG: Standard OAuth token response:', {
+      status: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      headers: Object.fromEntries(tokenResponse.headers.entries()),
     })
   }
 
   if (!tokenResponse.ok) {
+    const errorText = await tokenResponse.text()
+    console.error('DEBUG: Token exchange error response:', errorText)
     throw new Error(`Token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`)
   }
 
   const tokenData = await tokenResponse.json()
+  console.log('DEBUG: Token response data:', tokenData)
 
   // Store token with expiration
   let token: OAuthToken

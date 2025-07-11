@@ -59,12 +59,15 @@ export function useModels() {
 
   // Save favorites to localStorage when they change
   useEffect(() => {
+    // Only save if favorites array has been loaded (not during initial state)
+    if (loading) return
+
     try {
       localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites))
     } catch (error) {
       console.error('Failed to save favorites to localStorage:', error)
     }
-  }, [favorites])
+  }, [favorites, loading])
 
   const toggleFavorite = useCallback((modelId: string) => {
     setFavorites((prev) => {
