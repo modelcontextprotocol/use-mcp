@@ -44,6 +44,96 @@ const ChatApp: React.FC<ChatAppProps> = () => {
     return () => window.removeEventListener('message', handleMessage)
   }, [])
 
+  // Poll for OAuth token changes (fallback for when popup messaging doesn't work)
+  useEffect(() => {
+    const oauthProviders = ['groq', 'openrouter'] as const
+    let initialTokens: Record<string, string | null> = {}
+
+    // Capture initial token state
+    const captureInitialTokens = () => {
+      for (const providerId of oauthProviders) {
+        const tokenKey = `aiChatTemplate_token_${providerId}`
+        initialTokens[providerId] = localStorage.getItem(tokenKey)
+      }
+    }
+
+    const checkForNewTokens = () => {
+      for (const providerId of oauthProviders) {
+        const tokenKey = `aiChatTemplate_token_${providerId}`
+        const currentToken = localStorage.getItem(tokenKey)
+
+        // Check if token was added or changed
+        if (currentToken !== initialTokens[providerId]) {
+          try {
+            const parsedToken = JSON.parse(currentToken || '{}')
+            if (parsedToken.access_token) {
+              console.log('DEBUG: New OAuth token detected for', providerId, 'via polling')
+              handleApiKeyUpdate()
+              return true // Stop polling once we find a new token
+            }
+          } catch (e) {
+            // Invalid token format, continue checking
+          }
+        }
+      }
+      return false
+    }
+
+    let pollInterval: NodeJS.Timeout | null = null
+
+    const startPolling = () => {
+      // Capture initial state
+      captureInitialTokens()
+
+      // Check immediately for existing valid tokens (in case we just redirected from OAuth)
+      console.log('DEBUG: Checking for existing OAuth tokens on startup')
+      for (const providerId of oauthProviders) {
+        const tokenKey = `aiChatTemplate_token_${providerId}`
+        const currentToken = localStorage.getItem(tokenKey)
+
+        console.log(`DEBUG: Checking ${providerId} token:`, currentToken ? 'exists' : 'not found')
+
+        if (currentToken) {
+          try {
+            const parsedToken = JSON.parse(currentToken)
+            console.log(`DEBUG: Parsed ${providerId} token:`, parsedToken)
+            if (parsedToken.access_token) {
+              console.log('DEBUG: Found existing OAuth token for', providerId, 'on startup')
+              handleApiKeyUpdate()
+              return // Don't start polling if we found a valid token
+            }
+          } catch (e) {
+            console.log(`DEBUG: Failed to parse ${providerId} token:`, e)
+          }
+        }
+      }
+
+      // Start polling every 500ms for new tokens
+      pollInterval = setInterval(() => {
+        if (checkForNewTokens()) {
+          if (pollInterval) {
+            clearInterval(pollInterval)
+            pollInterval = null
+            console.log('DEBUG: Stopped polling for OAuth tokens')
+          }
+        }
+      }, 500)
+
+      console.log('DEBUG: Started polling for OAuth token changes')
+    }
+
+    // Start polling after a short delay to allow for popup messages first
+    const delayedStart = setTimeout(startPolling, 100)
+
+    return () => {
+      if (delayedStart) clearTimeout(delayedStart)
+      if (pollInterval) {
+        clearInterval(pollInterval)
+        console.log('DEBUG: Cleaned up OAuth token polling')
+      }
+    }
+  }, [])
+
   const handleModelChange = (model: Model) => {
     setSelectedModel(model)
     saveSelectedModel(model)

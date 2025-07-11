@@ -144,14 +144,18 @@ export async function beginOAuthFlow(providerId: SupportedProvider): Promise<voi
 
   // Open popup or redirect
   console.log('DEBUG: Opening OAuth popup for', providerId, 'with URL:', authUrl.toString())
-  const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700')
+  const popup = window.open(authUrl.toString(), `oauth_${providerId}`, 'width=600,height=700,popup=1')
 
   if (!popup) {
-    throw new Error('Failed to open OAuth popup. Please allow popups for this site.')
+    console.log('DEBUG: Failed to open popup, trying redirect in same window')
+    // Fallback to redirect in same window
+    window.location.href = authUrl.toString()
+    return
   }
 
   console.log('DEBUG: Popup opened successfully:', popup)
   console.log('DEBUG: Popup closed:', popup.closed)
+  console.log('DEBUG: Popup window object:', popup.window)
 }
 
 export async function completeOAuthFlow(providerId: SupportedProvider, code: string): Promise<void> {
@@ -272,6 +276,12 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
       access_token: tokenData.key,
       token_type: 'Bearer',
     }
+  } else if (providerId === 'groq') {
+    // Groq returns { api_key: "..." }
+    token = {
+      access_token: tokenData.api_key,
+      token_type: 'Bearer',
+    }
   } else {
     // Standard OAuth2 response
     token = {
@@ -282,6 +292,7 @@ export async function completeOAuthFlow(providerId: SupportedProvider, code: str
     }
   }
 
+  console.log('DEBUG: Saving token for', providerId, ':', token)
   setOAuthToken(providerId, token)
 
   // PKCE state already cleaned up above

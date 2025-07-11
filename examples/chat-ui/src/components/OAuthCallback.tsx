@@ -44,7 +44,7 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
         console.log('DEBUG: window.parent exists:', !!window.parent)
         console.log('DEBUG: window.parent === window:', window.parent === window)
 
-        // Try multiple approaches to communicate with parent
+        // Try to send success message to parent if possible
         const sendSuccessMessage = () => {
           const message = { type: 'oauth_success', provider }
 
@@ -52,25 +52,23 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
           if (window.opener && !window.opener.closed) {
             console.log('DEBUG: Sending message via window.opener')
             window.opener.postMessage(message, '*')
+            return true
           }
 
           // Also try window.parent as fallback
           if (window.parent && window.parent !== window) {
             console.log('DEBUG: Sending message via window.parent')
             window.parent.postMessage(message, '*')
+            return true
           }
 
-          // Also try top window
-          if (window.top && window.top !== window) {
-            console.log('DEBUG: Sending message via window.top')
-            window.top.postMessage(message, '*')
-          }
+          return false
         }
 
-        // Send success message immediately
-        sendSuccessMessage()
+        // Try to send success message
+        const messageSent = sendSuccessMessage()
 
-        // Close popup after successful authentication
+        // Close popup if we have a valid opener, otherwise redirect to main page
         if (window.opener && !window.opener.closed) {
           console.log('DEBUG: Closing popup in 100ms')
           setTimeout(() => {
@@ -78,8 +76,9 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
             window.close()
           }, 100)
         } else {
-          console.log('DEBUG: No valid opener, showing success message and manual close')
-          // Don't redirect immediately, let user see success and close manually
+          console.log('DEBUG: No valid opener, showing success message')
+          // Just show success message, let user navigate back manually
+          // or provide a link to go back
         }
       } catch (err) {
         console.error('OAuth callback error:', err)
@@ -115,18 +114,30 @@ const OAuthCallback: React.FC<OAuthCallbackProps> = ({ provider }) => {
                 </svg>
               </div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Authentication Successful!</h2>
-              <p className="text-gray-600 mb-4">Successfully connected to {provider}. You can now close this window.</p>
-              <button
-                onClick={() => {
-                  if (window.opener) {
-                    window.opener.postMessage({ type: 'oauth_success', provider }, '*')
-                  }
-                  window.close()
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-              >
-                Close Window
-              </button>
+              <p className="text-gray-600 mb-4">Successfully connected to {provider}.</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (window.opener) {
+                      window.opener.postMessage({ type: 'oauth_success', provider }, '*')
+                      window.close()
+                    } else {
+                      window.location.href = '/'
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                >
+                  {window.opener ? 'Close Window' : 'Return to App'}
+                </button>
+                {window.opener && (
+                  <button
+                    onClick={() => window.close()}
+                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
             </>
           )}
 
