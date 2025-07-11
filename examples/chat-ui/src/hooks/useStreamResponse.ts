@@ -90,7 +90,7 @@ export const useStreamResponse = ({
     switch (model.provider.id) {
       case 'groq': {
         const apiKey = authHeaders.Authorization?.replace('Bearer ', '')
-        const groqProvider = createGroq({ apiKey })
+        const groqProvider = createGroq({ apiKey, baseURL: model.provider.baseUrl })
         baseModel = groqProvider(model.modelId)
         break
       }
