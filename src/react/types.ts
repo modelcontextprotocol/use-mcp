@@ -7,6 +7,8 @@ export type UseMcpOptions = {
   clientName?: string
   /** OAuth client URI for registration (if dynamic registration is used) */
   clientUri?: string
+  /** Specific scopes to request from the OAuth provider during login */
+  scopes?: string[]
   /** Custom callback URL for OAuth redirect (defaults to /oauth/callback on the current origin) */
   callbackUrl?: string
   /** Storage key prefix for OAuth data in localStorage (defaults to "mcp:auth") */

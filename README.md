@@ -220,6 +220,7 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `clientName` | `string` | Name of your client for OAuth registration |
 | `clientUri` | `string` | URI of your client for OAuth registration |
 | `callbackUrl` | `string` | Custom callback URL for OAuth redirect (defaults to `/oauth/callback` on the current origin) |
+| `scopes` | `string[]` | Specified scopes requested from OAuth provider (defaults to `openid`) | 
 | `storageKeyPrefix` | `string` | Storage key prefix for OAuth data in localStorage (defaults to "mcp:auth") |
 | `clientConfig` | `object` | Custom configuration for the MCP client identity |
 | `debug` | `boolean` | Whether to enable verbose debug logging |
