@@ -36,6 +36,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     url,
     clientName,
     clientUri,
+    scopes,
     callbackUrl = typeof window !== 'undefined'
       ? sanitizeUrl(new URL('/oauth/callback', window.location.origin).toString())
       : '/oauth/callback',
@@ -176,6 +177,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        scopes,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized in connect.')
     }
@@ -779,6 +781,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        scopes,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized/updated on mount/option change.')
     }
@@ -794,6 +797,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     callbackUrl,
     clientName,
     clientUri,
+    scopes,
     clientConfig.name,
     clientConfig.version,
     connect,
