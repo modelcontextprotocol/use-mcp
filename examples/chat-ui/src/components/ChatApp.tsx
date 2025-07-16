@@ -79,7 +79,7 @@ const ChatApp: React.FC<ChatAppProps> = () => {
       return false
     }
 
-    let pollInterval: NodeJS.Timeout | null = null
+    let pollInterval: number | null = null
 
     const startPolling = () => {
       // Capture initial state

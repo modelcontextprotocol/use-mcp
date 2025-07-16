@@ -61,28 +61,28 @@ export interface Model {
 }
 
 export const providers: Record<SupportedProvider, Provider> = {
-  // groq: {
-  //   id: 'groq',
-  //   name: 'Groq',
-  //   baseUrl: 'https://api.groq.com/openai/v1',
-  //   logo: '🚀',
-  //   documentationUrl: 'https://console.groq.com/docs',
-  //   apiKeyHeader: 'Authorization',
-  //   authType: 'apiKey',
-  // },
   groq: {
     id: 'groq',
     name: 'Groq',
-    baseUrl: 'http://localhost:8000/api/openai/v1',
+    baseUrl: 'https://api.groq.com/openai/v1',
     logo: '🚀',
     documentationUrl: 'https://console.groq.com/docs',
     apiKeyHeader: 'Authorization',
-    authType: 'oauth',
-    oauth: {
-      authorizeUrl: 'http://localhost:3000/keys/request',
-      tokenUrl: 'http://localhost:3000/keys/request/exchange',
-    },
+    authType: 'apiKey',
   },
+  // groq: {
+  //   id: 'groq',
+  //   name: 'Groq',
+  //   baseUrl: 'http://localhost:8000/api/openai/v1',
+  //   logo: '🚀',
+  //   documentationUrl: 'https://console.groq.com/docs',
+  //   apiKeyHeader: 'Authorization',
+  //   authType: 'oauth',
+  //   oauth: {
+  //     authorizeUrl: 'http://localhost:3000/keys/request',
+  //     tokenUrl: 'http://localhost:3000/keys/request/exchange',
+  //   },
+  // },
   anthropic: {
     id: 'anthropic',
     name: 'Anthropic',
