@@ -39,7 +39,9 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({ selectedModel, onModelCha
   // Handle OAuth success - show provider models when OAuth completes
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log('DEBUG: ModelSelector received message:', event.data)
       if (event.data.type === 'oauth_success' && event.data.provider) {
+        console.log('DEBUG: ModelSelector opening provider models modal for:', event.data.provider)
         const provider = providers[event.data.provider as keyof typeof providers]
         if (provider) {
           setProviderModelsModal({ isOpen: true, provider })
