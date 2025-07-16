@@ -236,101 +236,6 @@
     }
   },
   "groq": {
-    "qwen-qwq-32b": {
-      "id": "qwen-qwq-32b",
-      "name": "Qwen QwQ 32B",
-      "attachment": false,
-      "reasoning": true,
-      "temperature": true,
-      "tool_call": true,
-      "knowledge": "2024-09",
-      "release_date": "2024-11-27",
-      "last_updated": "2024-11-27",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.29,
-        "output": 0.39
-      },
-      "limit": {
-        "context": 131072,
-        "output": 16384
-      }
-    },
-    "llama-3.1-8b-instant": {
-      "id": "llama-3.1-8b-instant",
-      "name": "Llama 3.1 8B Instant",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": true,
-      "knowledge": "2023-12",
-      "release_date": "2024-07-23",
-      "last_updated": "2024-07-23",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.05,
-        "output": 0.08
-      },
-      "limit": {
-        "context": 131072,
-        "output": 8192
-      }
-    },
-    "llama-guard-3-8b": {
-      "id": "llama-guard-3-8b",
-      "name": "Llama Guard 3 8B",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": false,
-      "release_date": "2024-07-23",
-      "last_updated": "2024-07-23",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.2,
-        "output": 0.2
-      },
-      "limit": {
-        "context": 8192,
-        "output": 8192
-      }
-    },
-    "gemma2-9b-it": {
-      "id": "gemma2-9b-it",
-      "name": "Gemma 2 9B",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": true,
-      "knowledge": "2024-06",
-      "release_date": "2024-06-27",
-      "last_updated": "2024-06-27",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.2,
-        "output": 0.2
-      },
-      "limit": {
-        "context": 8192,
-        "output": 8192
-      }
-    },
     "mistral-saba-24b": {
       "id": "mistral-saba-24b",
       "name": "Mistral Saba 24B",
@@ -353,30 +258,6 @@
       "limit": {
         "context": 32768,
         "output": 32768
-      }
-    },
-    "llama3-8b-8192": {
-      "id": "llama3-8b-8192",
-      "name": "Llama 3 8B",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": true,
-      "knowledge": "2023-03",
-      "release_date": "2024-04-18",
-      "last_updated": "2024-04-18",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.05,
-        "output": 0.08
-      },
-      "limit": {
-        "context": 8192,
-        "output": 8192
       }
     },
     "deepseek-r1-distill-llama-70b": {
@@ -425,30 +306,6 @@
       "limit": {
         "context": 131072,
         "output": 32768
-      }
-    },
-    "llama3-70b-8192": {
-      "id": "llama3-70b-8192",
-      "name": "Llama 3 70B",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": true,
-      "knowledge": "2023-03",
-      "release_date": "2024-04-18",
-      "last_updated": "2024-04-18",
-      "modalities": {
-        "input": ["text"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.59,
-        "output": 0.79
-      },
-      "limit": {
-        "context": 8192,
-        "output": 8192
       }
     },
     "moonshotai/kimi-k2-instruct": {
@@ -523,34 +380,11 @@
         "output": 8192
       }
     },
-    "meta-llama/llama-guard-4-12b": {
-      "id": "meta-llama/llama-guard-4-12b",
-      "name": "Llama Guard 4 12B",
-      "attachment": false,
-      "reasoning": false,
-      "temperature": true,
-      "tool_call": false,
-      "release_date": "2025-04-05",
-      "last_updated": "2025-04-05",
-      "modalities": {
-        "input": ["text", "image"],
-        "output": ["text"]
-      },
-      "open_weights": true,
-      "cost": {
-        "input": 0.2,
-        "output": 0.2
-      },
-      "limit": {
-        "context": 131072,
-        "output": 128
-      }
-    },
     "qwen/qwen3-32b": {
       "id": "qwen/qwen3-32b",
       "name": "Qwen3 32B",
       "attachment": false,
-      "reasoning": false,
+      "reasoning": true,
       "temperature": true,
       "tool_call": true,
       "knowledge": "2024-11-08",
