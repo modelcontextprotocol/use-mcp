@@ -155,7 +155,53 @@ const app = new Hono<{
 
 app.get('/authorize', async (c) => {
   const oauthReqInfo = await c.env.OAUTH_PROVIDER.parseAuthRequest(c.req.raw)
+  const url = new URL(c.req.url)
+
+  const approveHref = url.toString()
+  return c.html(/*html*/ `
+    <!doctype html>
+    <meta charset="utf-8">
+    <title>Authorize access</title>
+    <style>
+      body{font-family:system-ui;margin:2rem;text-align:center;background:#f5f5f5}
+      .container{max-width:400px;margin:0 auto;background:white;padding:2rem;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+      h2{margin-bottom:1rem;color:#333}
+      button{padding:.8rem 1.5rem;margin:.5rem;font-size:1rem;border:none;border-radius:4px;cursor:pointer}
+      .approve{background:#007bff;color:white}
+      .approve:hover{background:#0056b3}
+      .deny{background:#6c757d;color:white}
+      .deny:hover{background:#545b62}
+      .client-name{background:#e9ecef;padding:.5rem;border-radius:4px;font-family:monospace}
+      .user-info{opacity:.6;font-size:.9rem;margin-top:1rem}
+    </style>
+    <div class="container">
+      <h2>Authorize access</h2>
+      <p>Allow <span class="client-name">Unknown client</span> to access your calculator?</p>
+      <div>
+        <form method="POST" action="${approveHref}" style="display:inline">
+          <input type="hidden" name="oauthReqInfo" value='${encodeURIComponent(JSON.stringify(oauthReqInfo))}'>
+          <button type="submit" class="approve">Approve</button>
+        </form>
+        <button class="deny" onclick="window.close()">Deny</button>
+      </div>
+      <p class="user-info">User: example@dotcom.com</p>
+    </div>
+  `)
+})
+
+app.post('/authorize', async (c) => {
   const email = 'example@dotcom.com'
+  const formData = await c.req.formData()
+  const oauthReqInfoRaw = formData.get('oauthReqInfo')
+  if (!oauthReqInfoRaw || typeof oauthReqInfoRaw !== 'string') {
+    return c.text('Missing oauthReqInfo', 400)
+  }
+  let oauthReqInfo
+  try {
+    oauthReqInfo = JSON.parse(decodeURIComponent(oauthReqInfoRaw))
+  } catch (e) {
+    return c.text('Invalid oauthReqInfo', 400)
+  }
   const { redirectTo } = await c.env.OAUTH_PROVIDER.completeAuthorization({
     request: oauthReqInfo,
     userId: email,
