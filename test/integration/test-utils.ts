@@ -159,6 +159,59 @@ export async function connectToMCPServer(
   // Wait for connection attempt to complete
   await page.waitForTimeout(1000)
 
+  // Check for OAuth popup and handle it - try multiple times to catch different OAuth flows
+  let oauthHandled = false
+  for (let popupAttempt = 0; popupAttempt < 5 && !oauthHandled; popupAttempt++) {
+    try {
+      // Look for OAuth popup by checking for new pages
+      const context = page.context()
+      const initialPages = context.pages()
+
+      // Wait a bit to see if OAuth popup appears
+      await page.waitForTimeout(1000)
+
+      const currentPages = context.pages()
+      if (currentPages.length > initialPages.length) {
+        // OAuth popup appeared, find it
+        const popup = currentPages.find((p) => p !== page && p.url().includes('/authorize'))
+        if (popup) {
+          console.log('🔐 OAuth popup detected, clicking Approve button...')
+          // Wait for the approval form to load
+          await popup.waitForSelector('button.approve', { timeout: 5000 })
+          // Click the Approve button
+          await popup.click('button.approve')
+          console.log('✅ Clicked Approve button')
+          // Wait for popup to close
+          await popup.waitForEvent('close', { timeout: 10000 })
+          console.log('🔒 OAuth popup closed')
+          oauthHandled = true
+          break
+        }
+      }
+
+      // Also check if there's a popup that opened that we haven't detected yet
+      const allPages = context.pages()
+      for (const possiblePopup of allPages) {
+        if (possiblePopup !== page && possiblePopup.url().includes('/authorize')) {
+          console.log('🔐 Found OAuth popup on retry, clicking Approve button...')
+          await possiblePopup.waitForSelector('button.approve', { timeout: 5000 })
+          await possiblePopup.click('button.approve')
+          console.log('✅ Clicked Approve button')
+          await possiblePopup.waitForEvent('close', { timeout: 10000 })
+          console.log('🔒 OAuth popup closed')
+          oauthHandled = true
+          break
+        }
+      }
+    } catch (e) {
+      console.log(`ℹ️  OAuth popup attempt ${popupAttempt + 1} failed:`, e.message)
+    }
+  }
+
+  if (!oauthHandled) {
+    console.log('ℹ️  No OAuth popup detected after multiple attempts')
+  }
+
   // Check for connection status
   let attempts = 0
   const maxAttempts = 20
