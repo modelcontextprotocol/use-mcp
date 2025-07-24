@@ -30,6 +30,12 @@ export type UseMcpOptions = {
   transportType?: 'auto' | 'http' | 'sse'
   /** Prevent automatic authentication popup on initial connection (default: false) */
   preventAutoAuth?: boolean
+  /**
+   * Callback function that is invoked just before the authentication popup window is opened.
+   * @param url The URL that will be opened in the popup.
+   * @param features The features string for the popup window.
+   */
+  onPopupWindow?: (url: string, features: string, window: Window | null) => void
 }
 
 export type UseMcpResult = {

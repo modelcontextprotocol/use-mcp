@@ -47,6 +47,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     autoReconnect = DEFAULT_RECONNECT_DELAY,
     transportType = 'auto',
     preventAutoAuth = false,
+    onPopupWindow,
   } = options
 
   const [state, setState] = useState<UseMcpResult['state']>('discovering')
@@ -176,6 +177,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        onPopupWindow,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized in connect.')
     }
@@ -779,6 +781,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        onPopupWindow,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized/updated on mount/option change.')
     }
