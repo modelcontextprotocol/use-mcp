@@ -35,7 +35,7 @@ export type UseMcpOptions = {
    * @param url The URL that will be opened in the popup.
    * @param features The features string for the popup window.
    */
-  onPopupWindow?: (url: string, features: string) => void
+  onPopupWindow?: (url: string, features: string, window: Window | null) => void
 }
 
 export type UseMcpResult = {

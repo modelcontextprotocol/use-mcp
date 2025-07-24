@@ -227,7 +227,7 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `autoReconnect` | `boolean \| number` | Auto reconnect if an established connection is lost, with delay in ms (default: 3000) |
 | `transportType` | `'auto' \| 'http' \| 'sse'` | Transport type preference: 'auto' (HTTP with SSE fallback), 'http' (HTTP only), 'sse' (SSE only) (default: 'auto') |
 | `preventAutoAuth` | `boolean` | Prevent automatic authentication popup on initial connection (default: false) |
-| `onPopupWindow` | `(url: string, features: string) => void` | Callback invoked just before the authentication popup window is opened |
+| `onPopupWindow` | `(url: string, features: string, window: Window \| null) => void` | Callback invoked just after the authentication popup window is opened |
 
 #### Return Value
 

@@ -15,7 +15,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   readonly clientName: string
   readonly clientUri: string
   readonly callbackUrl: string
-  readonly onPopupWindow: ((url: string, features: string) => void) | undefined
+  readonly onPopupWindow: ((url: string, features: string, window: Window | null) => void) | undefined
 
   constructor(
     serverUrl: string,
@@ -24,7 +24,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       clientName?: string
       clientUri?: string
       callbackUrl?: string
-      onPopupWindow?: (url: string, features: string) => void
+      onPopupWindow?: (url: string, features: string, window: Window | null) => void
     } = {},
   ) {
     this.serverUrl = serverUrl
@@ -170,11 +170,12 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
     // Attempt to open the popup
     const popupFeatures = 'width=600,height=700,resizable=yes,scrollbars=yes,status=yes' // Make configurable if needed
     try {
-      // If a callback is provided, invoke it before opening the popup
-      if (this.onPopupWindow) {
-        this.onPopupWindow(sanitizedAuthUrl, popupFeatures)
-      }
       const popup = window.open(sanitizedAuthUrl, `mcp_auth_${this.serverUrlHash}`, popupFeatures)
+
+      // If a callback is provided, invoke it after opening the popup
+      if (this.onPopupWindow) {
+        this.onPopupWindow(sanitizedAuthUrl, popupFeatures, popup)
+      }
 
       if (!popup || popup.closed || typeof popup.closed === 'undefined') {
         console.warn(
