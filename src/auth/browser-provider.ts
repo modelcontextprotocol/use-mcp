@@ -15,6 +15,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
   readonly clientName: string
   readonly clientUri: string
   readonly callbackUrl: string
+  private preventAutoAuth?: boolean
   readonly onPopupWindow: ((url: string, features: string, window: Window | null) => void) | undefined
 
   constructor(
@@ -24,6 +25,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       clientName?: string
       clientUri?: string
       callbackUrl?: string
+      preventAutoAuth?: boolean
       onPopupWindow?: (url: string, features: string, window: Window | null) => void
     } = {},
   ) {
@@ -36,6 +38,7 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
       options.callbackUrl ||
         (typeof window !== 'undefined' ? new URL('/oauth/callback', window.location.origin).toString() : '/oauth/callback'),
     )
+    this.preventAutoAuth = options.preventAutoAuth
     this.onPopupWindow = options.onPopupWindow
   }
 
@@ -164,6 +167,9 @@ export class BrowserOAuthClientProvider implements OAuthClientProvider {
    * @param authorizationUrl The fully constructed authorization URL from the SDK.
    */
   async redirectToAuthorization(authorizationUrl: URL): Promise<void> {
+    // Ideally we should catch things before we get here, but if we don't, let's not show everyone we are dum
+    if (this.preventAutoAuth) return
+
     // Prepare the authorization URL with state
     const sanitizedAuthUrl = await this.prepareAuthorizationUrl(authorizationUrl)
 
