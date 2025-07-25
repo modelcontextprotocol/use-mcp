@@ -177,6 +177,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        preventAutoAuth,
         onPopupWindow,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized in connect.')
@@ -781,6 +782,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         clientName,
         clientUri,
         callbackUrl,
+        preventAutoAuth,
         onPopupWindow,
       })
       addLog('debug', 'BrowserOAuthClientProvider initialized/updated on mount/option change.')
