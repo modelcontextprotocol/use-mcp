@@ -19,6 +19,8 @@ export async function onMcpAuthorization() {
 
   let provider: BrowserOAuthClientProvider | null = null
   let storedStateData: StoredState | null = null
+  let broadcastChannel: BroadcastChannel | null = null
+
   const stateKey = state ? `mcp:auth:state_${state}` : null // Reconstruct state key prefix assumption
 
   try {
@@ -44,6 +46,8 @@ export async function onMcpAuthorization() {
       throw new Error('Failed to parse stored OAuth state.')
     }
 
+    // Ensure we have a BroadcastChannel for communication
+    broadcastChannel = new BroadcastChannel(`mcp-auth-${storedStateData.providerOptions.serverUrl}`)
     // Validate expiry
     if (!storedStateData.expiry || storedStateData.expiry < Date.now()) {
       localStorage.removeItem(stateKey) // Clean up expired state
@@ -72,13 +76,8 @@ export async function onMcpAuthorization() {
     if (authResult === 'AUTHORIZED') {
       console.log(`${logPrefix} Authorization successful via SDK auth(). Notifying opener...`)
       // --- Notify Opener and Close (Success) ---
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'mcp_auth_callback', success: true }, window.location.origin)
-        window.close()
-      } else {
-        console.warn(`${logPrefix} No opener window detected. Redirecting to root.`)
-        window.location.href = '/' // Or a configured post-auth destination
-      }
+      broadcastChannel.postMessage({ type: 'mcp_auth_callback', success: true })
+      window.close()
       // Clean up state ONLY on success and after notifying opener
       localStorage.removeItem(stateKey)
     } else {
@@ -91,11 +90,9 @@ export async function onMcpAuthorization() {
     const errorMessage = err instanceof Error ? err.message : String(err)
 
     // --- Notify Opener and Display Error (Failure) ---
-    if (window.opener && !window.opener.closed) {
-      window.opener.postMessage({ type: 'mcp_auth_callback', success: false, error: errorMessage }, window.location.origin)
-      // Optionally close even on error, depending on UX preference
-      // window.close();
-    }
+    broadcastChannel?.postMessage({ type: 'mcp_auth_callback', success: false, error: errorMessage })
+    // Optionally close even on error, depending on UX preference
+    // window.close();
 
     // Display error in the callback window
     try {
