@@ -207,26 +207,22 @@ const ChatApp: React.FC<ChatAppProps> = () => {
     >
       <div className="flex flex-row flex-grow flex-1 min-h-screen relative">
         {/* Sidebar and Navbar components */}
-        {false && (
-          <>
-            <ChatSidebar
-              sidebarVisible={sidebarVisible}
-              setSidebarVisible={setSidebarVisible}
-              conversations={conversations}
-              conversationId={conversationId}
-              setConversationId={setConversationId}
-              deleteConversation={deleteConversation}
-              editConversationTitle={editConversationTitle}
-              startNewConversation={startNewConversation}
-              selectedModel={selectedModel}
-              onModelChange={handleModelChange}
-              apiKeyUpdateTrigger={apiKeyUpdateTrigger}
-              onMcpToolsUpdate={setMcpTools}
-              mcpTools={mcpTools}
-            />
-            <ChatNavbar sidebarVisible={sidebarVisible} setSidebarVisible={setSidebarVisible} />
-          </>
-        )}
+        <ChatSidebar
+          sidebarVisible={sidebarVisible}
+          setSidebarVisible={setSidebarVisible}
+          conversations={conversations}
+          conversationId={conversationId}
+          setConversationId={setConversationId}
+          deleteConversation={deleteConversation}
+          editConversationTitle={editConversationTitle}
+          startNewConversation={startNewConversation}
+          selectedModel={selectedModel}
+          onModelChange={handleModelChange}
+          apiKeyUpdateTrigger={apiKeyUpdateTrigger}
+          onMcpToolsUpdate={setMcpTools}
+          mcpTools={mcpTools}
+        />
+        <ChatNavbar sidebarVisible={sidebarVisible} setSidebarVisible={setSidebarVisible} />
         <div className="flex flex-col flex-grow h-full w-full">
           <ConversationThread
             conversations={conversations}

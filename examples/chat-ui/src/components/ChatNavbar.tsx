@@ -24,7 +24,6 @@ const ChatNavbar: React.FC<ChatNavbarProps> = ({ sidebarVisible, setSidebarVisib
               </button>
             </div>
           )}
-          <h1 className="text-base font-semibold text-zinc-600 ml-2">AI Chat Template</h1>
         </div>
       </div>
     </div>

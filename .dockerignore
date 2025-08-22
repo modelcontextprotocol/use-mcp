@@ -1,0 +1,8 @@
+node_modules
+.mcp-cli
+dist
+.env
+.aider*
+
+**/.claude/settings.local.json
+/public
