@@ -22,6 +22,7 @@ import { sanitizeUrl } from 'strict-url-sanitise'
 import { BrowserOAuthClientProvider } from '../auth/browser-provider.js' // Adjust path
 import { assert } from '../utils/assert.js' // Adjust path
 import type { UseMcpOptions, UseMcpResult } from './types.js' // Adjust path
+import type { RequestOptions } from '@modelcontextprotocol/sdk/types.js'
 import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js' // Added for type safety
 
 const DEFAULT_RECONNECT_DELAY = 3000
@@ -506,14 +507,14 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
 
   // callTool is stable (depends on stable addLog, failConnection, connect, and URL)
   const callTool = useCallback(
-    async (name: string, args?: Record<string, unknown>) => {
+    async (name: string, args?: Record<string, unknown>, options?: RequestOptions) => {
       // Use stateRef for check, state for throwing error message
       if (stateRef.current !== 'ready' || !clientRef.current) {
         throw new Error(`MCP client is not ready (current state: ${state}). Cannot call tool "${name}".`)
       }
       addLog('info', `Calling tool: ${name}`, args)
       try {
-        const result = await clientRef.current.request({ method: 'tools/call', params: { name, arguments: args } }, CallToolResultSchema)
+        const result = await clientRef.current.request({ method: 'tools/call', params: { name, arguments: args } }, CallToolResultSchema, options)
         addLog('info', `Tool "${name}" call successful:`, result)
         return result
       } catch (err) {

@@ -1,4 +1,4 @@
-import { Tool, Resource, ResourceTemplate, Prompt } from '@modelcontextprotocol/sdk/types.js'
+import { Tool, Resource, ResourceTemplate, Prompt, RequestOptions } from '@modelcontextprotocol/sdk/types.js'
 
 export type UseMcpOptions = {
   /** The /sse URL of your remote MCP server */
@@ -71,10 +71,11 @@ export type UseMcpResult = {
    * Function to call a tool on the MCP server.
    * @param name The name of the tool to call.
    * @param args Optional arguments for the tool.
+   * @param options Optional request options (e.g., timeout).
    * @returns A promise that resolves with the tool's result.
    * @throws If the client is not in the 'ready' state or the call fails.
    */
-  callTool: (name: string, args?: Record<string, unknown>) => Promise<any>
+  callTool: (name: string, args?: Record<string, unknown>, options?: RequestOptions) => Promise<any>
   /**
    * Function to list resources from the MCP server.
    * @returns A promise that resolves when resources are refreshed.
