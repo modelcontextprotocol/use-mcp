@@ -19,7 +19,6 @@ function McpConnection({ server, onConnectionUpdate }: { server: McpServer; onCo
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
     transportType: server.transportType,
-    preventAutoAuth: true, // Prevent automatic popups on page load
   })
 
   // Update parent component with connection data

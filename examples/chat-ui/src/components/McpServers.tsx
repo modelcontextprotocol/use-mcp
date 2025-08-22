@@ -10,7 +10,6 @@ function McpConnection({ serverUrl, onConnectionUpdate }: { serverUrl: string; o
     debug: true,
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
-    preventAutoAuth: true, // Prevent automatic popups on page load
   })
 
   // Update parent component with connection data
