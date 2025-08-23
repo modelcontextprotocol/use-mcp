@@ -98,6 +98,19 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (!isOpen) return
+    servers.forEach((server) => {
+      if (!server.enabled) return
+      const conn = connectionData[server.id]
+      if (conn?.state === 'ready' && typeof conn.refreshTools === 'function') {
+        try {
+          conn.refreshTools()
+        } catch {}
+      }
+    })
+  }, [isOpen, servers, connectionData])
+
   // Aggregate all tools from enabled servers and notify parent
   useEffect(() => {
     const allTools: Tool[] = []

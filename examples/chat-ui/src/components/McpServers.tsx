@@ -219,7 +219,7 @@ export function McpServers({ onToolsUpdate }: { onToolsUpdate?: (tools: Tool[]) 
         {state === 'ready' && tools.length > 0 && (
           <div>
             <h3 className="font-medium text-xs mb-2">Available Tools ({tools.length})</h3>
-            <div className="border border-gray-200 rounded p-2 bg-gray-50 max-h-32 overflow-y-auto space-y-2">
+            <div className="border border-gray-200 rounded p-2 bg-gray-50 space-y-2">
               {tools.map((tool: Tool, index: number) => (
                 <div key={index} className="text-xs pb-2 border-b border-gray-100 last:border-b-0">
                   <span className="font-medium">{tool.name}</span>
