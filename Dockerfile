@@ -27,6 +27,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 # Copy application code
 COPY . .
 RUN pnpm build
+RUN pnpm prune --prod --ignore-scripts
 
 WORKDIR /app/examples/chat-ui
 
@@ -34,18 +35,15 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 # Build application
 RUN pnpm run build
-
-WORKDIR /app
 RUN pnpm prune --prod --ignore-scripts
-
 
 # Final stage for app image
 FROM base
 
+RUN npm install -g serve
+
 # Copy built application
 COPY --from=build /app /app
-
-RUN npm install -g serve
 
 WORKDIR /app/examples/chat-ui
 
