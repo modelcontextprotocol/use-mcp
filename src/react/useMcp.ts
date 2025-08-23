@@ -11,6 +11,9 @@ import {
   Resource,
   ResourceTemplate,
   Prompt,
+  ToolListChangedNotificationSchema,
+  ResourceListChangedNotificationSchema,
+  PromptListChangedNotificationSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import { useCallback, useEffect, useRef, useState } from 'react'
 // Import both transport types
@@ -347,6 +350,42 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
           }
 
           addLog('info', summary.join(', ') + '.')
+          try {
+            clientRef.current!.setNotificationHandler(ToolListChangedNotificationSchema, async () => {
+              addLog('info', 'Notification: tools/list_changed -> refreshing tools')
+              try {
+                const updated = await clientRef.current!.request({ method: 'tools/list' }, ListToolsResultSchema)
+                if (isMountedRef.current) setTools(updated.tools)
+              } catch (err) {
+                addLog('warn', 'Failed to refresh tools after tools/list_changed', err)
+              }
+            })
+
+            clientRef.current!.setNotificationHandler(ResourceListChangedNotificationSchema, async () => {
+              addLog('info', 'Notification: resources/list_changed -> refreshing resources')
+              try {
+                const updated = await clientRef.current!.request({ method: 'resources/list' }, ListResourcesResultSchema)
+                if (isMountedRef.current) {
+                  setResources(updated.resources)
+                  setResourceTemplates(Array.isArray(updated.resourceTemplates) ? updated.resourceTemplates : [])
+                }
+              } catch (err) {
+                addLog('warn', 'Failed to refresh resources after resources/list_changed', err)
+              }
+            })
+
+            clientRef.current!.setNotificationHandler(PromptListChangedNotificationSchema, async () => {
+              addLog('info', 'Notification: prompts/list_changed -> refreshing prompts')
+              try {
+                const updated = await clientRef.current!.request({ method: 'prompts/list' }, ListPromptsResultSchema)
+                if (isMountedRef.current) setPrompts(updated.prompts)
+              } catch (err) {
+                addLog('warn', 'Failed to refresh prompts after prompts/list_changed', err)
+              }
+            })
+          } catch (err) {
+            addLog('warn', 'Failed to install change notification handlers', err)
+          }
           setState('ready') // Final success state
           // connectingRef will be set to false after orchestration logic
           connectAttemptRef.current = 0 // Reset on success
@@ -659,6 +698,24 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   }, [url, addLog, disconnect]) // Depends on url and stable callbacks
 
   // listResources is stable (depends on stable addLog)
+  const refreshTools = useCallback(async () => {
+    if (stateRef.current !== 'ready' || !clientRef.current) {
+      throw new Error(`MCP client is not ready (current state: ${state}). Cannot refresh tools.`)
+    }
+    addLog('info', 'Refreshing tools...')
+    try {
+      const toolsResponse = await clientRef.current.request({ method: 'tools/list' }, ListToolsResultSchema)
+      if (isMountedRef.current) {
+        setTools(toolsResponse.tools)
+        addLog('info', `Refreshed tools: ${toolsResponse.tools.length} tool(s).`)
+      }
+    } catch (err) {
+      addLog('error', `Error refreshing tools: ${err instanceof Error ? err.message : String(err)}`, err)
+      throw err
+    }
+  }, [state, addLog])
+
+  // listResources is stable (depends on stable addLog)
   const listResources = useCallback(async () => {
     // Use stateRef for check, state for throwing error message
     if (stateRef.current !== 'ready' || !clientRef.current) {
@@ -829,6 +886,7 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   return {
     state,
     tools,
+    refreshTools,
     resources,
     resourceTemplates,
     prompts,

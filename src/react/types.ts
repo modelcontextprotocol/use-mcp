@@ -41,6 +41,7 @@ export type UseMcpOptions = {
 export type UseMcpResult = {
   /** List of tools available from the connected MCP server */
   tools: Tool[]
+  refreshTools: () => Promise<void>
   /** List of resources available from the connected MCP server */
   resources: Resource[]
   /** List of resource templates available from the connected MCP server */

@@ -19,7 +19,6 @@ function McpConnection({ server, onConnectionUpdate }: { server: McpServer; onCo
     autoRetry: false,
     popupFeatures: 'width=500,height=600,resizable=yes,scrollbars=yes',
     transportType: server.transportType,
-    preventAutoAuth: true, // Prevent automatic popups on page load
   })
 
   // Update parent component with connection data
@@ -98,6 +97,19 @@ const McpServerModal: React.FC<McpServerModalProps> = ({ isOpen, onClose, onTool
       document.body.style.overflow = 'unset'
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen) return
+    servers.forEach((server) => {
+      if (!server.enabled) return
+      const conn = connectionData[server.id]
+      if (conn?.state === 'ready' && typeof conn.refreshTools === 'function') {
+        try {
+          conn.refreshTools()
+        } catch {}
+      }
+    })
+  }, [isOpen, servers, connectionData])
 
   // Aggregate all tools from enabled servers and notify parent
   useEffect(() => {

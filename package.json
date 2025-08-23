@@ -34,7 +34,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.13.3",
+    "@modelcontextprotocol/sdk": "^1.17.3",
     "strict-url-sanitise": "^0.0.1"
   },
   "devDependencies": {
