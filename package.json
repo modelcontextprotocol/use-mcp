@@ -1,7 +1,11 @@
 {
-  "name": "use-mcp",
-  "repository": "https://github.com/modelcontextprotocol/use-mcp",
-  "version": "0.0.21",
+  "name": "@gary149/use-mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gary149/use-mcp.git"
+  },
+  "version": "0.1.3",
+  "license": "MIT",
   "type": "module",
   "files": [
     "dist",
@@ -18,7 +22,18 @@
       "types": "./dist/react/index.d.ts",
       "require": "./dist/react/index.js",
       "import": "./dist/react/index.js"
+    },
+    "./svelte": {
+      "types": "./dist/svelte/index.d.ts",
+      "require": "./dist/svelte/index.js",
+      "import": "./dist/svelte/index.js"
     }
+  },
+  "svelte": "./dist/svelte/index.js",
+  "sideEffects": false,
+  "homepage": "https://github.com/gary149/use-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/gary149/use-mcp/issues"
   },
   "scripts": {
     "install:all": "concurrently 'pnpm install' 'cd examples/chat-ui && pnpm install' 'cd examples/inspector && pnpm install' 'cd examples/servers/hono-mcp && pnpm install' 'cd examples/servers/cf-agents && pnpm install'",
@@ -26,12 +41,16 @@
     "deploy:all": "concurrently 'pnpm build:site && pnpm deploy:site' 'cd examples/chat-ui && pnpm run deploy' 'cd examples/inspector && pnpm run deploy'",
     "build:watch": "tsup --watch",
     "build": "tsup",
+    "prepublishOnly": "pnpm build",
     "check": "prettier --check . && tsc",
     "prettier:fix": "prettier --write .",
     "fix:oranda": "sed -i 's/```tsx/```ts/g' README.md",
     "build:site": "npx @axodotdev/oranda build",
     "deploy:site": "npx wrangler deploy",
     "prepare": "husky"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.13.3",
@@ -44,15 +63,20 @@
     "husky": "^9.1.7",
     "prettier": "^3.5.3",
     "react": "^19.0.0",
+    "svelte": "^5.0.0",
     "tsup": "^8.4.0",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2",
     "wrangler": "^4.20.2"
   },
+  "peerDependencies": {
+    "svelte": "^4.2.0 || ^5.0.0"
+  },
   "tsup": {
     "entry": [
       "src/index.ts",
-      "src/react/index.ts"
+      "src/react/index.ts",
+      "src/svelte/index.ts"
     ],
     "format": [
       "esm"
@@ -62,6 +86,7 @@
     "outDir": "dist",
     "external": [
       "react",
+      "svelte",
       "@modelcontextprotocol/sdk"
     ]
   },

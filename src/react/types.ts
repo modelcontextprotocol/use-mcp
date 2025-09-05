@@ -31,6 +31,12 @@ export type UseMcpOptions = {
   /** Prevent automatic authentication popup on initial connection (default: false) */
   preventAutoAuth?: boolean
   /**
+   * Allow receiving OAuth callback messages from additional origins.
+   * By default only the same-origin as the app is accepted. Add entries
+   * like 'https://auth.example.com' if your login page is hosted elsewhere.
+   */
+  allowedOrigins?: string[]
+  /**
    * Callback function that is invoked just before the authentication popup window is opened.
    * @param url The URL that will be opened in the popup.
    * @param features The features string for the popup window.

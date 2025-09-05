@@ -4,25 +4,33 @@
 
 </div>
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/modelcontextprotocol/use-mcp?logo=github&style=flat&label=​)](https://github.com/modelcontextprotocol/use-mcp)&nbsp; [![npm](https://img.shields.io/npm/v/use-mcp?label=​&logo=npm)](https://www.npmjs.com/package/use-mcp) ![GitHub License](https://img.shields.io/github/license/modelcontextprotocol/use-mcp)
+> [!NOTE]  
+> This package includes Svelte support. Use the Svelte adapter via `@gary149/use-mcp/svelte` and see the Svelte inspector example in `examples/inspector-svelte`.
 
-A lightweight React hook for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Simplifies authentication and tool calling for AI systems implementing the MCP standard.
+[![GitHub last commit](https://img.shields.io/github/last-commit/gary149/use-mcp?logo=github&style=flat&label=)](https://github.com/gary149/use-mcp)&nbsp; [![npm](https://img.shields.io/npm/v/%40gary149%2Fuse-mcp?label=&logo=npm)](https://www.npmjs.com/package/@gary149/use-mcp) ![GitHub License](https://img.shields.io/github/license/gary149/use-mcp)
+
+A lightweight client for connecting to [Model Context Protocol (MCP)](https://github.com/modelcontextprotocol) servers. Provides a React hook and a Svelte store adapter to simplify authentication and tool calling.
 
 Try it out: [Chat Demo](https://chat.use-mcp.dev) | [MCP Inspector](https://inspector.use-mcp.dev) | [Cloudflare Workers AI Playground](https://playground.ai.cloudflare.com/)
+
+Examples in this repo:
+- [examples/chat-ui](examples/chat-ui) – React chat interface using `@gary149/use-mcp`
+- [examples/inspector](examples/inspector) – React MCP inspector
+- [examples/inspector-svelte](examples/inspector-svelte) – SvelteKit inspector with per‑tool inputs
 
 ## Installation
 
 ```bash
-npm install use-mcp
+npm install @gary149/use-mcp
 # or
-pnpm add use-mcp
+pnpm add @gary149/use-mcp
 # or
-yarn add use-mcp
+yarn add @gary149/use-mcp
 ```
 
 ## Development
 
-To run the development environment with all examples and servers:
+To run the development environment with the React examples and servers:
 
 ```bash
 pnpm dev
@@ -33,6 +41,15 @@ This starts:
 - **Chat UI**: http://localhost:5002 - Example chat interface
 - **Hono MCP Server**: http://localhost:5101 - Example MCP server
 - **CF Agents MCP Server**: http://localhost:5102 - Cloudflare Workers AI MCP server
+
+Svelte inspector example:
+
+```bash
+cd examples/inspector-svelte
+pnpm install
+pnpm dev
+```
+Then open the local URL shown by Vite and connect to an MCP server (e.g. https://huggingface.co/mcp). The UI lists tools and provides input fields generated from each tool's JSON schema.
 
 ### Testing
 
@@ -49,18 +66,18 @@ cd test && pnpm test:ui           # Run tests with interactive UI
 
 - 🔄 Automatic connection management with reconnection and retries
 - 🔐 OAuth authentication flow handling with popup and fallback support
-- 📦 Simple React hook interface for MCP integration
+- 📦 Simple React hook and Svelte store adapters for MCP integration
 - 🧰 Full support for MCP tools, resources, and prompts
 - 📄 Access server resources and read their contents
 - 💬 Use server-provided prompt templates
 - 🧰 TypeScript types for editor assistance and type checking
 - 📝 Comprehensive logging for debugging
-- 🌐 Works with both HTTP and SSE (Server-Sent Events) transports
+- 🌐 Works with both HTTP and SSE (Server-Sent Events) transports (HTTP streaming recommended)
 
-## Quick Start
+## Quick Start (React)
 
 ```tsx
-import { useMcp } from 'use-mcp/react'
+import { useMcp } from '@gary149/use-mcp/react'
 
 function MyAIComponent() {
   const {
@@ -146,6 +163,45 @@ function MyAIComponent() {
 }
 ```
 
+## Quick Start (Svelte/SvelteKit)
+
+```ts
+// src/lib/mcp.ts
+import { browser } from '$app/environment'
+import { createMcp } from '@gary149/use-mcp/svelte'
+
+export const mcp = browser ? createMcp({
+  url: 'https://your-mcp-server.com',
+  clientName: 'My App',
+  autoReconnect: true,
+  // transportType: 'http', // recommended; SSE is legacy
+}) : undefined
+```
+
+```svelte
+<!-- src/routes/+page.svelte -->
+<script lang="ts">
+  import { mcp } from '$lib/mcp'
+</script>
+
+{#if mcp}
+  {#if $mcp.state === 'failed'}
+    <p>Connection failed: {$mcp.error}</p>
+    <button on:click={() => mcp.retry()}>Retry</button>
+    <button on:click={() => mcp.authenticate()}>Authenticate Manually</button>
+  {:else if $mcp.state !== 'ready'}
+    <p>Connecting to AI service…</p>
+  {:else}
+    <h2>Available Tools: {$mcp.tools.length}</h2>
+    <button on:click={() => mcp.callTool('search', { query: 'example search' })}>
+      Search
+    </button>
+  {/if}
+{:else}
+  <p>Loading…</p>
+{/if}
+```
+
 ## Setting Up OAuth Callback
 
 To handle the OAuth authentication flow, you need to set up a callback endpoint in your app.
@@ -156,7 +212,7 @@ To handle the OAuth authentication flow, you need to set up a callback endpoint 
 // App.tsx with React Router
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { useEffect } from 'react'
-import { onMcpAuthorization } from 'use-mcp'
+import { onMcpAuthorization } from '@gary149/use-mcp'
 
 function OAuthCallback() {
   useEffect(() => {
@@ -188,7 +244,7 @@ function App() {
 ```tsx
 // pages/oauth/callback.tsx
 import { useEffect } from 'react'
-import { onMcpAuthorization } from 'use-mcp'
+import { onMcpAuthorization } from '@gary149/use-mcp'
 
 export default function OAuthCallbackPage() {
   useEffect(() => {
@@ -203,6 +259,22 @@ export default function OAuthCallbackPage() {
   )
 }
 ```
+
+### With SvelteKit
+
+```svelte
+<!-- src/routes/oauth/callback/+page.svelte -->
+<script lang="ts">
+  import { onMount } from 'svelte'
+  import { onMcpAuthorization } from '@gary149/use-mcp'
+  onMount(() => onMcpAuthorization())
+</script>
+
+<h1>Authenticating…</h1>
+<p>This window should close automatically.</p>
+```
+
+Note: When using HTTP streaming transport across origins, ensure your MCP server CORS configuration allows and exposes the `Mcp-Session-Id` header so the browser can maintain the session. If your OAuth callback is hosted on a different origin (e.g., auth subdomain), pass `allowedOrigins: ['https://auth.example.com']` to `createMcp(...)` so the popup callback message is accepted.
 
 ## API Reference
 

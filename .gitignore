@@ -6,3 +6,7 @@ dist
 
 **/.claude/settings.local.json
 /public
+# SvelteKit build cache for test app
+# Example app artifacts
+examples/inspector-svelte/.svelte-kit/
+examples/inspector-svelte/pnpm-lock.yaml
