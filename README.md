@@ -68,6 +68,9 @@ function MyAIComponent() {
     tools,          // Available tools from MCP server
     resources,      // Available resources from MCP server
     prompts,        // Available prompts from MCP server
+    serverInfo,     // Server name and version from initialize response
+    serverCapabilities, // Server capabilities from initialize response
+    protocolVersion,// Negotiated MCP protocol version
     error,          // Error message if connection failed
     callTool,       // Function to call tools on the MCP server
     readResource,   // Function to read resource contents
@@ -108,6 +111,10 @@ function MyAIComponent() {
 
   return (
     <div>
+      {/* Show server information */}
+      {serverInfo && (
+        <p>Connected to: {serverInfo.name} v{serverInfo.version}</p>
+      )}
       <h2>Available Tools: {tools.length}</h2>
       <ul>
         {tools.map(tool => (
@@ -238,6 +245,9 @@ function useMcp(options: UseMcpOptions): UseMcpResult
 | `resources` | `Resource[]` | Available resources from the MCP server |
 | `resourceTemplates` | `ResourceTemplate[]` | Available resource templates from the MCP server |
 | `prompts` | `Prompt[]` | Available prompts from the MCP server |
+| `serverInfo` | `{ name: string; version: string } \| undefined` | Server information from the initialize response (name and version) |
+| `serverCapabilities` | `Record<string, any> \| undefined` | Server capabilities from the initialize response |
+| `protocolVersion` | `string \| undefined` | Protocol version negotiated during initialization |
 | `error` | `string \| undefined` | Error message if connection failed |
 | `authUrl` | `string \| undefined` | Manual authentication URL if popup is blocked |
 | `log` | `{ level: 'debug' \| 'info' \| 'warn' \| 'error'; message: string; timestamp: number }[]` | Array of log messages |

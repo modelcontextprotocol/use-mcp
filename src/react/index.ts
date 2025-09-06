@@ -8,3 +8,7 @@ export type { UseMcpOptions, UseMcpResult } from './types.js'
 
 // Re-export core types for convenience when using hook result
 export type { Tool, Resource, ResourceTemplate, Prompt } from '@modelcontextprotocol/sdk/types.js'
+
+// Export server information types for TypeScript users
+export type ServerInfo = { name: string; version: string }
+export type ServerCapabilities = Record<string, any>

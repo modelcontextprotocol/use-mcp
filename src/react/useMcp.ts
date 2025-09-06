@@ -55,8 +55,11 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
   const [resources, setResources] = useState<Resource[]>([])
   const [resourceTemplates, setResourceTemplates] = useState<ResourceTemplate[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
+  const [serverInfo, setServerInfo] = useState<{ name: string; version: string } | undefined>(undefined)
+  const [serverCapabilities, setServerCapabilities] = useState<Record<string, any> | undefined>(undefined)
+  const [protocolVersion, setProtocolVersion] = useState<string | undefined>(undefined)
   const [error, setError] = useState<string | undefined>(undefined)
-  const [log, setLog] = useState<UseMcpResult['log']>([])
+  const [log, setLog] = useState<UseMcpResult['log']>([])  
   const [authUrl, setAuthUrl] = useState<string | undefined>(undefined)
 
   const clientRef = useRef<Client | null>(null)
@@ -114,6 +117,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         setResources([])
         setResourceTemplates([])
         setPrompts([])
+        setServerInfo(undefined)
+        setServerCapabilities(undefined)
+        setProtocolVersion(undefined)
         setError(undefined)
         setAuthUrl(undefined)
       }
@@ -301,12 +307,45 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
         addLog('debug', `About to call client.connect() with transport instance`)
         addLog('debug', `Transport instance type: ${transportInstance.constructor.name}`)
 
-        await clientRef.current!.connect(transportInstance)
+        const initializeResponse = await clientRef.current!.connect(transportInstance)
 
         // --- Success Path ---
         addLog('info', `Client connected via ${transportType.toUpperCase()}. Loading tools, resources, and prompts...`)
         successfulTransportRef.current = transportType // Store successful type
         setState('loading')
+
+        // Capture server information from initialize response
+        if (initializeResponse && typeof initializeResponse === 'object') {
+          const response = initializeResponse as any
+          if (response.serverInfo) {
+            setServerInfo(response.serverInfo)
+            addLog('debug', `Server info: ${response.serverInfo.name} v${response.serverInfo.version}`)
+          }
+          if (response.capabilities) {
+            setServerCapabilities(response.capabilities)
+            addLog('debug', `Server capabilities:`, response.capabilities)
+          }
+          if (response.protocolVersion) {
+            setProtocolVersion(response.protocolVersion)
+            addLog('debug', `Protocol version: ${response.protocolVersion}`)
+          }
+        } else {
+          // Try to access server info from client properties if available
+          const client = clientRef.current as any
+          if (client.serverInfo) {
+            setServerInfo(client.serverInfo)
+            addLog('debug', `Server info from client: ${client.serverInfo.name} v${client.serverInfo.version}`)
+          }
+          if (client.serverCapabilities || client.capabilities) {
+            const caps = client.serverCapabilities || client.capabilities
+            setServerCapabilities(caps)
+            addLog('debug', `Server capabilities from client:`, caps)
+          }
+          if (client.protocolVersion) {
+            setProtocolVersion(client.protocolVersion)
+            addLog('debug', `Protocol version from client: ${client.protocolVersion}`)
+          }
+        }
 
         const toolsResponse = await clientRef.current!.request({ method: 'tools/list' }, ListToolsResultSchema)
 
@@ -832,6 +871,9 @@ export function useMcp(options: UseMcpOptions): UseMcpResult {
     resources,
     resourceTemplates,
     prompts,
+    serverInfo,
+    serverCapabilities,
+    protocolVersion,
     error,
     log,
     authUrl,

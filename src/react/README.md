@@ -217,6 +217,9 @@ export default MyChatComponent
 - resources: An array of Resource objects representing data available from the server.
 - resourceTemplates: An array of ResourceTemplate objects representing dynamic resources available from the server.
 - prompts: An array of Prompt objects representing reusable prompt templates from the server.
+- serverInfo: An object containing server metadata from the initialize response (name and version). Available after successful connection.
+- serverCapabilities: An object containing server capabilities from the initialize response. Available after successful connection.
+- protocolVersion: A string containing the negotiated MCP protocol version. Available after successful connection.
 - state: The current connection state ('discovering', 'authenticating', 'connecting', 'loading', 'ready', 'failed'). Use this to conditionally render UI or enable/disable features.
 - error: An error message if state is 'failed'.
 - authUrl: If authentication is required and the popup was potentially blocked, this URL string can be used to let the user manually open the auth page (e.g., <a href={authUrl} target="_blank">...</a>).
